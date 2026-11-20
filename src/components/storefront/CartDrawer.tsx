@@ -111,7 +111,7 @@ export function CartDrawer() {
     }
 
     let paystackRef = transferRef;
-    let paystackVerified = paymentMethod !== 'gtb_whatsapp';
+    let paystackVerified = false;
 
     if ((paymentMethod === 'paystack' || paymentMethod === 'card') && totals.grandTotal > 0) {
       setIsProcessingPaystack(true);
@@ -143,12 +143,10 @@ export function CartDrawer() {
         }
         paystackRef = data.reference || paystackRef;
         if (data.configured && data.authorizationUrl) {
-          // Live Paystack configured: keep order pending until Paystack gateway verifies settlement
-          paystackVerified = false;
           setPaystackAuthUrl(data.authorizationUrl);
         }
       } catch {
-        // Allow preview fallback when offline
+        // Safe offline fallback
       } finally {
         setIsProcessingPaystack(false);
       }
@@ -235,28 +233,36 @@ export function CartDrawer() {
         {completedReceipt ? (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {completedReceipt.order.status === 'pending' ? (
-              paystackAuthUrl ? (
+              completedReceipt.order.paymentMethod !== 'gtb_whatsapp' ? (
                 <div className="p-5 rounded-xl bg-[#0a192f] text-white border-2 border-[#d4af37] space-y-4">
                   <div className="flex items-center gap-2.5 text-[#f5c451] font-bold text-base">
                     <CreditCard className="w-5 h-5 shrink-0" />
-                    <span>Order {completedReceipt.order.id} · Complete Paystack Payment</span>
+                    <span>Order {completedReceipt.order.id} · Paystack Payment Required</span>
                   </div>
                   <p className="text-xs text-slate-200 leading-relaxed">
-                    Your order is created as <strong>Pending Payment</strong> ({getPaystackOptionLabel(paystackOption)}). Complete your{' '}
-                    <strong className="text-[#f5c451] tabular-nums">
-                      {formatNaira(completedReceipt.order.total)}
-                    </strong>{' '}
-                    checkout on Paystack to automatically unlock your digital products.
+                    <strong>Zero Access Without Payment:</strong> Your order is recorded as{' '}
+                    <strong className="text-amber-400">Pending Settlement</strong>. Course and product
+                    access remains locked until actual payment is completed and verified.
                   </p>
-                  <a
-                    href={paystackAuthUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 px-4 text-xs font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md inline-flex items-center justify-center gap-2"
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    <span>Proceed to Paystack Checkout</span>
-                  </a>
+                  {paystackAuthUrl ? (
+                    <a
+                      href={paystackAuthUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-3 px-4 text-xs font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md inline-flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>Proceed to Paystack Checkout ({formatNaira(completedReceipt.order.total)})</span>
+                    </a>
+                  ) : (
+                    <div className="p-3 bg-[#112240] border border-[#233554] rounded-md text-xs space-y-1 text-slate-300">
+                      <p className="font-semibold text-[#f5c451]">Live Gateway Pending Verification</p>
+                      <p>Reference: <code className="font-mono text-white select-all">{completedReceipt.order.paymentReference || 'N/A'}</code></p>
+                      <p className="text-[11px] text-slate-400">
+                        Once you finish payment on Paystack, click the verification button below or have an Admin confirm in the Admin Console.
+                      </p>
+                    </div>
+                  )}
                   {completedReceipt.order.paymentReference && (
                     <button
                       type="button"

@@ -1030,7 +1030,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const paymentMethod: PaymentMethod = options?.paymentMethod ?? 'paystack';
       const orderStatus = resolveInitialOrderStatus(
         paymentMethod,
-        options?.paystackVerified ?? true
+        options?.paystackVerified === true
       );
       const isPendingTransfer = orderStatus === 'pending';
 
@@ -1640,11 +1640,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       const paymentMethod = options?.paymentMethod ?? 'card';
       const status: UserMembership['status'] =
-        paymentMethod === 'gtb_whatsapp'
-          ? 'pending'
-          : options?.paystackVerified === false
-          ? 'pending'
-          : 'active';
+        options?.paystackVerified === true ? 'active' : 'pending';
       const now = new Date();
       const renewDate = new Date(now);
       if (billingCycle === 'annual') {

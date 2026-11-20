@@ -179,19 +179,14 @@ export function EventsPage() {
           }
           if (initJson.configured && initJson.authorizationUrl) {
             setPaystackAuthUrl(initJson.authorizationUrl);
-            paymentInfo = {
-              paymentStatus: 'pending_paystack',
-              paymentReference: initJson.reference || ref,
-            };
-          } else {
-            paymentInfo = {
-              paymentStatus: 'paid_paystack',
-              paymentReference: initJson.reference || ref,
-            };
           }
+          paymentInfo = {
+            paymentStatus: 'pending_paystack',
+            paymentReference: initJson.reference || ref,
+          };
         } catch {
           paymentInfo = {
-            paymentStatus: 'paid_paystack',
+            paymentStatus: 'pending_paystack',
             paymentReference: `EVT-PSK-LOCAL-${Date.now()}`,
           };
         }

@@ -26,10 +26,10 @@ export function resolveInitialOrderStatus(
   if (paymentMethod === 'gtb_whatsapp') {
     return 'pending';
   }
-  if (paymentMethod === 'paystack') {
-    return paystackVerified ? 'completed' : 'pending';
+  if (paymentMethod === 'paystack' || paymentMethod === 'card') {
+    return paystackVerified === true ? 'completed' : 'pending';
   }
-  return 'completed';
+  return 'pending';
 }
 
 export function getOptedInSubscribers(

@@ -63,11 +63,15 @@ const REGISTRATIONS: EventRegistration[] = [
   },
 ];
 
-test('Option C payment safety: GTB manual transfer stays pending, unverified Paystack stays pending, verified Paystack completes', () => {
+test('Option C payment safety: GTB manual transfer stays pending, unverified Paystack/Card stays pending, verified Paystack/Card completes', () => {
   assert.equal(resolveInitialOrderStatus('gtb_whatsapp', true), 'pending');
   assert.equal(resolveInitialOrderStatus('gtb_whatsapp', false), 'pending');
   assert.equal(resolveInitialOrderStatus('paystack', false), 'pending');
   assert.equal(resolveInitialOrderStatus('paystack', true), 'completed');
+  assert.equal(resolveInitialOrderStatus('paystack'), 'pending');
+  assert.equal(resolveInitialOrderStatus('card', false), 'pending');
+  assert.equal(resolveInitialOrderStatus('card', true), 'completed');
+  assert.equal(resolveInitialOrderStatus('card'), 'pending');
 });
 
 test('getOptedInSubscribers respects consent toggles and deduplicates emails case-insensitively', () => {

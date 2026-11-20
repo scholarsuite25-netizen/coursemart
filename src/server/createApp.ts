@@ -12,6 +12,13 @@ import {
 import { sanitizePaystackChannels } from '../utils/paystack.ts';
 import { sanitizeEmailHeader } from '../utils/sanitize.ts';
 import {
+  filterStoreValueForRead,
+  mergeStoreValue,
+  type ReadCtx,
+  type WriteCtx,
+} from '../utils/storeSync.ts';
+import { verifyPassword } from '../utils/passwordHash.ts';
+import {
   ADMIN_SESSION_COOKIE_NAME,
   DEFAULT_ADMIN_TTL_MS,
   createAdminSessionToken,
@@ -20,7 +27,23 @@ import {
   verifyAdminCredentials,
   verifyAdminSessionToken,
 } from './adminAuth.ts';
+import {
+  DEFAULT_USER_TTL_MS,
+  USER_SESSION_COOKIE_NAME,
+  createUserSessionToken,
+  verifyUserSessionToken,
+} from './userAuth.ts';
 import { verifyPaystackWebhookSignature } from './paystackWebhook.ts';
+import {
+  EXPECTED_REFS_KV_KEY,
+  EXPECTED_REFS_LOCAL_KEY,
+  amountsMatch,
+  buildExpectedRefRecord,
+  evaluatePaystackVerification,
+  type ExpectedRefRecord,
+} from './paystackExpected.ts';
+
+const GEMINI_MODEL = (process.env.GEMINI_MODEL || 'gemini-4-hydrogen').trim();
 
 type RawBodyRequest = Request & { rawBody?: Buffer };
 
@@ -34,11 +57,11 @@ const EDITORIAL_IMAGE_POOL: Record<string, { url: string; label: string }> = {
     label: 'AI & Vibe Coding engineering workflow',
   },
   architecture_desk: {
-    url: '/src/assets/images/blog_inline_architecture_1794932926034.jpg',
+    url: '/src/assets/images/course_fullstack_architecture_1794890415282.jpg',
     label: 'Software architecture and system diagram workstation',
   },
   mentorship_studio: {
-    url: '/src/assets/images/blog_inline_team_mentorship_1794932927655.jpg',
+    url: '/src/assets/images/blog_leadership_mentorship_1794925522598.jpg',
     label: 'Engineering mentor and developer whiteboard collaboration',
   },
   leadership_session: {
@@ -58,11 +81,11 @@ const EDITORIAL_IMAGE_POOL: Record<string, { url: string; label: string }> = {
     label: 'Modular digital architecture templates and toolkits',
   },
   cloud_ops_ui: {
-    url: '/src/assets/images/showcase_cloud_ops_1794932925707.jpg',
+    url: '/src/assets/images/blog_apps_deployment_1794925519743.jpg',
     label: 'Live cloud deployment dashboard telemetry',
   },
   ai_workspace_ui: {
-    url: '/src/assets/images/showcase_ai_workspace_1794932924628.jpg',
+    url: '/src/assets/images/hero_learning_workspace_1794890414767.jpg',
     label: 'AI workflow evaluation and studio workspace',
   },
 };
@@ -246,12 +269,101 @@ async function checkWebhookRecordedPaystackRef(reference: string): Promise<boole
   return false;
 }
 
-const ALLOWED_STORE_KEYS = new Set([
+// --- Expected-amount bookkeeping: recorded at initialize, enforced at verify/webhook ---
+
+async function recordExpectedPaystackRef(reference: string, expected: ExpectedRefRecord): Promise<void> {
+  const localData = readLocalRuntimeStore();
+  const existing = (localData[EXPECTED_REFS_LOCAL_KEY] as Record<string, unknown>) || {};
+  existing[reference] = expected;
+  localData[EXPECTED_REFS_LOCAL_KEY] = existing;
+  writeLocalRuntimeStore(localData);
+
+  const supabase = createServerSupabaseClient();
+  if (supabase) {
+    try {
+      await supabase
+        .from('coursemart_kv_store')
+        .upsert(
+          { key: EXPECTED_REFS_KV_KEY, value: existing, updated_at: new Date().toISOString() },
+          { onConflict: 'key' }
+        );
+    } catch {
+      // Non-fatal: local runtime store still holds the expectation.
+    }
+  }
+}
+
+async function readExpectedPaystackRef(reference: string): Promise<ExpectedRefRecord | null> {
+  const localData = readLocalRuntimeStore();
+  const localRefs = (localData[EXPECTED_REFS_LOCAL_KEY] as Record<string, ExpectedRefRecord>) || {};
+  if (localRefs[reference]) {
+    return localRefs[reference];
+  }
+  const supabase = createServerSupabaseClient();
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from('coursemart_kv_store')
+        .select('value')
+        .eq('key', EXPECTED_REFS_KV_KEY)
+        .maybeSingle();
+      const map = data?.value as Record<string, ExpectedRefRecord> | undefined;
+      if (map && reference in map) {
+        return map[reference];
+      }
+    } catch {
+      // Fall through to "unknown expectation".
+    }
+  }
+  return null;
+}
+
+/** Every collection synchronized through the KV store (client hydrates/pushes these). */
+const SYNC_KEYS = [
+  'products',
+  'users',
+  'orders',
+  'licenses',
+  'coupons',
+  'reviews',
+  'progress',
+  'appearance',
+  'whatsapp_groups',
+  'blog_posts',
+  'blog_bookmarks',
+  'membership_plans',
+  'user_memberships',
+  'affiliates',
+  'affiliate_conversions',
+  'affiliate_payouts',
+  'showcase_sites',
   'events',
   'event_registrations',
   'social_drafts',
   'email_campaigns',
-]);
+] as const;
+
+const ALLOWED_STORE_KEYS = new Set<string>(SYNC_KEYS);
+
+async function readStoreKeyValue(key: string): Promise<unknown | undefined> {
+  const supabase = createServerSupabaseClient();
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('coursemart_kv_store')
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
+      if (!error && data?.value !== undefined && data.value !== null) {
+        return data.value;
+      }
+    } catch {
+      // Fall back to the local runtime store below.
+    }
+  }
+  const localData = readLocalRuntimeStore();
+  return key in localData ? localData[key] : undefined;
+}
 
 const rateBucket = new Map<string, { count: number; resetAt: number }>();
 
@@ -302,13 +414,37 @@ export function createApiApp() {
     })
   );
 
-  // Server-Side Admin Session Helpers
-  const ADMIN_PROTECTED_KEYS = new Set(['events', 'social_drafts', 'email_campaigns']);
-
+  // Server-Side Session Helpers (admin console + regular user sessions)
   const readAdminSession = (req: Request) => {
     const cookies = parseCookieHeader(req.headers.cookie);
     const token = cookies[ADMIN_SESSION_COOKIE_NAME];
     return verifyAdminSessionToken(token, getAdminSessionSecret());
+  };
+
+  const readUserSession = (req: Request) => {
+    const cookies = parseCookieHeader(req.headers.cookie);
+    const token = cookies[USER_SESSION_COOKIE_NAME];
+    return verifyUserSessionToken(token, getAdminSessionSecret());
+  };
+
+  const buildWriteCtx = (req: Request): WriteCtx => {
+    const admin = readAdminSession(req);
+    const user = readUserSession(req);
+    return {
+      isAdmin: Boolean(admin),
+      role: admin ? 'admin' : (user?.role ?? null),
+      selfUserId: user?.sub,
+    };
+  };
+
+  const buildReadCtx = (req: Request): ReadCtx => {
+    const admin = readAdminSession(req);
+    const user = readUserSession(req);
+    return {
+      isAdmin: Boolean(admin),
+      selfUserId: user?.sub,
+      selfEmail: user?.email,
+    };
   };
 
   const requireAdminSession = (req: Request, res: Response): boolean => {
@@ -320,6 +456,14 @@ export function createApiApp() {
       return false;
     }
     return true;
+  };
+
+  const setSessionCookie = (res: Response, name: string, token: string, maxAgeSec: number, req: Request) => {
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    res.setHeader(
+      'Set-Cookie',
+      `${name}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}${isSecure ? '; Secure' : ''}`
+    );
   };
 
   app.post('/api/auth/admin/login', (req, res) => {
@@ -372,6 +516,77 @@ export function createApiApp() {
     res.json({ ok: true });
   });
 
+  // Regular user sessions: server-verified against the synced users collection,
+  // issued as an HttpOnly cookie that scopes KV reads/writes to that account.
+  app.post('/api/auth/user/session', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'user-session', 12, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Too many sign-in attempts. Wait a minute.' });
+      return;
+    }
+    const { email, password } = req.body ?? {};
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
+      res.status(400).json({ ok: false, error: 'Email and password are required.' });
+      return;
+    }
+    const normalized = email.trim().toLowerCase();
+
+    const genericError = { ok: false as const, code: 'invalid_credentials', error: 'Invalid email or password.' };
+    try {
+      const users = await readStoreKeyValue('users');
+      const list = Array.isArray(users) ? users : [];
+      const match = list.find(
+        (u): u is Record<string, unknown> =>
+          Boolean(u) &&
+          typeof u === 'object' &&
+          String((u as Record<string, unknown>).email ?? '').trim().toLowerCase() === normalized
+      );
+      if (!match) {
+        res.status(404).json({ ok: false, code: 'not_found', error: 'Invalid email or password.' });
+        return;
+      }
+      const valid = await verifyPassword(
+        password,
+        typeof match.password === 'string' ? match.password : ''
+      );
+      if (!valid) {
+        res.status(401).json(genericError);
+        return;
+      }
+      const role = match.role === 'instructor' || match.role === 'admin' ? match.role : 'customer';
+      const token = createUserSessionToken(String(match.id), normalized, role, getAdminSessionSecret());
+      setSessionCookie(res, USER_SESSION_COOKIE_NAME, token, Math.floor(DEFAULT_USER_TTL_MS / 1000), req);
+      res.json({
+        ok: true,
+        user: {
+          id: match.id,
+          name: match.name,
+          email: match.email,
+          role,
+          avatar: match.avatar,
+          title: match.title,
+          newsletterOptIn: match.newsletterOptIn,
+          joinedAt: match.joinedAt,
+        },
+      });
+    } catch {
+      res.status(500).json({ ok: false, error: 'Could not verify credentials right now.' });
+    }
+  });
+
+  app.get('/api/auth/user/session', (req, res) => {
+    const session = readUserSession(req);
+    if (!session) {
+      res.json({ authenticated: false });
+      return;
+    }
+    res.json({ authenticated: true, userId: session.sub, email: session.email, role: session.role });
+  });
+
+  app.post('/api/auth/user/logout', (req, res) => {
+    setSessionCookie(res, USER_SESSION_COOKIE_NAME, '', 0, req);
+    res.json({ ok: true });
+  });
+
   app.get('/api/health', (_req, res) => {
     const supabaseConfigured = Boolean(createServerSupabaseClient());
     const emailState = getEmailProviderState();
@@ -397,41 +612,48 @@ export function createApiApp() {
     });
   });
 
-  // Supabase KV State Sync + Local File Store Fallback (allowlisted keys only)
+  // Supabase KV State Sync + Local File Store Fallback (allowlisted keys, session-scoped)
+  app.get('/api/store', async (req, res) => {
+    const ctx = buildReadCtx(req);
+    try {
+      const entries = await Promise.all(
+        SYNC_KEYS.map(async (key) => {
+          const stored = await readStoreKeyValue(key);
+          if (stored === undefined || stored === null) return null;
+          const filtered = filterStoreValueForRead(key, stored, ctx);
+          return filtered === null ? null : ([key, filtered] as const);
+        })
+      );
+      const values: Record<string, unknown> = {};
+      for (const entry of entries) {
+        if (entry) values[entry[0]] = entry[1];
+      }
+      res.json({ ok: true, values });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Bulk store read failed';
+      res.status(500).json({ error: msg });
+    }
+  });
+
   app.get('/api/store/:key', async (req, res) => {
     const key = String(req.params.key || '').trim();
     if (!key || !ALLOWED_STORE_KEYS.has(key)) {
       res.status(400).json({ error: 'Invalid or disallowed store key.' });
       return;
     }
-    if ((key === 'social_drafts' || key === 'email_campaigns') && !requireAdminSession(req, res)) {
+
+    const stored = await readStoreKeyValue(key);
+    if (stored === undefined || stored === null) {
+      res.status(404).json({ error: 'No stored state yet for key' });
       return;
     }
 
-    const supabase = createServerSupabaseClient();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('coursemart_kv_store')
-          .select('value, updated_at')
-          .eq('key', key)
-          .maybeSingle();
-
-        if (!error && data) {
-          res.json({ source: 'supabase', value: data.value, updatedAt: data.updated_at });
-          return;
-        }
-      } catch (err) {
-        console.warn('Supabase read fallback:', err);
-      }
-    }
-
-    const localData = readLocalRuntimeStore();
-    if (key in localData) {
-      res.json({ source: 'local-runtime', value: localData[key] });
+    const filtered = filterStoreValueForRead(key, stored, buildReadCtx(req));
+    if (filtered === null) {
+      res.status(403).json({ error: 'Not permitted for this session.' });
       return;
     }
-    res.status(404).json({ error: 'No stored state yet for key' });
+    res.json({ source: 'kv', value: filtered });
   });
 
   app.put('/api/store/:key', async (req, res) => {
@@ -441,13 +663,27 @@ export function createApiApp() {
       res.status(400).json({ error: 'Valid allowlisted key and value are required.' });
       return;
     }
-    if (ADMIN_PROTECTED_KEYS.has(key) && !requireAdminSession(req, res)) {
+    if (!checkRateLimit(req.ip || 'unknown', 'store-put', 60, 60_000)) {
+      res.status(429).json({ error: 'Store sync rate limit reached. Try again in a minute.' });
+      return;
+    }
+
+    const existing = await readStoreKeyValue(key);
+    const result = mergeStoreValue(key, existing ?? null, value, buildWriteCtx(req));
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error });
       return;
     }
 
     const localData = readLocalRuntimeStore();
-    localData[key] = value;
+    localData[key] = result.value;
     writeLocalRuntimeStore(localData);
+
+    const stats = {
+      added: result.added,
+      skippedDuplicates: result.skippedDuplicates,
+      rejected: result.rejected,
+    };
 
     const supabase = createServerSupabaseClient();
     if (supabase) {
@@ -455,27 +691,31 @@ export function createApiApp() {
         const { error } = await supabase
           .from('coursemart_kv_store')
           .upsert(
-            { key, value, updated_at: new Date().toISOString() },
+            { key, value: result.value, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
           );
         if (error) {
-          res.status(200).json({ ok: true, source: 'local-runtime', supabaseError: error.message });
+          res.status(200).json({ ok: true, source: 'local-runtime', supabaseError: error.message, ...stats });
           return;
         }
-        res.json({ ok: true, source: 'supabase' });
+        res.json({ ok: true, source: 'supabase', ...stats });
         return;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Supabase write failed';
-        res.status(200).json({ ok: true, source: 'local-runtime', supabaseError: msg });
+        res.status(200).json({ ok: true, source: 'local-runtime', supabaseError: msg, ...stats });
         return;
       }
     }
 
-    res.json({ ok: true, source: 'local-runtime' });
+    res.json({ ok: true, source: 'local-runtime', ...stats });
   });
 
   // Paystack Initialization, Verification & Webhook (Option C Safe Checkout — NGN ₦ + Channels)
   app.post('/api/paystack/initialize', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'paystack-init', 20, 60_000)) {
+      res.status(429).json({ error: 'Too many payment attempts. Wait a minute.' });
+      return;
+    }
     const { email, amountNgn, amountUsd, reference, callbackUrl, metadata, channels } =
       req.body ?? {};
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -529,6 +769,14 @@ export function createApiApp() {
         res.status(502).json({ error: json.message || 'Paystack initialization failed.' });
         return;
       }
+      const finalReference = json.data?.reference || reference;
+      // Record what we asked Paystack to charge so verify/webhook can enforce it.
+      if (finalReference) {
+        await recordExpectedPaystackRef(
+          finalReference,
+          buildExpectedRefRecord(Math.round(rawAmount * 100), 'NGN', String(email))
+        );
+      }
       res.json({
         mode: 'live',
         configured: true,
@@ -536,7 +784,7 @@ export function createApiApp() {
         channels: safeChannels,
         authorizationUrl: json.data?.authorization_url,
         accessCode: json.data?.access_code,
-        reference: json.data?.reference || reference,
+        reference: finalReference,
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Paystack request error';
@@ -563,12 +811,22 @@ export function createApiApp() {
       data?: { reference?: string; amount?: number; currency?: string; channel?: string; status?: string };
     };
     if (eventPayload?.event === 'charge.success' && eventPayload.data?.reference) {
-      await recordVerifiedPaystackRef(eventPayload.data.reference, {
-        amountKobo: eventPayload.data.amount,
-        currency: eventPayload.data.currency || 'NGN',
-        channel: eventPayload.data.channel || 'unknown',
-        status: eventPayload.data.status || 'success',
-      });
+      const ref = eventPayload.data.reference;
+      const expected = await readExpectedPaystackRef(ref);
+      const actualAmount = eventPayload.data.amount;
+      const amountOk =
+        !expected ||
+        (typeof actualAmount === 'number' && amountsMatch(expected.amountKobo, actualAmount));
+      if (amountOk) {
+        await recordVerifiedPaystackRef(ref, {
+          amountKobo: actualAmount,
+          currency: eventPayload.data.currency || 'NGN',
+          channel: eventPayload.data.channel || 'unknown',
+          status: eventPayload.data.status || 'success',
+        });
+      }
+      // Amount mismatch: acknowledge to stop Paystack retries, but never mark
+      // the reference as verified. Verification will flag it for manual review.
     }
 
     res.status(200).json({ received: true });
@@ -597,6 +855,8 @@ export function createApiApp() {
     }
 
     const webhookConfirmed = await checkWebhookRecordedPaystackRef(cleanRef);
+    const expected = await readExpectedPaystackRef(cleanRef);
+    const expectedAmountKobo = expected ? expected.amountKobo : null;
 
     try {
       const response = await fetch(
@@ -610,25 +870,40 @@ export function createApiApp() {
         message?: string;
         data?: { status?: string; reference?: string; amount?: number; currency?: string; channel?: string };
       };
-      const paid = Boolean((json.status && json.data?.status === 'success') || webhookConfirmed);
+      const outcome = evaluatePaystackVerification({
+        gatewayStatus: json.data?.status,
+        gatewayAmountKobo: json.data?.amount,
+        webhookConfirmed,
+        expectedAmountKobo,
+      });
+      const message = outcome.verified
+        ? outcome.message
+        : json.data?.status === 'success'
+          ? outcome.message
+          : json.message || outcome.message;
       res.json({
-        verified: paid,
+        verified: outcome.verified,
         configured: true,
         mode: 'live',
         reference: json.data?.reference || cleanRef,
         channel: json.data?.channel,
         gatewayStatus: json.data?.status || (webhookConfirmed ? 'success' : 'failed'),
-        message: paid ? 'Verified via Paystack API' : json.message || 'Transaction not completed yet',
+        message,
       });
     } catch (err: unknown) {
-      if (webhookConfirmed) {
+      const outcome = evaluatePaystackVerification({
+        webhookConfirmed,
+        expectedAmountKobo,
+        gatewayUnreachable: true,
+      });
+      if (outcome.verified) {
         res.json({
           verified: true,
           configured: true,
           mode: 'live',
           reference: cleanRef,
           gatewayStatus: 'success',
-          message: 'Verified via Paystack Webhook',
+          message: outcome.message,
         });
         return;
       }
@@ -753,7 +1028,7 @@ Return platform-native drafts:
 3. whatsapp_group: formatted warm community announcement note meant for manual WhatsApp Group posting (never automated spamming).`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-4-hydrogen',
+        model: GEMINI_MODEL,
         contents: prompt,
         config: {
           systemInstruction:
@@ -842,7 +1117,7 @@ Requirements:
 - Generate 4 to 6 structured editorial blocks covering clear numbered headings, substantive multi-paragraph prose, at least 1 pullQuote, at least 1 practical codeSnippet or checklist, and (when requested) 2 inline image blocks inserted naturally between sections using the curated image keys above.`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-4-hydrogen',
+        model: GEMINI_MODEL,
         contents: prompt,
         config: {
           systemInstruction:

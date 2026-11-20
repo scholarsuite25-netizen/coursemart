@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CourseLecture } from '../../types/marketplace';
+import { lectureAudio } from '../../utils/audioNarrator';
 
 interface LectureVideoCanvasPlayerProps {
   lecture: CourseLecture & { moduleTitle: string };
@@ -8,6 +9,9 @@ interface LectureVideoCanvasPlayerProps {
   totalSeconds: number;
   playbackSpeed: number;
   captionsEnabled: boolean;
+  volume?: number;
+  isMuted?: boolean;
+  voiceEnabled?: boolean;
   onTogglePlay: () => void;
   onVideoEnded?: () => void;
 }
@@ -19,21 +23,32 @@ export function LectureVideoCanvasPlayer({
   totalSeconds,
   playbackSpeed,
   captionsEnabled,
+  volume = 0.8,
+  isMuted = false,
+  voiceEnabled = true,
   onTogglePlay,
   onVideoEnded,
 }: LectureVideoCanvasPlayerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [streamReady, setStreamReady] = useState(false);
+  const lastConceptIdxRef = useRef<number>(-1);
 
-  // Sync playback rate & external URL if provided
+  // Sync playback rate & volume/mute to <video> element
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
     vid.playbackRate = playbackSpeed;
-  }, [playbackSpeed]);
+    vid.volume = Math.max(0, Math.min(1, volume));
+    vid.muted = isMuted;
+  }, [playbackSpeed, volume, isMuted]);
 
-  // Attach MediaStream from Canvas to <video> when no external MP4/WebM URL is present
+  // Update audio engine volume & mute state
+  useEffect(() => {
+    lectureAudio.updateVolumeAndMute(volume, isMuted);
+  }, [volume, isMuted]);
+
+  // Attach MediaStream from Canvas + Audio track to <video> when no external MP4/WebM URL is present
   useEffect(() => {
     const canvas = canvasRef.current;
     const video = videoRef.current;
@@ -43,6 +58,13 @@ export function LectureVideoCanvasPlayer({
     if (typeof canvas.captureStream === 'function') {
       try {
         stream = canvas.captureStream(24);
+        const audioDest = lectureAudio.getAudioStreamDestination();
+        if (audioDest && audioDest.stream) {
+          const audioTrack = audioDest.stream.getAudioTracks()[0];
+          if (audioTrack) {
+            stream.addTrack(audioTrack);
+          }
+        }
         video.srcObject = stream;
         setStreamReady(true);
       } catch {
@@ -60,19 +82,73 @@ export function LectureVideoCanvasPlayer({
     };
   }, [lecture.id, lecture.videoUrl]);
 
-  // Play / Pause the HTML5 <video> element in lockstep
+  // Play / Pause the HTML5 <video> element and narration engine in lockstep
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
     if (isPlaying) {
-      const p = video.play();
-      if (p && typeof p.catch === 'function') {
-        p.catch(() => {});
+      if (video) {
+        const p = video.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(() => {});
+        }
       }
+      lectureAudio.startAmbientTrack(isMuted, volume);
     } else {
-      video.pause();
+      if (video) {
+        video.pause();
+      }
+      lectureAudio.pause();
     }
-  }, [isPlaying, lecture.id, streamReady]);
+  }, [isPlaying, lecture.id, streamReady, isMuted, volume]);
+
+  // Stop audio and reset concept index when active lecture changes
+  useEffect(() => {
+    lastConceptIdxRef.current = -1;
+    return () => {
+      lectureAudio.stop();
+    };
+  }, [lecture.id]);
+
+  // Handle synchronized speech narration & chimes as elapsed progress advances
+  useEffect(() => {
+    if (!isPlaying || lecture.videoUrl) return;
+
+    const takeaways = lecture.keyTakeaways && lecture.keyTakeaways.length > 0
+      ? lecture.keyTakeaways
+      : [lecture.summary];
+    const pct = totalSeconds > 0 ? Math.min(1, elapsedSeconds / totalSeconds) : 0;
+    const conceptIdx = Math.min(takeaways.length - 1, Math.floor(pct * takeaways.length));
+
+    // When concept changes or at start of lecture
+    if (conceptIdx !== lastConceptIdxRef.current) {
+      lastConceptIdxRef.current = conceptIdx;
+      lectureAudio.playChime(587.33, 350, isMuted, volume);
+
+      let textToNarrate = '';
+      if (conceptIdx === 0 && elapsedSeconds < 5) {
+        textToNarrate = `Now presenting: ${lecture.title}. Module: ${lecture.moduleTitle}. ${lecture.summary}. Key Concept 1: ${takeaways[0]}`;
+      } else {
+        textToNarrate = `Key Concept ${conceptIdx + 1}: ${takeaways[conceptIdx]}`;
+      }
+
+      lectureAudio.narrateSegment(textToNarrate, {
+        volume,
+        isMuted,
+        playbackSpeed,
+        voiceEnabled,
+        conceptIndex: conceptIdx,
+      });
+    }
+  }, [
+    isPlaying,
+    elapsedSeconds,
+    totalSeconds,
+    lecture,
+    playbackSpeed,
+    volume,
+    isMuted,
+    voiceEnabled,
+  ]);
 
   // Render animated vector lecture slide frames onto the canvas backing the <video> stream
   useEffect(() => {
@@ -110,27 +186,32 @@ export function LectureVideoCanvasPlayer({
       ctx.font = 'bold 20px monospace';
       ctx.fillText(lecture.moduleTitle.toUpperCase(), 64, 72);
 
-      // Play/Stream indicator pill
+      // Play/Stream indicator pill with audio telemetry
       ctx.fillStyle = isPlaying ? '#10b981' : '#64748b';
       ctx.beginPath();
-      ctx.arc(w - 170, 65, 6, 0, Math.PI * 2);
+      ctx.arc(w - 240, 65, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = '600 18px monospace';
-      ctx.fillText(isPlaying ? `LIVE ${playbackSpeed}x` : 'PAUSED', w - 154, 72);
+      ctx.font = '600 16px monospace';
+      const soundStatus = isMuted ? 'MUTED' : `${Math.round(volume * 100)}% VOL`;
+      ctx.fillText(
+        isPlaying ? `LIVE ${playbackSpeed}x · ${soundStatus}` : `PAUSED · ${soundStatus}`,
+        w - 224,
+        72
+      );
 
       // Lecture title (wrapped to 2 lines max)
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 40px sans-serif';
+      ctx.font = 'bold 38px sans-serif';
       const words = lecture.title.split(' ');
       let line = '';
-      let lineY = 170;
+      let lineY = 160;
       for (const word of words) {
         const test = line ? `${line} ${word}` : word;
         if (ctx.measureText(test).width > w - 140) {
           ctx.fillText(line, 64, lineY);
           line = word;
-          lineY += 50;
+          lineY += 46;
         } else {
           line = test;
         }
@@ -140,7 +221,10 @@ export function LectureVideoCanvasPlayer({
       }
 
       // Active takeaway card based on elapsed progress
-      const takeaways = lecture.keyTakeaways.length > 0 ? lecture.keyTakeaways : [lecture.summary];
+      const takeaways =
+        lecture.keyTakeaways && lecture.keyTakeaways.length > 0
+          ? lecture.keyTakeaways
+          : [lecture.summary];
       const pct = totalSeconds > 0 ? Math.min(1, elapsedSeconds / totalSeconds) : 0;
       const takeawayIdx = Math.min(
         takeaways.length - 1,
@@ -151,55 +235,56 @@ export function LectureVideoCanvasPlayer({
       ctx.fillStyle = 'rgba(17, 34, 64, 0.92)';
       ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)';
       ctx.lineWidth = 2;
-      ctx.fillRect(64, 300, w - 128, 170);
-      ctx.strokeRect(64, 300, w - 128, 170);
+      ctx.fillRect(64, 280, w - 128, 185);
+      ctx.strokeRect(64, 280, w - 128, 185);
 
       ctx.fillStyle = '#f5c451';
       ctx.font = 'bold 18px monospace';
       ctx.fillText(
-        `KEY CONCEPT ${takeawayIdx + 1} OF ${takeaways.length}`,
+        `KEY CONCEPT ${takeawayIdx + 1} OF ${takeaways.length} · SOUND & NARRATION ACTIVE`,
         92,
-        340
+        320
       );
 
       ctx.fillStyle = '#e2e8f0';
       ctx.font = '24px sans-serif';
       const ptWords = currentPoint.split(' ');
       let ptLine = '';
-      let ptY = 384;
+      let ptY = 368;
       for (const wItem of ptWords) {
         const nextPt = ptLine ? `${ptLine} ${wItem}` : wItem;
         if (ctx.measureText(nextPt).width > w - 200) {
           ctx.fillText(ptLine, 92, ptY);
           ptLine = wItem;
           ptY += 34;
-          if (ptY > 455) break;
+          if (ptY > 445) break;
         } else {
           ptLine = nextPt;
         }
       }
-      if (ptLine && ptY <= 455) {
+      if (ptLine && ptY <= 445) {
         ctx.fillText(ptLine, 92, ptY);
       }
 
-      // Animated audio-style telemetry bars when playing
-      const barCount = 36;
+      // Animated audio-style telemetry waveform bars reacting to sound amplitude
+      const barCount = 42;
       for (let i = 0; i < barCount; i++) {
-        const amp = isPlaying
-          ? 10 + Math.abs(Math.sin(phaseOffset * 0.12 + i * 0.55)) * 28
+        const audioAmp = isPlaying && !isMuted && volume > 0
+          ? 12 + Math.abs(Math.sin(phaseOffset * 0.16 + i * 0.45)) * 34 * volume
           : 6;
         ctx.fillStyle = i / barCount <= pct ? '#d4af37' : 'rgba(148, 163, 184, 0.3)';
-        ctx.fillRect(64 + i * 32, 540 - amp, 18, amp);
+        ctx.fillRect(64 + i * 27, 545 - audioAmp, 18, audioAmp);
       }
 
-      // Captions bar
+      // Captions & Voice Status bar
       if (captionsEnabled) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
-        ctx.fillRect(140, 580, w - 280, 56);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+        ctx.fillRect(120, 580, w - 240, 60);
         ctx.fillStyle = '#f8fafc';
-        ctx.font = '20px sans-serif';
-        const caption = `[CC] ${currentPoint}`.slice(0, 86);
-        ctx.fillText(caption, 164, 615);
+        ctx.font = '19px sans-serif';
+        const voiceTag = voiceEnabled && !isMuted ? '🔊 Voice' : '🔇 Audio';
+        const caption = `[CC · ${voiceTag}] ${currentPoint}`.slice(0, 92);
+        ctx.fillText(caption, 144, 618);
       }
     };
 
@@ -219,7 +304,17 @@ export function LectureVideoCanvasPlayer({
     return () => {
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [lecture, isPlaying, elapsedSeconds, totalSeconds, playbackSpeed, captionsEnabled]);
+  }, [
+    lecture,
+    isPlaying,
+    elapsedSeconds,
+    totalSeconds,
+    playbackSpeed,
+    captionsEnabled,
+    volume,
+    isMuted,
+    voiceEnabled,
+  ]);
 
   if (lecture.videoUrl) {
     return (
@@ -228,6 +323,7 @@ export function LectureVideoCanvasPlayer({
         src={lecture.videoUrl}
         controls
         playsInline
+        muted={isMuted}
         onEnded={onVideoEnded}
         className="w-full h-full object-contain bg-black"
       />
@@ -248,7 +344,7 @@ export function LectureVideoCanvasPlayer({
       <video
         ref={videoRef}
         playsInline
-        muted
+        muted={isMuted}
         onEnded={onVideoEnded}
         aria-label={`Lecture video player for ${lecture.title}`}
         className={streamReady ? 'w-full h-full object-contain' : 'hidden'}

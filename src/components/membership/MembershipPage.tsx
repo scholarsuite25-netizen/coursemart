@@ -69,7 +69,7 @@ export function MembershipPage() {
     }
 
     let payRef = transferRef;
-    let paystackVerified = paymentMethod !== 'gtb_whatsapp';
+    let paystackVerified = false;
     const chargeAmount =
       billingCycle === 'annual' ? checkoutPlan.annualPrice : checkoutPlan.monthlyPrice;
 
@@ -102,13 +102,12 @@ export function MembershipPage() {
           return;
         }
         payRef = initJson.reference || ref;
+        setPendingPayRef(payRef);
         if (initJson.configured && initJson.authorizationUrl) {
-          paystackVerified = false;
           setPaystackAuthUrl(initJson.authorizationUrl);
-          setPendingPayRef(payRef);
         }
       } catch {
-        // Local preview fallback when offline
+        // Safe offline fallback
       } finally {
         setProcessingPaystack(false);
       }
@@ -559,7 +558,7 @@ export function MembershipPage() {
                       ? 'Submit Transfer & Activate Pending Pass'
                       : publicServerConfig.paystackConfigured
                       ? 'Pay via Paystack & Activate'
-                      : 'Confirm & Unlock Membership'}
+                      : 'Proceed to Paystack Settlement'}
                   </span>
                 </button>
               )}

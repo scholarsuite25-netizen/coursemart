@@ -1026,7 +1026,7 @@ export function AdminDashboardPage() {
                                 className="h-8 px-2.5 text-[11px] font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-sm inline-flex items-center gap-1 cursor-pointer"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Verify GTB & Unlock</span>
+                                <span>Verify Payment & Unlock</span>
                               </button>
                             )}
                             {ord.refundStatus && ord.refundStatus !== 'none' && (
