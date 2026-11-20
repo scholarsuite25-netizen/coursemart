@@ -1,0 +1,1144 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  Award,
+  BookmarkPlus,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Circle,
+  ClipboardCheck,
+  Clock,
+  Download,
+  FileText,
+  Megaphone,
+  MessageSquare,
+  PanelRightClose,
+  PanelRightOpen,
+  Pause,
+  Play,
+  RotateCcw,
+  Subtitles,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useStore } from '../../context/StoreContext';
+import type { CourseModule } from '../../types/marketplace';
+import {
+  calculateModuleProgress,
+  getCourseProgressSummary,
+} from '../../utils/commerce';
+import { LectureVideoCanvasPlayer } from './LectureVideoCanvasPlayer';
+
+interface CoursePlayerPageProps {
+  productId: string;
+}
+
+export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
+  const {
+    products,
+    currentUser,
+    isOwnedByCurrentUser,
+    getCourseProgress,
+    toggleLectureComplete,
+    toggleModuleComplete,
+    setLastViewedLecture,
+    resetCourseProgress,
+    saveLectureNote,
+    addTimestampedNote,
+    deleteTimestampedNote,
+    submitModuleQuiz,
+    issueCourseCertificate,
+    addLectureQuestion,
+    navigate,
+    showToast,
+  } = useStore();
+
+  const product = products.find((p) => p.id === productId && p.type === 'course');
+  const flatLectures = useMemo(() => {
+    if (!product?.courseData) return [];
+    return product.courseData.modules.flatMap((m) =>
+      m.lectures.map((l) => ({ ...l, moduleTitle: m.title, moduleId: m.id }))
+    );
+  }, [product]);
+
+  const progress = product ? getCourseProgress(product.id) : undefined;
+  const completedIds = progress?.completedLectureIds ?? [];
+
+  const [activeLectureId, setActiveLectureId] = useState<string>(
+    progress?.lastLectureId || flatLectures[0]?.id || ''
+  );
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5 | 2>(1);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [captionsEnabled, setCaptionsEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'transcript' | 'resources' | 'notes' | 'qa' | 'announcements'
+  >('overview');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [pinnedNoteText, setPinnedNoteText] = useState('');
+  const [questionDraft, setQuestionDraft] = useState('');
+  const [certificateOpen, setCertificateOpen] = useState(false);
+
+  // Interactive Quiz modal state
+  const [activeQuizModule, setActiveQuizModule] = useState<CourseModule | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  const activeLectureIndex = Math.max(
+    0,
+    flatLectures.findIndex((l) => l.id === activeLectureId)
+  );
+  const activeLecture = flatLectures[activeLectureIndex] ?? flatLectures[0];
+  const totalLectureSeconds = (activeLecture?.durationMinutes ?? 15) * 60;
+
+  useEffect(() => {
+    if (activeLecture && product) {
+      setNoteDraft(progress?.notesByLecture[activeLecture.id] ?? '');
+      setElapsedSeconds(0);
+      setIsPlaying(false);
+      setLastViewedLecture(product.id, activeLecture.id);
+    }
+  }, [activeLecture?.id, product?.id]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((prev) => {
+        const next = prev + playbackSpeed;
+        if (next >= totalLectureSeconds) {
+          setIsPlaying(false);
+          if (product && activeLecture && !completedIds.includes(activeLecture.id)) {
+            toggleLectureComplete(product.id, activeLecture.id);
+          }
+          if (autoAdvance && activeLectureIndex < flatLectures.length - 1) {
+            const nextLec = flatLectures[activeLectureIndex + 1];
+            if (nextLec) setActiveLectureId(nextLec.id);
+          }
+          return totalLectureSeconds;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [
+    isPlaying,
+    playbackSpeed,
+    totalLectureSeconds,
+    autoAdvance,
+    activeLectureIndex,
+    flatLectures,
+    product,
+    activeLecture,
+    completedIds,
+    toggleLectureComplete,
+  ]);
+
+  if (!product || !product.courseData) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-20 text-center">
+        <h1 className="font-display text-2xl font-bold text-slate-900">Course not found</h1>
+        <button
+          type="button"
+          onClick={() => navigate('/library')}
+          className="mt-5 px-5 py-2.5 text-sm font-bold text-white bg-slate-900 rounded-md cursor-pointer"
+        >
+          Back to My Library
+        </button>
+      </main>
+    );
+  }
+
+  const hasAccess =
+    currentUser &&
+    (isOwnedByCurrentUser(product.id) ||
+      currentUser.role === 'admin' ||
+      currentUser.role === 'instructor');
+
+  if (!hasAccess) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4">
+        <h1 className="font-display text-2xl font-bold text-slate-900">
+          Enrollment Required
+        </h1>
+        <p className="text-sm text-slate-600">
+          Purchase "{product.title}" or activate a qualifying Membership to open the course player.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate(`/product/${product.slug}`)}
+          className="px-5 py-2.5 text-sm font-bold text-white bg-[#5624d0] rounded-md cursor-pointer"
+        >
+          View Course Details
+        </button>
+      </main>
+    );
+  }
+
+  const progressSummary = getCourseProgressSummary(product, completedIds);
+  const progressPct = progressSummary.percent;
+  const isCurrentCompleted = activeLecture ? completedIds.includes(activeLecture.id) : false;
+  const activeTimestampedNotes =
+    (activeLecture && progress?.timestampedNotesByLecture?.[activeLecture.id]) ?? [];
+
+  const formatTimer = (sec: number) => {
+    const mins = Math.floor(sec / 60);
+    const rem = Math.floor(sec % 60);
+    return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+  };
+
+  const handleSaveNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeLecture) return;
+    saveLectureNote(product.id, activeLecture.id, noteDraft);
+  };
+
+  const handleAddPinnedNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeLecture || !pinnedNoteText.trim()) return;
+    addTimestampedNote(
+      product.id,
+      activeLecture.id,
+      formatTimer(elapsedSeconds),
+      pinnedNoteText
+    );
+    setPinnedNoteText('');
+  };
+
+  const handleAskQuestion = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeLecture || !questionDraft.trim()) return;
+    addLectureQuestion(product.id, activeLecture.id, questionDraft);
+    setQuestionDraft('');
+  };
+
+  const handleDownloadResource = (fileName: string) => {
+    const blob = new Blob(
+      [
+        `// Course: ${product.title}\n// Lecture: ${activeLecture?.title}\n// Resource: ${fileName}\n\nexport const lectureExample = true;\n`,
+      ],
+      { type: 'text/plain;charset=utf-8' }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Downloaded ${fileName}`);
+  };
+
+  const handleOpenCertificate = () => {
+    if (progressPct === 100 && !progress?.certificateCode) {
+      issueCourseCertificate(product.id);
+    }
+    setCertificateOpen(true);
+  };
+
+  const handleDownloadCertificate = () => {
+    const certCode = progress?.certificateCode || issueCourseCertificate(product.id) || 'CM-CERT-VERIFIED';
+    const certHtml = `<!doctype html><html><head><title>Certificate - ${product.title}</title></head><body style="font-family:sans-serif;padding:48px;text-align:center;border:8px solid #0a192f;max-width:800px;margin:40px auto;"><h1>Verified Certificate of Completion</h1><p>Verification ID: <strong>${certCode}</strong></p><p>This certifies that</p><h2>${currentUser?.name}</h2><p>has successfully completed all curriculum modules of</p><h3>${product.title}</h3><p>Instructor: ${product.instructorName}</p><p>Issued: ${new Date().toISOString().slice(0, 10)}</p></body></html>`;
+    const blob = new Blob([certHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${product.slug}-certificate.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Verified Certificate downloaded');
+  };
+
+  const handleOpenModuleQuiz = (mod: CourseModule) => {
+    setActiveQuizModule(mod);
+    setQuizAnswers({});
+    setQuizSubmitted(false);
+  };
+
+  const handleSubmitQuiz = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeQuizModule?.quiz) return;
+    submitModuleQuiz(product.id, activeQuizModule.id, quizAnswers);
+    setQuizSubmitted(true);
+  };
+
+  const announcements = product.courseData.announcements ?? [];
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Dark Course Player Top Bar */}
+      <header className="h-14 bg-[#0a192f] text-white border-b border-[#d4af37]/50 px-4 flex items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate('/library')}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-[#f5c451] shrink-0 cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">My Library</span>
+          </button>
+          <span className="text-slate-600">|</span>
+          <h1 className="font-display text-sm font-bold text-white truncate">
+            {product.title}
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 text-xs text-slate-300 tabular-nums">
+            <div
+              className="w-28 h-2 bg-slate-700 rounded-full overflow-hidden hidden sm:block"
+              role="progressbar"
+              aria-valuenow={progressPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Course completion percentage"
+            >
+              <div
+                className={`h-full transition-all duration-300 ${
+                  progressPct === 100 ? 'bg-emerald-400' : 'bg-[#d4af37]'
+                }`}
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span>
+              <strong className="text-white">{progressPct}%</strong> complete (
+              {progressSummary.completedLectures}/{progressSummary.totalLectures})
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenCertificate}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold cursor-pointer ${
+              progressPct === 100
+                ? 'bg-[#d4af37] text-[#0a192f] hover:bg-[#e5bf45]'
+                : 'border border-slate-600 text-slate-300 hover:text-white'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">
+              {progressPct === 100 ? 'View Certificate' : 'Certificate'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label={sidebarOpen ? 'Collapse curriculum sidebar' : 'Expand curriculum sidebar'}
+            className="p-1.5 text-slate-300 hover:text-white rounded hover:bg-[#112240] cursor-pointer"
+          >
+            {sidebarOpen ? (
+              <PanelRightClose className="w-4 h-4" />
+            ) : (
+              <PanelRightOpen className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Main Split: Video Theater + Tabs Left, Curriculum Sidebar Right */}
+      <div className="flex-1 flex flex-col lg:flex-row">
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Theater Video Player */}
+          {activeLecture && (
+            <div className="bg-[#081221] text-white">
+              <div className="max-w-5xl mx-auto p-3 sm:p-6 space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <span className="truncate pr-2">{activeLecture.moduleTitle}</span>
+                  <span className="font-mono shrink-0">
+                    Lecture {activeLectureIndex + 1} of {flatLectures.length}
+                  </span>
+                </div>
+
+                {/* Live HTML5 Video Theater Stage */}
+                <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-[#233554] bg-black">
+                  <LectureVideoCanvasPlayer
+                    lecture={activeLecture}
+                    isPlaying={isPlaying}
+                    elapsedSeconds={elapsedSeconds}
+                    totalSeconds={totalLectureSeconds}
+                    playbackSpeed={playbackSpeed}
+                    captionsEnabled={captionsEnabled}
+                    onTogglePlay={() => setIsPlaying((prev) => !prev)}
+                    onVideoEnded={() => {
+                      setIsPlaying(false);
+                      if (!completedIds.includes(activeLecture.id)) {
+                        toggleLectureComplete(product.id, activeLecture.id);
+                      }
+                      if (autoAdvance && activeLectureIndex < flatLectures.length - 1) {
+                        const nextLec = flatLectures[activeLectureIndex + 1];
+                        if (nextLec) setActiveLectureId(nextLec.id);
+                      }
+                    }}
+                  />
+                  {!isPlaying && !activeLecture.videoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setIsPlaying(true)}
+                      aria-label="Play lecture video"
+                      className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-[#d4af37] hover:bg-[#e5bf45] text-[#0a192f] flex items-center justify-center shadow-xl transition-transform hover:scale-105 cursor-pointer"
+                    >
+                      <Play className="w-7 h-7 ml-0.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Video Player Controls Bar + Chapter Markers */}
+                <div className="space-y-2.5">
+                  {activeLecture.chapters && activeLecture.chapters.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <span className="text-slate-400 font-semibold mr-1">Chapters:</span>
+                      {activeLecture.chapters.map((ch) => (
+                        <button
+                          key={ch.label}
+                          type="button"
+                          onClick={() => setElapsedSeconds(ch.timeSeconds)}
+                          className="px-2 py-0.5 rounded bg-white/10 hover:bg-[#d4af37] hover:text-[#0a192f] text-slate-200 transition-colors cursor-pointer tabular-nums"
+                        >
+                          {formatTimer(ch.timeSeconds)} · {ch.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <input
+                    type="range"
+                    min={0}
+                    max={totalLectureSeconds}
+                    value={elapsedSeconds}
+                    onChange={(e) => setElapsedSeconds(Number(e.target.value))}
+                    aria-label="Seek lecture timeline"
+                    className="w-full accent-[#d4af37] cursor-pointer"
+                  />
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsPlaying((prev) => !prev)}
+                        className="inline-flex items-center gap-1 font-semibold hover:text-[#f5c451] cursor-pointer"
+                      >
+                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        <span>{isPlaying ? 'Pause' : 'Play'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setElapsedSeconds(0)}
+                        aria-label="Restart lecture"
+                        className="text-slate-300 hover:text-white cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="font-mono tabular-nums text-slate-300">
+                        {formatTimer(elapsedSeconds)} / {formatTimer(totalLectureSeconds)}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setAutoAdvance((v) => !v)}
+                        className={`px-2 py-1 rounded text-[11px] font-semibold cursor-pointer ${
+                          autoAdvance
+                            ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/60'
+                            : 'bg-slate-800 text-slate-400'
+                        }`}
+                      >
+                        Auto-Next: {autoAdvance ? 'ON' : 'OFF'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const speeds: Array<1 | 1.25 | 1.5 | 2> = [1, 1.25, 1.5, 2];
+                          const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+                          setPlaybackSpeed(next);
+                        }}
+                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 font-mono text-xs cursor-pointer"
+                      >
+                        {playbackSpeed}x
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCaptionsEnabled((prev) => !prev)}
+                        aria-label="Toggle captions"
+                        className={`p-1 rounded cursor-pointer ${
+                          captionsEnabled ? 'text-[#f5c451]' : 'text-slate-400'
+                        }`}
+                      >
+                        <Subtitles className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleLectureComplete(product.id, activeLecture.id)}
+                        className={`px-3 py-1 rounded text-xs font-bold cursor-pointer ${
+                          isCurrentCompleted
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-white text-slate-900 hover:bg-slate-100'
+                        }`}
+                      >
+                        {isCurrentCompleted ? 'Completed' : 'Mark Complete'}
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={activeLectureIndex === 0}
+                          onClick={() =>
+                            setActiveLectureId(flatLectures[activeLectureIndex - 1].id)
+                          }
+                          aria-label="Previous lecture"
+                          className="p-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={activeLectureIndex >= flatLectures.length - 1}
+                          onClick={() =>
+                            setActiveLectureId(flatLectures[activeLectureIndex + 1].id)
+                          }
+                          aria-label="Next lecture"
+                          className="p-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Below-Player Tabs: Overview, Transcript, Resources, Timestamped Notes, Q&A, Announcements */}
+          <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 py-6 space-y-6">
+            <div className="flex items-center gap-6 overflow-x-auto border-b border-slate-200 text-sm font-bold">
+              {(
+                [
+                  { id: 'overview', label: 'Overview' },
+                  { id: 'transcript', label: 'Transcript' },
+                  { id: 'resources', label: 'Resources & Code' },
+                  {
+                    id: 'notes',
+                    label: `Notes (${activeTimestampedNotes.length})`,
+                  },
+                  { id: 'qa', label: `Q&A (${progress?.questions.length ?? 0})` },
+                  {
+                    id: 'announcements',
+                    label: `Announcements (${announcements.length})`,
+                  },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`pb-3 border-b-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    activeTab === tab.id
+                      ? 'border-[#0a192f] text-[#0a192f]'
+                      : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === 'overview' && activeLecture && (
+              <div className="space-y-4">
+                <h3 className="font-display text-lg font-bold text-slate-900">
+                  {activeLecture.title}
+                </h3>
+                <p className="text-sm text-slate-700 leading-relaxed">{activeLecture.summary}</p>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-700 mb-2">Key Takeaways</h4>
+                  <ul className="space-y-1.5">
+                    {activeLecture.keyTakeaways.map((item, idx) => (
+                      <li key={idx} className="text-sm text-slate-700 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'transcript' && activeLecture && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display text-base font-bold text-slate-900">
+                    Lecture Transcript · {activeLecture.title}
+                  </h3>
+                  <span className="text-xs text-slate-500 tabular-nums">
+                    {activeLecture.durationMinutes} min lesson
+                  </span>
+                </div>
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                  {activeLecture.transcript ||
+                    `[00:00] Welcome to "${activeLecture.title}". ${activeLecture.summary}\n\n[02:30] Primary Focus: ${activeLecture.keyTakeaways.join(' · ')}.\n\n[06:00] Review the attached starter repository file before attempting the module quiz to validate your implementation patterns.`}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'resources' && activeLecture && (
+              <div className="space-y-3">
+                <h3 className="font-display text-base font-bold text-slate-900">
+                  Lecture Downloads
+                </h3>
+                {activeLecture.resourceFileName ? (
+                  <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-[#5624d0]" />
+                      <div>
+                        <p className="text-sm font-mono font-bold text-slate-900">
+                          {activeLecture.resourceFileName}
+                        </p>
+                        <p className="text-xs text-slate-500">Starter template & reference file</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadResource(activeLecture.resourceFileName!)}
+                      className="px-4 py-2 text-xs font-bold text-white bg-[#0a192f] rounded-md hover:bg-[#112240] inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    No supplementary code files attached to this lecture.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'notes' && activeLecture && (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-6 space-y-4">
+                  <form onSubmit={handleAddPinnedNote} className="space-y-2.5">
+                    <label
+                      htmlFor="pinned-note-input"
+                      className="block font-display text-sm font-bold text-slate-900"
+                    >
+                      Pin Timestamped Note at {formatTimer(elapsedSeconds)}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="pinned-note-input"
+                        type="text"
+                        value={pinnedNoteText}
+                        onChange={(e) => setPinnedNoteText(e.target.value)}
+                        placeholder="Bookmark insight at current timestamp..."
+                        className="flex-1 h-9 px-3 text-xs border border-slate-300 rounded-md"
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1 px-3 h-9 text-xs font-bold bg-[#d4af37] text-[#0a192f] rounded-md cursor-pointer shrink-0"
+                      >
+                        <BookmarkPlus className="w-3.5 h-3.5" />
+                        <span>Pin</span>
+                      </button>
+                    </div>
+                  </form>
+
+                  <div className="space-y-2">
+                    {activeTimestampedNotes.length === 0 ? (
+                      <p className="text-xs text-slate-500">
+                        No timestamped bookmarks for this lecture yet.
+                      </p>
+                    ) : (
+                      activeTimestampedNotes.map((tn) => (
+                        <div
+                          key={tn.id}
+                          className="p-3 border border-slate-200 rounded-lg bg-slate-50 flex items-start justify-between gap-3"
+                        >
+                          <div>
+                            <span className="font-mono text-[11px] font-bold text-[#0a192f] inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {tn.timeLabel}
+                            </span>
+                            <p className="text-xs text-slate-800 mt-1">{tn.text}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              deleteTimestampedNote(product.id, activeLecture.id, tn.id)
+                            }
+                            aria-label="Delete pinned note"
+                            className="text-slate-400 hover:text-rose-700 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveNote} className="md:col-span-6 space-y-3">
+                  <label
+                    htmlFor="lecture-notes-area"
+                    className="block font-display text-sm font-bold text-slate-900"
+                  >
+                    Full Lesson Scratchpad
+                  </label>
+                  <textarea
+                    id="lecture-notes-area"
+                    rows={6}
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="Capture architecture insights, snippets, or reminders..."
+                    className="w-full p-3.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900"
+                  />
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-bold text-white bg-[#0a192f] hover:bg-[#112240] rounded-md cursor-pointer"
+                  >
+                    Save Scratchpad
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {activeTab === 'qa' && activeLecture && (
+              <div className="space-y-6">
+                <form onSubmit={handleAskQuestion} className="space-y-3">
+                  <label
+                    htmlFor="lecture-qa-input"
+                    className="block font-display text-base font-bold text-slate-900"
+                  >
+                    Ask the Instructor
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="lecture-qa-input"
+                      type="text"
+                      value={questionDraft}
+                      onChange={(e) => setQuestionDraft(e.target.value)}
+                      placeholder="Ask a question about this lecture..."
+                      className="flex-1 h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 h-10 text-xs font-bold text-white bg-slate-900 rounded-md hover:bg-slate-800 cursor-pointer"
+                    >
+                      Post Question
+                    </button>
+                  </div>
+                </form>
+
+                <div className="space-y-3">
+                  {(progress?.questions ?? []).length === 0 ? (
+                    <p className="text-sm text-slate-500">No questions posted yet.</p>
+                  ) : (
+                    progress!.questions.map((q) => (
+                      <div key={q.id} className="p-4 border border-slate-200 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between text-xs text-slate-500">
+                          <span className="font-bold text-slate-900 inline-flex items-center gap-1.5">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            {q.userName}
+                          </span>
+                          <span>{q.createdAt.slice(0, 10)}</span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-900">{q.question}</p>
+                        {q.answer && (
+                          <div className="mt-2 p-3 bg-slate-50 rounded text-xs text-slate-700">
+                            <strong className="text-slate-900">Instructor Reply: </strong>
+                            {q.answer}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'announcements' && (
+              <div className="space-y-4">
+                <h3 className="font-display text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-[#0a192f]" />
+                  <span>Instructor Announcements</span>
+                </h3>
+                {announcements.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    No cohort announcements posted for this course yet.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.map((ann) => (
+                      <article
+                        key={ann.id}
+                        className="p-4 border border-slate-200 rounded-lg bg-slate-50 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-display text-sm font-bold text-slate-900">
+                            {ann.title}
+                          </h4>
+                          <span className="text-xs text-slate-500 tabular-nums">
+                            {ann.createdAt}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-700 leading-relaxed">{ann.body}</p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Collapsible Curriculum & Quiz Sidebar */}
+        {sidebarOpen && (
+          <aside className="w-full lg:w-[380px] border-t lg:border-t-0 lg:border-l border-slate-200 bg-white shrink-0">
+            <div className="px-4 py-4 border-b border-slate-200 space-y-2.5 bg-slate-50/70">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-display text-sm font-bold text-slate-900">
+                  Course Progress
+                </h2>
+                <span className="text-xs font-bold text-[#0a192f] tabular-nums">
+                  {progressPct}%
+                </span>
+              </div>
+
+              <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    progressPct === 100 ? 'bg-emerald-600' : 'bg-[#0a192f]'
+                  }`}
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-600 tabular-nums">
+                <span>
+                  {progressSummary.completedLectures} of {progressSummary.totalLectures} lessons ·{' '}
+                  {progressSummary.completedModules} of {progressSummary.totalModules} modules
+                </span>
+                {progressSummary.completedLectures > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => resetCourseProgress(product.id)}
+                    className="text-slate-500 hover:text-slate-900 underline cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="divide-y divide-slate-200">
+              {product.courseData.modules.map((mod) => {
+                const modStats = calculateModuleProgress(mod, completedIds);
+                const modQuizResult = progress?.quizScoresByModule?.[mod.id];
+                return (
+                  <div key={mod.id}>
+                    <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 space-y-2">
+                      <div className="flex items-start gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleModuleComplete(product.id, mod.id)}
+                          aria-label={`Mark module "${mod.title}" as ${
+                            modStats.isCompleted ? 'incomplete' : 'complete'
+                          }`}
+                          className="mt-0.5 text-slate-500 hover:text-[#0a192f] shrink-0 cursor-pointer"
+                        >
+                          {modStats.isCompleted ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                          ) : (
+                            <Circle className="w-4 h-4" />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-display text-xs font-bold text-slate-900 leading-snug">
+                              {mod.title}
+                            </p>
+                            <span className="text-[11px] font-semibold text-slate-500 tabular-nums shrink-0">
+                              {modStats.completedCount}/{modStats.totalCount}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-300 ${
+                                modStats.isCompleted ? 'bg-emerald-600' : 'bg-[#5624d0]'
+                              }`}
+                              style={{ width: `${modStats.percent}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-slate-100">
+                      {mod.lectures.map((lec) => {
+                        const isActive = lec.id === activeLecture?.id;
+                        const isDone = completedIds.includes(lec.id);
+                        return (
+                          <div
+                            key={lec.id}
+                            className={`px-4 py-3 flex items-start gap-3 transition-colors ${
+                              isActive ? 'bg-[#f3effc]' : 'hover:bg-slate-50'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleLectureComplete(product.id, lec.id)}
+                              aria-label={`Mark "${lec.title}" as ${
+                                isDone ? 'incomplete' : 'complete'
+                              }`}
+                              className="mt-0.5 text-slate-500 hover:text-[#5624d0] shrink-0 cursor-pointer"
+                            >
+                              {isDone ? (
+                                <CheckCircle2 className="w-4 h-4 text-[#5624d0]" />
+                              ) : (
+                                <Circle className="w-4 h-4" />
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setActiveLectureId(lec.id)}
+                              className="flex-1 text-left cursor-pointer"
+                            >
+                              <p
+                                className={`text-xs font-semibold leading-snug ${
+                                  isActive ? 'text-[#5624d0]' : 'text-slate-900'
+                                }`}
+                              >
+                                {lec.title}
+                              </p>
+                              <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+                                {lec.durationMinutes} min
+                                {lec.resourceFileName ? ` · ${lec.resourceFileName}` : ''}
+                              </p>
+                            </button>
+                          </div>
+                        );
+                      })}
+
+                      {/* Interactive Module Quiz Row */}
+                      {mod.quiz && (
+                        <div className="px-4 py-3 bg-[#f8fafc] flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
+                              <ClipboardCheck className="w-3.5 h-3.5 text-[#b4690e] shrink-0" />
+                              <span className="truncate">{mod.quiz.title}</span>
+                            </p>
+                            <p className="text-[11px] text-slate-500 tabular-nums mt-0.5">
+                              {mod.quiz.questions.length} questions · Pass {mod.quiz.passingScore}%
+                              {modQuizResult
+                                ? ` · Score ${modQuizResult.scorePercent}% (${
+                                    modQuizResult.passed ? 'Passed' : 'Retry'
+                                  })`
+                                : ''}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenModuleQuiz(mod)}
+                            className="px-2.5 py-1 text-[11px] font-bold bg-[#0a192f] text-[#f5c451] rounded hover:bg-[#112240] shrink-0 cursor-pointer"
+                          >
+                            {modQuizResult ? 'Retake Quiz' : 'Start Quiz'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+        )}
+      </div>
+
+      {/* Interactive Module Quiz Modal */}
+      {activeQuizModule && activeQuizModule.quiz && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={activeQuizModule.quiz.title}
+        >
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-[#0a192f] text-white border-b-2 border-[#d4af37] flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#f5c451]">{activeQuizModule.title}</p>
+                <h3 className="font-display text-base font-bold">
+                  {activeQuizModule.quiz.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveQuizModule(null)}
+                aria-label="Close quiz dialog"
+                className="p-1 text-slate-300 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitQuiz} className="flex-1 overflow-y-auto p-6 space-y-5">
+              {activeQuizModule.quiz.questions.map((q, qIdx) => {
+                const selectedIdx = quizAnswers[q.id];
+                const isCorrect = selectedIdx === q.correctIndex;
+                return (
+                  <div
+                    key={q.id}
+                    className="border border-slate-200 rounded-lg p-4 bg-slate-50 space-y-3"
+                  >
+                    <p className="text-sm font-bold text-slate-900">
+                      {qIdx + 1}. {q.prompt}
+                    </p>
+                    <div className="space-y-2">
+                      {q.options.map((opt, optIdx) => (
+                        <label
+                          key={optIdx}
+                          className={`flex items-center gap-2.5 p-2.5 rounded border text-xs cursor-pointer ${
+                            quizSubmitted && optIdx === q.correctIndex
+                              ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-semibold'
+                              : quizSubmitted && selectedIdx === optIdx && !isCorrect
+                              ? 'bg-rose-50 border-rose-300 text-rose-900'
+                              : selectedIdx === optIdx
+                              ? 'bg-white border-[#0a192f] font-semibold'
+                              : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={q.id}
+                            checked={selectedIdx === optIdx}
+                            onChange={() =>
+                              setQuizAnswers((prev) => ({ ...prev, [q.id]: optIdx }))
+                            }
+                            disabled={quizSubmitted}
+                            className="accent-[#0a192f]"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {quizSubmitted && (
+                      <p className="text-xs text-slate-700 bg-white border border-slate-200 rounded p-2.5">
+                        <strong className={isCorrect ? 'text-emerald-700' : 'text-rose-700'}>
+                          {isCorrect ? 'Correct: ' : 'Explanation: '}
+                        </strong>
+                        {q.explanation}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setActiveQuizModule(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-700 border border-slate-300 rounded-md cursor-pointer"
+                >
+                  Close
+                </button>
+                {quizSubmitted ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuizAnswers({});
+                      setQuizSubmitted(false);
+                    }}
+                    className="px-5 py-2 text-xs font-bold bg-[#0a192f] text-[#f5c451] rounded-md cursor-pointer"
+                  >
+                    Retry Quiz
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-bold bg-[#d4af37] text-[#0a192f] rounded-md cursor-pointer"
+                  >
+                    Submit & Grade Quiz
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Certificate Modal */}
+      {certificateOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Course completion certificate"
+        >
+          <div className="bg-white rounded-xl max-w-xl w-full p-6 sm:p-8 space-y-6 relative shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setCertificateOpen(false)}
+              aria-label="Close certificate dialog"
+              className="absolute right-4 top-4 p-1.5 text-slate-500 hover:text-slate-900 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {progressPct < 100 ? (
+              <div className="text-center space-y-3 py-4">
+                <Award className="w-12 h-12 text-slate-300 mx-auto" />
+                <h3 className="font-display text-xl font-bold text-slate-900">
+                  Complete all lectures to unlock your certificate
+                </h3>
+                <p className="text-sm text-slate-600 tabular-nums">
+                  You are currently at <strong>{progressPct}%</strong> completion ({completedIds.length}{' '}
+                  of {flatLectures.length} lectures).
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="border-4 border-[#0a192f] rounded-lg p-6 sm:p-8 text-center space-y-3 bg-slate-50">
+                  <Award className="w-10 h-10 text-[#b4690e] mx-auto" />
+                  <p className="text-xs font-bold text-[#0a192f] tracking-wider uppercase">
+                    Verified Certificate of Completion
+                  </p>
+                  {progress?.certificateCode && (
+                    <p className="font-mono text-xs font-bold text-[#5624d0]">
+                      Verification ID: {progress.certificateCode}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500">Awarded to</p>
+                  <h3 className="font-display text-2xl font-extrabold text-slate-900">
+                    {currentUser?.name}
+                  </h3>
+                  <p className="text-xs text-slate-600">for completing</p>
+                  <p className="font-display text-lg font-bold text-slate-900">{product.title}</p>
+                  <div className="pt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
+                    <span>Instructor: {product.instructorName}</span>
+                    <span className="tabular-nums">{new Date().toISOString().slice(0, 10)}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadCertificate}
+                  className="w-full py-3 text-sm font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md inline-flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Verified Certificate</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

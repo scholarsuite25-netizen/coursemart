@@ -1,0 +1,1396 @@
+import { useMemo, useState } from 'react';
+import {
+  ArrowRight,
+  Award,
+  Bookmark,
+  BookOpen,
+  Check,
+  Code2,
+  Copy,
+  Crown,
+  Download,
+  ExternalLink,
+  FileSpreadsheet,
+  Heart,
+  KeyRound,
+  Mail,
+  MessageCircle,
+  PlayCircle,
+  RefreshCw,
+  RotateCcw,
+  Trash2,
+  Users,
+  X,
+} from 'lucide-react';
+import { useStore } from '../../context/StoreContext';
+import type { Order, Product } from '../../types/marketplace';
+import { getCourseProgressSummary } from '../../utils/commerce';
+import { formatNaira } from '../../utils/currency';
+import { escapeHtml } from '../../utils/sanitize';
+import { formatProductTypeLabel, getAccentTheme } from '../../utils/theme';
+import {
+  TINTOL_PAYMENT_DETAILS,
+  buildBankTransferWhatsAppMessage,
+  buildWhatsAppUrl,
+} from '../../utils/whatsapp';
+import { ProductThumbnail } from '../common/ProductThumbnail';
+
+function triggerFileDownload(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function LibraryPage() {
+  const {
+    currentUser,
+    products,
+    blogPosts,
+    bookmarkedBlogIds,
+    toggleBlogBookmark,
+    orders,
+    licenses,
+    wishlist,
+    toggleWishlist,
+    getCourseProgress,
+    activateLicenseDomain,
+    deactivateLicenseDomain,
+    regenerateLicenseKey,
+    whatsappGroups,
+    joinWhatsAppGroup,
+    activeUserMembership,
+    activeMembershipPlan,
+    isUnlockedByMembership,
+    recordProductDownload,
+    requestOrderRefund,
+    verifyPaystackReference,
+    updateNewsletterPreference,
+    navigate,
+    quickLoginAsRole,
+    showToast,
+    appearance,
+  } = useStore();
+
+  const accent = getAccentTheme(appearance.accentTheme);
+  const initialTab =
+    typeof window !== 'undefined' && window.location.search.includes('tab=wishlist')
+      ? 'wishlist'
+      : typeof window !== 'undefined' && window.location.search.includes('tab=orders')
+      ? 'orders'
+      : typeof window !== 'undefined' && window.location.search.includes('tab=articles')
+      ? 'articles'
+      : 'all';
+  const [activeTab, setActiveTab] = useState<
+    'all' | 'courses' | 'ebooks' | 'software' | 'articles' | 'communities' | 'wishlist' | 'orders'
+  >(initialTab);
+  const [domainInputs, setDomainInputs] = useState<Record<string, string>>({});
+  const [domainErrors, setDomainErrors] = useState<Record<string, string>>({});
+  const [readerEbook, setReaderEbook] = useState<Product | null>(null);
+  const [readerChapterIdx, setReaderChapterIdx] = useState(0);
+  const [readerFontLarge, setReaderFontLarge] = useState(false);
+
+  // Invoice & refund modals
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [refundOrderId, setRefundOrderId] = useState<string | null>(null);
+  const [refundReasonInput, setRefundReasonInput] = useState('');
+
+  const userOrders = useMemo(() => {
+    if (!currentUser) return [];
+    return orders.filter((o) => o.userId === currentUser.id);
+  }, [orders, currentUser]);
+
+  const ownedProductIds = useMemo(() => {
+    const ids = new Set<string>();
+    userOrders
+      .filter((o) => o.status === 'completed')
+      .forEach((o) => o.items.forEach((item) => ids.add(item.productId)));
+    if (activeUserMembership) {
+      products.forEach((p) => {
+        if (isUnlockedByMembership(p)) ids.add(p.id);
+      });
+    }
+    return ids;
+  }, [userOrders, activeUserMembership, products, isUnlockedByMembership]);
+
+  const ownedProducts = useMemo(
+    () => products.filter((p) => ownedProductIds.has(p.id)),
+    [products, ownedProductIds]
+  );
+
+  const userLicenses = useMemo(() => {
+    if (!currentUser) return [];
+    return licenses.filter((l) => l.userId === currentUser.id);
+  }, [licenses, currentUser]);
+
+  const wishlistProducts = useMemo(
+    () => products.filter((p) => wishlist.includes(p.id)),
+    [products, wishlist]
+  );
+
+  const savedArticles = useMemo(
+    () =>
+      blogPosts.filter(
+        (post) => post.status === 'published' && bookmarkedBlogIds.includes(post.id)
+      ),
+    [blogPosts, bookmarkedBlogIds]
+  );
+
+  const eligibleWhatsAppGroups = useMemo(
+    () =>
+      whatsappGroups.filter(
+        (g) =>
+          g.active &&
+          (g.visibility === 'public' ||
+            (g.productId ? ownedProductIds.has(g.productId) : ownedProductIds.size > 0))
+      ),
+    [whatsappGroups, ownedProductIds]
+  );
+
+  const ownedCoursesOverview = useMemo(() => {
+    const ownedCourses = ownedProducts.filter((p) => p.type === 'course');
+    let completedLectures = 0;
+    let totalLectures = 0;
+    let completedModules = 0;
+    let totalModules = 0;
+    let completedCourses = 0;
+
+    for (const course of ownedCourses) {
+      const prog = getCourseProgress(course.id);
+      const summary = getCourseProgressSummary(course, prog?.completedLectureIds ?? []);
+      completedLectures += summary.completedLectures;
+      totalLectures += summary.totalLectures;
+      completedModules += summary.completedModules;
+      totalModules += summary.totalModules;
+      if (summary.totalLectures > 0 && summary.percent === 100) {
+        completedCourses += 1;
+      }
+    }
+
+    const overallPercent =
+      totalLectures === 0
+        ? 0
+        : Math.min(100, Math.round((completedLectures / totalLectures) * 100));
+
+    return {
+      courseCount: ownedCourses.length,
+      completedCourses,
+      completedLectures,
+      totalLectures,
+      completedModules,
+      totalModules,
+      overallPercent,
+    };
+  }, [ownedProducts, getCourseProgress]);
+
+  if (!currentUser) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-16 text-center space-y-5">
+        <h1 className="font-display text-3xl font-extrabold text-slate-900">
+          Sign in to access My Library
+        </h1>
+        <p className="text-sm sm:text-base text-slate-600 max-w-lg mx-auto">
+          Launch video courses, download digital products, and activate software license keys from
+          your personal library.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className={`px-6 py-3 text-sm font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md cursor-pointer`}
+          >
+            Go to Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => quickLoginAsRole('customer')}
+            className="px-6 py-3 text-sm font-bold text-slate-900 border border-slate-900 rounded-md hover:bg-slate-50 cursor-pointer"
+          >
+            Instant Demo Student Sign In
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  const displayedProducts = ownedProducts.filter((p) => {
+    if (activeTab === 'courses') return p.type === 'course';
+    if (activeTab === 'ebooks') return p.type === 'ebook';
+    if (activeTab === 'software') return p.type === 'software';
+    return true;
+  });
+
+  const findCompletedOrderForProduct = (productId: string) =>
+    userOrders.find(
+      (o) =>
+        o.status === 'completed' && o.items.some((item) => item.productId === productId)
+    );
+
+  const handleCopyKey = (key: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(key).catch(() => {});
+    }
+    showToast(`Copied license key ${key}`);
+  };
+
+  const handleActivateDomain = (licenseId: string) => {
+    const val = domainInputs[licenseId] ?? '';
+    const res = activateLicenseDomain(licenseId, val);
+    if (!res.ok) {
+      setDomainErrors((prev) => ({ ...prev, [licenseId]: res.error ?? 'Activation failed' }));
+      return;
+    }
+    setDomainErrors((prev) => ({ ...prev, [licenseId]: '' }));
+    setDomainInputs((prev) => ({ ...prev, [licenseId]: '' }));
+  };
+
+  const handleDownloadEbook = (prod: Product) => {
+    const matchedOrder = findCompletedOrderForProduct(prod.id);
+    if (matchedOrder) {
+      const check = recordProductDownload(matchedOrder.id, prod.id);
+      if (!check.ok) return;
+    }
+
+    if (prod.ebookData) {
+      const chaptersText = prod.ebookData.chapters
+        .map(
+          (ch) =>
+            `\n\n=== Chapter ${ch.number}: ${ch.title} (${ch.pages} pages) ===\n\n${ch.previewExcerpt}`
+        )
+        .join('');
+      triggerFileDownload(
+        `${prod.slug}.txt`,
+        `${prod.title}\nBy ${prod.instructorName}\nISBN: ${prod.ebookData.isbn}\n${chaptersText}`,
+        'text/plain;charset=utf-8'
+      );
+    } else if (prod.digitalResourceMeta) {
+      const manifest = {
+        product: prod.title,
+        resourceType: formatProductTypeLabel(prod.type, prod.digitalSubType),
+        author: prod.instructorName,
+        compatibility: prod.digitalResourceMeta.compatibility,
+        deliverableFormat: prod.digitalResourceMeta.deliverableFormat,
+        includedAssets: prod.digitalResourceMeta.includedAssets,
+        learningOutcomes: prod.learningOutcomes,
+      };
+      triggerFileDownload(
+        `${prod.slug}-kit.json`,
+        JSON.stringify(manifest, null, 2),
+        'application/json'
+      );
+    }
+    showToast(`Downloaded "${prod.title}" edition`);
+  };
+
+  const handleDownloadSoftware = (prod: Product) => {
+    const matchedOrder = findCompletedOrderForProduct(prod.id);
+    if (matchedOrder) {
+      const check = recordProductDownload(matchedOrder.id, prod.id);
+      if (!check.ok) return;
+    }
+    const manifest = {
+      package: prod.slug,
+      version: prod.softwareData?.version ?? '1.0.0',
+      platforms: prod.softwareData?.platforms ?? [],
+      licensedTo: currentUser.email,
+      downloadedAt: new Date().toISOString(),
+      instructions: 'Run npm install && npm run setup after extracting archive.',
+    };
+    triggerFileDownload(
+      `${prod.slug}-v${prod.softwareData?.version ?? '1.0.0'}-package.json`,
+      JSON.stringify(manifest, null, 2),
+      'application/json'
+    );
+    showToast(`Downloaded ${prod.title} v${prod.softwareData?.version ?? '1.0.0'}`);
+  };
+
+  const handleDownloadInvoiceHtml = (ord: Order) => {
+    const rowsHtml = ord.items
+      .map(
+        (i) =>
+          `<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0;">${escapeHtml(
+            i.productTitle
+          )}${i.variantName ? ` (${escapeHtml(i.variantName)})` : ''}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;text-align:right;">${escapeHtml(
+            formatNaira(i.price)
+          )}</td></tr>`
+      )
+      .join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Invoice ${escapeHtml(
+      ord.id
+    )}</title></head><body style="font-family:sans-serif;max-width:720px;margin:40px auto;padding:32px;border:1px solid #cbd5e1;"><h1>${escapeHtml(
+      appearance.brandName
+    )} · ${escapeHtml(TINTOL_PAYMENT_DETAILS.accountName)}</h1><p><strong>Invoice #${escapeHtml(
+      ord.id
+    )}</strong> · Date: ${escapeHtml(ord.createdAt.slice(0, 10))}</p><p>Billed To: ${escapeHtml(
+      ord.customerName
+    )} (${escapeHtml(
+      ord.customerEmail
+    )})</p><table style="width:100%;border-collapse:collapse;margin:24px 0;"><thead><tr><th style="text-align:left;padding:8px;border-bottom:2px solid #0a192f;">Item</th><th style="text-align:right;padding:8px;border-bottom:2px solid #0a192f;">Price</th></tr></thead><tbody>${rowsHtml}</tbody></table><p style="text-align:right;">Subtotal: ${escapeHtml(
+      formatNaira(ord.subtotal)
+    )}</p><p style="text-align:right;">Total Paid: <strong>${escapeHtml(
+      formatNaira(ord.total)
+    )}</strong></p></body></html>`;
+    triggerFileDownload(`invoice-${ord.id}.html`, html, 'text/html;charset=utf-8');
+    showToast(`Downloaded invoice for ${ord.id}`);
+  };
+
+  const handleSubmitRefund = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!refundOrderId || !refundReasonInput.trim()) return;
+    requestOrderRefund(refundOrderId, refundReasonInput);
+    setRefundOrderId(null);
+    setRefundReasonInput('');
+  };
+
+  return (
+    <main className="pb-20">
+      {/* Dark Library Header */}
+      <div className="bg-[#0a192f] text-white border-b-2 border-[#d4af37]/60">
+        <div className="max-w-[1280px] mx-auto px-4 lg:px-8 pt-10 pb-0">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <p className="text-xs font-semibold text-[#f5c451] mb-1">
+                Signed in as {currentUser.name}
+              </p>
+              <h1 className="font-display text-3xl font-extrabold text-white">
+                My Learning & Digital Library
+              </h1>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => updateNewsletterPreference(!Boolean(currentUser.newsletterOptIn))}
+                className={`px-3.5 py-2 text-xs font-bold rounded-md border inline-flex items-center gap-2 cursor-pointer transition-colors ${
+                  currentUser.newsletterOptIn
+                    ? 'bg-emerald-950/70 border-emerald-400/60 text-emerald-200 hover:bg-emerald-900/80'
+                    : 'bg-[#112240] border-slate-600 text-slate-300 hover:text-white'
+                }`}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>
+                  Newsletter: {currentUser.newsletterOptIn ? 'Subscribed' : 'Opted Out'} (Toggle)
+                </span>
+              </button>
+
+              {activeUserMembership && activeMembershipPlan ? (
+                <div className="bg-[#112240] border border-[#d4af37]/60 rounded-lg px-4 py-2.5 flex items-center gap-3 text-xs">
+                  <Crown className="w-5 h-5 text-[#f5c451] shrink-0" />
+                  <div>
+                    <p className="font-bold text-white">
+                      {activeMembershipPlan.name} Pass ({activeUserMembership.billingCycle})
+                    </p>
+                    <p className="text-slate-300 tabular-nums">
+                      {activeMembershipPlan.storeDiscountPercent}% auto-discount · Renews{' '}
+                      {activeUserMembership.renewsAt.slice(0, 10)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/membership')}
+                    className="ml-2 px-2.5 py-1 bg-[#d4af37] text-[#0a192f] font-bold rounded cursor-pointer"
+                  >
+                    Manage
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => navigate('/membership')}
+                  className="px-4 py-2 bg-[#112240] border border-[#d4af37]/60 hover:border-[#d4af37] text-[#f5c451] text-xs font-bold rounded-md inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>Upgrade to Membership Pass</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex items-center gap-6 overflow-x-auto text-sm font-semibold">
+            {(
+              [
+                { id: 'all', label: `All Owned (${ownedProducts.length})` },
+                {
+                  id: 'courses',
+                  label: `Courses (${ownedProducts.filter((p) => p.type === 'course').length})`,
+                },
+                {
+                  id: 'ebooks',
+                  label: `Digital Products (${ownedProducts.filter((p) => p.type === 'ebook').length})`,
+                },
+                {
+                  id: 'software',
+                  label: `Software & Licenses (${userLicenses.length})`,
+                },
+                {
+                  id: 'articles',
+                  label: `Saved Articles (${savedArticles.length})`,
+                },
+                {
+                  id: 'communities',
+                  label: `WhatsApp Groups (${eligibleWhatsAppGroups.length})`,
+                },
+                { id: 'wishlist', label: `Wishlist (${wishlistProducts.length})` },
+                { id: 'orders', label: `Orders & Invoices (${userOrders.length})` },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`pb-3.5 border-b-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'border-[#d4af37] text-[#f5c451]'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-[1280px] mx-auto px-4 lg:px-8 pt-8 space-y-10">
+        {/* Saved Blog Articles Tab */}
+        {activeTab === 'articles' && (
+          <section className="space-y-4">
+            <div>
+              <h2 className="font-display text-xl font-extrabold text-slate-900">
+                Bookmarked Editorial Articles
+              </h2>
+              <p className="text-sm text-slate-600">
+                Deep-dive guides you saved across AI, Mentorship, Leadership, Vibe Coding, and Apps Deployment.
+              </p>
+            </div>
+            {savedArticles.length === 0 ? (
+              <div className="border border-slate-200 rounded-xl p-12 text-center bg-slate-50">
+                <Bookmark className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                <p className="font-display text-lg font-bold text-slate-900">
+                  No saved articles yet
+                </p>
+                <p className="text-sm text-slate-600 mt-1">
+                  Bookmark any editorial guide while reading on the Blogs hub.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/blogs')}
+                  className="mt-4 px-5 py-2.5 text-xs font-bold text-white bg-[#0a192f] rounded-md cursor-pointer"
+                >
+                  Explore Blogs
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedArticles.map((post) => (
+                  <article
+                    key={post.id}
+                    className="border border-slate-200 rounded-lg bg-white overflow-hidden flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="aspect-[16/9] bg-slate-100 overflow-hidden">
+                        <img
+                          src={post.coverImage}
+                          alt={post.title}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-4 space-y-2">
+                        <p className="text-[11px] font-bold text-[#5624d0] uppercase tracking-wider">
+                          {post.category} · {post.readTimeMinutes} min read
+                        </p>
+                        <h3 className="font-display text-base font-bold text-slate-900 line-clamp-2">
+                          {post.title}
+                        </h3>
+                        <p className="text-xs text-slate-600 line-clamp-2">{post.excerpt}</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/blog/${post.slug}`)}
+                        className="text-xs font-bold text-[#0a192f] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Read Article</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleBlogBookmark(post.id)}
+                        className="text-xs text-slate-500 hover:text-rose-600 cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Wishlist Tab */}
+        {activeTab === 'wishlist' && (
+          <section>
+            {wishlistProducts.length === 0 ? (
+              <div className="border border-slate-200 rounded-xl p-12 text-center bg-slate-50">
+                <Heart className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                <p className="font-display text-lg font-bold text-slate-900">
+                  Your wishlist is empty
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="mt-4 px-5 py-2.5 text-xs font-bold text-white bg-slate-900 rounded-md cursor-pointer"
+                >
+                  Browse Catalog
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {wishlistProducts.map((p) => (
+                  <div
+                    key={p.id}
+                    className="border border-slate-200 rounded-lg bg-white overflow-hidden flex flex-col"
+                  >
+                    <div className="aspect-[4/3] w-full overflow-hidden bg-slate-100">
+                      <ProductThumbnail
+                        src={p.thumbnail}
+                        alt={p.title}
+                        type={p.type}
+                        className="w-full h-full"
+                      />
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500">{p.formatLabel}</p>
+                        <h3 className="font-display text-base font-bold text-slate-900 mt-1">
+                          {p.title}
+                        </h3>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/product/${p.slug}`)}
+                          className="text-xs font-bold text-[#5624d0] hover:underline cursor-pointer"
+                        >
+                          View Product ({formatNaira(p.price)})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleWishlist(p.id)}
+                          className="text-xs text-slate-500 hover:text-rose-600 cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* WhatsApp Communities Tab */}
+        {activeTab === 'communities' && (
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-xl font-extrabold text-slate-900">
+                  Your WhatsApp Learning & VIP Communities
+                </h2>
+                <p className="text-sm text-slate-600">
+                  Join cohort discussions and release channels linked to your active products.
+                </p>
+              </div>
+            </div>
+
+            {eligibleWhatsAppGroups.length === 0 ? (
+              <div className="border border-slate-200 rounded-xl p-10 text-center bg-slate-50">
+                <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="font-display text-base font-bold text-slate-900">
+                  No active WhatsApp groups unlocked yet
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {eligibleWhatsAppGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className="border border-slate-200 rounded-xl bg-white p-5 flex flex-col justify-between gap-4"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className="text-[#0a192f] uppercase tracking-wider">
+                          {group.visibility === 'public' ? 'Public Community' : 'Enrolled Cohort'}
+                        </span>
+                        <span className="text-slate-500 tabular-nums">
+                          {group.membersCount}/{group.maxMembers} members
+                        </span>
+                      </div>
+                      <h3 className="font-display text-base font-bold text-slate-900">
+                        {group.name}
+                      </h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">{group.description}</p>
+                    </div>
+                    <a
+                      href={group.inviteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => joinWhatsAppGroup(group.id)}
+                      className="w-full py-2.5 px-4 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-md inline-flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Join WhatsApp Group</span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Orders, Invoices & Refunds Tab */}
+        {activeTab === 'orders' && (
+          <section className="space-y-4">
+            {userOrders.length === 0 ? (
+              <p className="text-sm text-slate-600">You have not placed any orders yet.</p>
+            ) : (
+              <div className="border border-slate-200 rounded-lg overflow-x-auto bg-white">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+                    <tr>
+                      <th className="px-5 py-3">Order ID</th>
+                      <th className="px-5 py-3">Date</th>
+                      <th className="px-5 py-3">Items</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3 text-right">Total</th>
+                      <th className="px-5 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 tabular-nums">
+                    {userOrders.map((ord) => (
+                      <tr key={ord.id}>
+                        <td className="px-5 py-3.5 font-mono font-bold text-slate-900">
+                          {ord.id}
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-600">
+                          {ord.createdAt.slice(0, 10)}
+                        </td>
+                        <td className="px-5 py-3.5 text-slate-800">
+                          {ord.items.map((i) => i.productTitle).join(', ')}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`font-semibold capitalize ${
+                                ord.status === 'completed'
+                                  ? 'text-emerald-700'
+                                  : ord.status === 'pending'
+                                  ? 'text-amber-700'
+                                  : 'text-rose-700'
+                              }`}
+                            >
+                              {ord.status}
+                            </span>
+                            {ord.refundStatus && ord.refundStatus !== 'none' && (
+                              <span className="text-xs font-semibold text-amber-700">
+                                (Refund {ord.refundStatus})
+                              </span>
+                            )}
+                            {ord.status === 'pending' && ord.paymentMethod === 'gtb_whatsapp' && (
+                              <a
+                                href={buildWhatsAppUrl(
+                                  buildBankTransferWhatsAppMessage({
+                                    orderId: ord.id,
+                                    customerName: ord.customerName,
+                                    customerEmail: ord.customerEmail,
+                                    items: ord.items.map((i) => i.productTitle),
+                                    total: ord.total,
+                                    paymentReference: ord.paymentReference,
+                                  })
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded"
+                              >
+                                <MessageCircle className="w-3 h-3" />
+                                <span>Send GTB Proof</span>
+                              </a>
+                            )}
+                            {ord.status === 'pending' &&
+                              ord.paymentMethod !== 'gtb_whatsapp' &&
+                              ord.paymentReference && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const check = await verifyPaystackReference(
+                                      ord.paymentReference!
+                                    );
+                                    if (!check.verified) {
+                                      showToast(check.message);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded cursor-pointer"
+                                >
+                                  <Check className="w-3 h-3" />
+                                  <span>Verify Paystack</span>
+                                </button>
+                              )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-right font-bold text-slate-900">
+                          {formatNaira(ord.total)}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setInvoiceOrder(ord)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-slate-300 rounded hover:bg-slate-50 cursor-pointer"
+                            >
+                              <FileSpreadsheet className="w-3.5 h-3.5" />
+                              <span>Invoice</span>
+                            </button>
+                            {ord.status === 'completed' &&
+                              ord.total > 0 &&
+                              (!ord.refundStatus || ord.refundStatus === 'none') && (
+                                <button
+                                  type="button"
+                                  onClick={() => setRefundOrderId(ord.id)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 border border-rose-200 rounded hover:bg-rose-50 cursor-pointer"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                  <span>Refund</span>
+                                </button>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Owned Digital Products Grid */}
+        {activeTab !== 'wishlist' &&
+          activeTab !== 'orders' &&
+          activeTab !== 'communities' &&
+          activeTab !== 'articles' && (
+            <>
+              {(activeTab === 'all' || activeTab === 'courses') &&
+                ownedCoursesOverview.courseCount > 0 && (
+                  <section
+                    aria-label="Learning progress summary"
+                    className="border border-slate-200 rounded-xl bg-white p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-5"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Learning Progress Overview
+                      </p>
+                      <h2 className="font-display text-lg sm:text-xl font-extrabold text-slate-900 tabular-nums">
+                        {ownedCoursesOverview.overallPercent}% overall course completion
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-600 tabular-nums">
+                        {ownedCoursesOverview.completedLectures}/{ownedCoursesOverview.totalLectures}{' '}
+                        lessons · {ownedCoursesOverview.completedModules}/
+                        {ownedCoursesOverview.totalModules} modules ·{' '}
+                        {ownedCoursesOverview.completedCourses}/{ownedCoursesOverview.courseCount}{' '}
+                        courses completed
+                      </p>
+                    </div>
+                    <div className="w-full md:w-72 shrink-0 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700 tabular-nums">
+                        <span>Account Progress ({currentUser.name})</span>
+                        <span>{ownedCoursesOverview.overallPercent}%</span>
+                      </div>
+                      <div
+                        className="h-2.5 bg-slate-100 rounded-full overflow-hidden"
+                        role="progressbar"
+                        aria-valuenow={ownedCoursesOverview.overallPercent}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label="Overall course progress"
+                      >
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            ownedCoursesOverview.overallPercent === 100
+                              ? 'bg-emerald-600'
+                              : accent.primaryBg
+                          }`}
+                          style={{ width: `${ownedCoursesOverview.overallPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+              {displayedProducts.length === 0 ? (
+                <div className="border border-slate-200 rounded-xl p-12 text-center bg-slate-50">
+                  <p className="font-display text-lg font-bold text-slate-900">
+                    No items in this section yet
+                  </p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Browse the marketplace to enroll in courses, download handbooks, or license tools.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="mt-4 px-5 py-2.5 text-xs font-bold text-white bg-slate-900 rounded-md cursor-pointer"
+                  >
+                    Explore Marketplace
+                  </button>
+                </div>
+              ) : (
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {displayedProducts.map((prod) => {
+                    const prog = getCourseProgress(prod.id);
+                    const courseSummary =
+                      prod.type === 'course'
+                        ? getCourseProgressSummary(prod, prog?.completedLectureIds ?? [])
+                        : null;
+                    const pct = courseSummary?.percent ?? 0;
+                    const orderMatch = findCompletedOrderForProduct(prod.id);
+                    const dlUsed = orderMatch?.downloadCounts?.[prod.id] ?? 0;
+                    const dlLimit = prod.downloadLimit ?? 25;
+
+                    return (
+                      <article
+                        key={prod.id}
+                        className="border border-slate-200 rounded-lg bg-white overflow-hidden flex flex-col"
+                      >
+                        <div className="aspect-[4/3] w-full overflow-hidden bg-slate-100 relative">
+                          <ProductThumbnail
+                            src={prod.thumbnail}
+                            alt={prod.title}
+                            type={prod.type}
+                            className="w-full h-full"
+                          />
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-semibold text-slate-500">
+                              {prod.formatLabel} · {prod.instructorName}
+                            </p>
+                            <h2 className="font-display text-base font-bold text-slate-900 mt-1">
+                              {prod.title}
+                            </h2>
+
+                            {prod.type !== 'course' && (
+                              <p className="text-[11px] text-slate-500 mt-1.5 tabular-nums">
+                                Downloads used: {dlUsed} / {dlLimit}
+                              </p>
+                            )}
+
+                            {prod.type === 'course' && courseSummary && (
+                              <div className="mt-4 space-y-1.5">
+                                <div className="flex justify-between items-baseline text-xs font-semibold text-slate-700 tabular-nums">
+                                  <span>{pct}% complete</span>
+                                  <span
+                                    className={
+                                      pct === 100 ? 'text-emerald-700 font-bold' : 'text-slate-500'
+                                    }
+                                  >
+                                    {pct === 100
+                                      ? 'Certificate Ready'
+                                      : `${courseSummary.completedLectures}/${courseSummary.totalLectures} lessons · ${courseSummary.completedModules}/${courseSummary.totalModules} modules`}
+                                  </span>
+                                </div>
+                                <div
+                                  className="h-2 bg-slate-100 rounded-full overflow-hidden"
+                                  role="progressbar"
+                                  aria-valuenow={pct}
+                                  aria-valuemin={0}
+                                  aria-valuemax={100}
+                                  aria-label={`${prod.title} completion`}
+                                >
+                                  <div
+                                    className={`h-full transition-all duration-300 ${
+                                      pct === 100 ? 'bg-emerald-600' : accent.primaryBg
+                                    }`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                {prog?.certificateCode && (
+                                  <p className="text-[11px] font-mono text-emerald-700 inline-flex items-center gap-1 pt-0.5">
+                                    <Award className="w-3.5 h-3.5" />
+                                    Cert ID: {prog.certificateCode}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {prod.type === 'course' && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/learn/${prod.id}`)}
+                              className={`w-full py-2.5 px-4 text-xs font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md inline-flex items-center justify-center gap-2 cursor-pointer`}
+                            >
+                              <PlayCircle className="w-4 h-4" />
+                              <span>{pct > 0 ? 'Continue Course' : 'Start Course'}</span>
+                            </button>
+                          )}
+
+                          {prod.type === 'ebook' && (
+                            <div
+                              className={
+                                prod.ebookData
+                                  ? 'grid grid-cols-2 gap-2'
+                                  : 'grid grid-cols-1 gap-2'
+                              }
+                            >
+                              {prod.ebookData && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReaderEbook(prod);
+                                    setReaderChapterIdx(0);
+                                  }}
+                                  className={`py-2.5 px-3 text-xs font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md inline-flex items-center justify-center gap-1.5 cursor-pointer`}
+                                >
+                                  <BookOpen className="w-3.5 h-3.5" />
+                                  <span>Read Online</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadEbook(prod)}
+                                className={`py-2.5 px-3 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 cursor-pointer ${
+                                  prod.ebookData
+                                    ? 'text-slate-900 border border-slate-300 hover:bg-slate-50'
+                                    : `text-white ${accent.primaryBg} ${accent.primaryHoverBg}`
+                                }`}
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>
+                                  {prod.ebookData
+                                    ? 'Download'
+                                    : `Download ${formatProductTypeLabel(
+                                        prod.type,
+                                        prod.digitalSubType
+                                      )}`}
+                                </span>
+                              </button>
+                            </div>
+                          )}
+
+                          {prod.type === 'software' && (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadSoftware(prod)}
+                              className="w-full py-2.5 px-4 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-md inline-flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <Code2 className="w-4 h-4" />
+                              <span>
+                                Download v{prod.softwareData?.version ?? '1.0'} Package
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </section>
+              )}
+
+              {/* Software License Key Manager */}
+              {(activeTab === 'all' || activeTab === 'software') && userLicenses.length > 0 && (
+                <section className="pt-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <KeyRound className="w-5 h-5 text-[#5624d0]" />
+                    <h2 className="font-display text-xl font-extrabold text-slate-900">
+                      Software License Keys & Domain Activations
+                    </h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {userLicenses.map((lic) => (
+                      <div
+                        key={lic.id}
+                        className="border border-slate-200 rounded-xl bg-white p-6 space-y-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-display text-base font-bold text-slate-900">
+                                {lic.productTitle}
+                              </h3>
+                              <span
+                                className={`text-xs font-bold ${
+                                  lic.status === 'active'
+                                    ? 'text-emerald-700'
+                                    : 'text-rose-700'
+                                }`}
+                              >
+                                {lic.status === 'active' ? 'Active License' : 'Revoked'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5 tabular-nums">
+                              {lic.tierName} · Order {lic.orderId} · {lic.activatedDomains.length} /{' '}
+                              {lic.maxSeats} seats used
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <code className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded font-mono text-sm font-bold text-slate-900 select-all">
+                              {lic.key}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyKey(lic.key)}
+                              aria-label={`Copy license key ${lic.key}`}
+                              className="p-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 cursor-pointer"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => regenerateLicenseKey(lic.id)}
+                              title="Rotate license key"
+                              aria-label={`Rotate key for ${lic.productTitle}`}
+                              className="p-2 border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 cursor-pointer"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                          <div className="lg:col-span-6 space-y-2">
+                            <p className="text-xs font-bold text-slate-700">Activated Domains</p>
+                            {lic.activatedDomains.length === 0 ? (
+                              <p className="text-xs text-slate-500">
+                                No domains bound yet. Activate a domain to unlock production builds.
+                              </p>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {lic.activatedDomains.map((dom) => (
+                                  <div
+                                    key={dom}
+                                    className="flex items-center justify-between px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-xs"
+                                  >
+                                    <span className="font-mono text-slate-800 inline-flex items-center gap-1.5">
+                                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                                      {dom}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => deactivateLicenseDomain(lic.id, dom)}
+                                      aria-label={`Deactivate ${dom}`}
+                                      className="text-rose-600 hover:text-rose-800 inline-flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      <span>Deactivate</span>
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="lg:col-span-6 space-y-1.5">
+                            <label
+                              htmlFor={`domain-input-${lic.id}`}
+                              className="block text-xs font-bold text-slate-700"
+                            >
+                              Activate New Production Domain
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                id={`domain-input-${lic.id}`}
+                                type="text"
+                                value={domainInputs[lic.id] ?? ''}
+                                onChange={(e) =>
+                                  setDomainInputs((prev) => ({
+                                    ...prev,
+                                    [lic.id]: e.target.value,
+                                  }))
+                                }
+                                placeholder="app.yourdomain.com"
+                                className="flex-1 h-9 px-3 text-xs font-mono border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleActivateDomain(lic.id)}
+                                className={`px-4 h-9 text-xs font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md inline-flex items-center gap-1 cursor-pointer`}
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Activate</span>
+                              </button>
+                            </div>
+                            {domainErrors[lic.id] && (
+                              <p className="text-xs text-rose-700 font-medium">
+                                {domainErrors[lic.id]}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+      </div>
+
+      {/* Itemized Order Invoice Modal */}
+      {invoiceOrder && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Invoice for ${invoiceOrder.id}`}
+        >
+          <div className="bg-white rounded-xl max-w-xl w-full overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 bg-[#0a192f] text-white border-b-2 border-[#d4af37] flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#f5c451]">Official Digital Invoice</p>
+                <h3 className="font-display text-base font-bold">Order {invoiceOrder.id}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInvoiceOrder(null)}
+                aria-label="Close invoice dialog"
+                className="p-1 text-slate-300 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
+                <div>
+                  <p className="text-slate-500 font-semibold">Billed To</p>
+                  <p className="font-bold text-slate-900 mt-0.5">{invoiceOrder.customerName}</p>
+                  <p className="text-slate-600">{invoiceOrder.customerEmail}</p>
+                </div>
+                <div className="text-right tabular-nums">
+                  <p className="text-slate-500 font-semibold">Issued Date</p>
+                  <p className="font-bold text-slate-900 mt-0.5">
+                    {invoiceOrder.createdAt.slice(0, 10)}
+                  </p>
+                  <p className="text-slate-600 capitalize">Status: {invoiceOrder.status}</p>
+                </div>
+              </div>
+
+              <div className="border border-slate-200 rounded-lg divide-y divide-slate-100">
+                {invoiceOrder.items.map((item) => (
+                  <div key={item.productId} className="p-3 flex justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">{item.productTitle}</p>
+                      <p className="text-[11px] text-slate-500">
+                        {formatProductTypeLabel(item.productType)}
+                        {item.variantName ? ` · ${item.variantName}` : ''}
+                        {item.sku ? ` · SKU ${item.sku}` : ''}
+                      </p>
+                    </div>
+                    <span className="font-bold text-slate-900 tabular-nums">
+                      {formatNaira(item.price)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-1 text-right tabular-nums">
+                <p className="text-slate-600">Subtotal: {formatNaira(invoiceOrder.subtotal)}</p>
+                {invoiceOrder.discount > 0 && (
+                  <p className="text-emerald-700">
+                    Coupon Discount: -{formatNaira(invoiceOrder.discount)}
+                  </p>
+                )}
+                {(invoiceOrder.membershipDiscount ?? 0) > 0 && (
+                  <p className="text-emerald-700">
+                    Membership Savings: -{formatNaira(invoiceOrder.membershipDiscount!)}
+                  </p>
+                )}
+                <p className="text-base font-extrabold text-slate-900 pt-1">
+                  Total Paid: {formatNaira(invoiceOrder.total)}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleDownloadInvoiceHtml(invoiceOrder)}
+                className="w-full py-2.5 text-xs font-bold bg-[#0a192f] text-[#f5c451] rounded-md inline-flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download HTML Invoice</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Refund Request Modal */}
+      {refundOrderId && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Request refund"
+        >
+          <div className="bg-white rounded-xl max-w-md w-full overflow-hidden shadow-2xl">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-display text-base font-bold text-slate-900">
+                Request 30-Day Refund · {refundOrderId}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRefundOrderId(null)}
+                aria-label="Close refund dialog"
+                className="p-1 text-slate-500 hover:text-slate-900 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitRefund} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Reason for Refund Request
+                </label>
+                <textarea
+                  rows={3}
+                  value={refundReasonInput}
+                  onChange={(e) => setRefundReasonInput(e.target.value)}
+                  placeholder="Describe what did not meet your expectations..."
+                  className="w-full p-2.5 text-xs border border-slate-300 rounded-md"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRefundOrderId(null)}
+                  className="px-3.5 py-2 text-xs font-bold text-slate-700 border border-slate-300 rounded cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold text-white bg-rose-700 rounded cursor-pointer"
+                >
+                  Submit Refund Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive eBook Reader Modal */}
+      {readerEbook && readerEbook.ebookData && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/80 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Digital eBook reader"
+        >
+          <div className="bg-white rounded-xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-500">
+                  Interactive eBook Reader · {readerEbook.instructorName}
+                </p>
+                <h3 className="font-display text-base font-bold text-slate-900 truncate">
+                  {readerEbook.title}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setReaderFontLarge((prev) => !prev)}
+                  className="px-3 py-1.5 text-xs font-semibold border border-slate-300 rounded-md hover:bg-slate-50 cursor-pointer"
+                >
+                  {readerFontLarge ? 'Standard Font' : 'Large Font'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadEbook(readerEbook)}
+                  className="px-3 py-1.5 text-xs font-semibold border border-slate-300 rounded-md hover:bg-slate-50 inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Save Copy</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReaderEbook(null)}
+                  aria-label="Close reader"
+                  className="p-1.5 text-slate-500 hover:text-slate-900 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
+              <aside className="md:col-span-4 border-r border-slate-200 bg-slate-50 overflow-y-auto p-4 space-y-1">
+                <p className="text-xs font-bold text-slate-500 px-2 mb-2">Chapters</p>
+                {readerEbook.ebookData.chapters.map((ch, idx) => (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => setReaderChapterIdx(idx)}
+                    className={`w-full text-left px-3 py-2.5 rounded-md text-xs transition-colors cursor-pointer ${
+                      readerChapterIdx === idx
+                        ? 'bg-slate-900 text-white font-semibold'
+                        : 'text-slate-700 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    {ch.number}. {ch.title}
+                  </button>
+                ))}
+              </aside>
+              <div className="md:col-span-8 overflow-y-auto p-6 sm:p-10 space-y-4">
+                {(() => {
+                  const activeChap =
+                    readerEbook.ebookData.chapters[readerChapterIdx] ??
+                    readerEbook.ebookData.chapters[0];
+                  if (!activeChap) return null;
+                  return (
+                    <>
+                      <p className="text-xs font-semibold text-[#5624d0]">
+                        Chapter {activeChap.number} · {activeChap.pages} pages
+                      </p>
+                      <h4 className="font-display text-2xl font-extrabold text-slate-900">
+                        {activeChap.title}
+                      </h4>
+                      <p
+                        className={`text-slate-800 leading-relaxed ${
+                          readerFontLarge ? 'text-lg' : 'text-base'
+                        }`}
+                      >
+                        {activeChap.previewExcerpt}
+                      </p>
+                      <p
+                        className={`text-slate-700 leading-relaxed ${
+                          readerFontLarge ? 'text-lg' : 'text-base'
+                        }`}
+                      >
+                        In production systems, disciplined boundaries reduce regression risk across
+                        releases. Apply these patterns incrementally: start at module seams, enforce
+                        exhaustive checks in continuous integration, and document invariants right
+                        next to the domain model.
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

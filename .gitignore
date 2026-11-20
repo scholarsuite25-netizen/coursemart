@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.coursemart-runtime.json
+.aistudio/credentials/
+*.txt
+public/assets/aistudio/*.txt

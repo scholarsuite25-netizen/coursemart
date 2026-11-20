@@ -1,0 +1,2563 @@
+import type {
+  AffiliateConversion,
+  AffiliatePayoutRequest,
+  AffiliateProfile,
+  BlogPost,
+  Coupon,
+  CoursemartEvent,
+  CourseProgress,
+  EmailBroadcastCampaign,
+  EventRegistration,
+  LicenseKey,
+  MembershipPlan,
+  Order,
+  Product,
+  ProductReview,
+  ShowcaseSite,
+  SocialPostDraft,
+  StorefrontAppearance,
+  UserAccount,
+  UserMembership,
+  WhatsAppGroup,
+} from '../types/marketplace';
+
+export const HERO_BANNER_IMAGE =
+  '/src/assets/images/hero_learning_workspace_1794890414767.jpg';
+
+export const INSTRUCTOR_AVATAR =
+  '/src/assets/images/avatar_instructor_elena_1794890420841.jpg';
+
+export const PROMPT_PACK_COVER =
+  '/src/assets/images/digital_prompt_pack_cover_1794925520575.jpg';
+
+export const TEMPLATES_TOOLKIT_COVER =
+  '/src/assets/images/digital_templates_toolkit_cover_1794925521980.jpg';
+
+export const BLOG_AI_VIBE_IMAGE =
+  '/src/assets/images/blog_ai_vibe_coding_1794925522372.jpg';
+
+export const BLOG_LEADERSHIP_MENTORSHIP_IMAGE =
+  '/src/assets/images/blog_leadership_mentorship_1794925522598.jpg';
+
+export const BLOG_APPS_DEPLOYMENT_IMAGE =
+  '/src/assets/images/blog_apps_deployment_1794925519743.jpg';
+
+export const SHOWCASE_FINTECH_IMAGE =
+  '/src/assets/images/showcase_fintech_portal_1794932924220.jpg';
+
+export const SHOWCASE_AI_WORKSPACE_IMAGE =
+  '/src/assets/images/showcase_ai_workspace_1794932924628.jpg';
+
+export const SHOWCASE_LMS_ACADEMY_IMAGE =
+  '/src/assets/images/showcase_lms_academy_1794932925596.jpg';
+
+export const SHOWCASE_CLOUD_OPS_IMAGE =
+  '/src/assets/images/showcase_cloud_ops_1794932925707.jpg';
+
+export const BLOG_INLINE_ARCH_IMAGE =
+  '/src/assets/images/blog_inline_architecture_1794932926034.jpg';
+
+export const BLOG_INLINE_MENTOR_IMAGE =
+  '/src/assets/images/blog_inline_team_mentorship_1794932927655.jpg';
+
+export const SEED_USERS: UserAccount[] = [
+  {
+    id: 'user-student-1',
+    name: 'Alex Rivera',
+    email: 'student@coursemart.io',
+    password: 'demo1234',
+    role: 'customer',
+    title: 'Senior Product Engineer',
+    newsletterOptIn: true,
+    newsletterOptedInAt: '2026-03-14T10:05:00Z',
+    joinedAt: '2026-03-14T10:00:00Z',
+  },
+  {
+    id: 'user-instructor-1',
+    name: 'Dr. Elena Vance',
+    email: 'instructor@coursemart.io',
+    password: 'demo1234',
+    role: 'instructor',
+    avatar: INSTRUCTOR_AVATAR,
+    title: 'Principal Systems Architect & Author',
+    newsletterOptIn: true,
+    newsletterOptedInAt: '2025-11-02T09:10:00Z',
+    joinedAt: '2025-11-02T09:00:00Z',
+  },
+  {
+    id: 'user-admin-1',
+    name: 'Marcus Sterling',
+    email: 'admin@coursemart.io',
+    password: 'admin1234',
+    role: 'admin',
+    title: 'Platform Operations Director',
+    newsletterOptIn: false,
+    joinedAt: '2025-01-10T08:00:00Z',
+  },
+];
+
+export const SEED_PRODUCTS: Product[] = [
+  {
+    id: 'prod-course-1',
+    slug: 'distributed-systems-fullstack-typescript',
+    title: 'Distributed Systems & Full-Stack TypeScript Architecture',
+    subtitle:
+      'Design resilient event-driven APIs, idempotent job queues, and type-safe web clients built for production traffic.',
+    description:
+      'Master end-to-end systems engineering using modern TypeScript, PostgreSQL, and distributed messaging patterns. Across 14.5 hours of architectural walkthroughs and live refactoring sessions, you will build a fault-tolerant commerce and telemetry engine from first principles.',
+    type: 'course',
+    category: 'Software Engineering',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Dr. Elena Vance',
+    instructorRole: 'Principal Systems Architect',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 65000,
+    originalPrice: 150000,
+    rating: 4.9,
+    reviewCount: 1420,
+    studentsCount: 18450,
+    thumbnail: '/src/assets/images/course_fullstack_architecture_1794890415282.jpg',
+    level: 'Intermediate',
+    language: 'English',
+    updatedAt: '2026-10-28',
+    status: 'published',
+    featured: true,
+    bestseller: true,
+    formatLabel: '14.5 Hours Video',
+    includedInMembershipTier: 'pro',
+    bundleProductIds: ['prod-ebook-1', 'prod-tpl-1'],
+    learningOutcomes: [
+      'Architect idempotent payment & order pipelines with outbox guarantees',
+      'Model domain invariants cleanly with strict TypeScript discriminated unions',
+      'Implement structured observability, rate limiting, and graceful backpressure',
+      'Deploy multi-region read replicas with zero-downtime schema migrations',
+    ],
+    requirements: [
+      'Working familiarity with JavaScript/TypeScript and relational SQL basics',
+      'Node.js 20+ and Docker Desktop installed locally for lab exercises',
+    ],
+    targetAudience: [
+      'Full-stack TypeScript engineers preparing for Staff or Senior Systems roles',
+      'Technical founders scaling payment and webhook reliability',
+    ],
+    courseData: {
+      totalHours: 14.5,
+      promoHighlights: [
+        '14.5 hours on-demand HD video with interactive chapter markers',
+        '3 downloadable starter TypeScript repositories & audit checklists',
+        'Graded architecture quizzes + verifiable Certificate of Completion',
+      ],
+      announcements: [
+        {
+          id: 'ann-c1-1',
+          title: 'Updated Lab Repository for Node 22 & PostgreSQL Outbox Patterns',
+          body: 'We added full node:test integration harnesses inside Module 2 so you can simulate duplicate webhook retries locally.',
+          createdAt: '2026-11-12T10:00:00Z',
+        },
+        {
+          id: 'ann-c1-2',
+          title: 'Live Architecture Q&A Office Hours Every Thursday',
+          body: 'Join the cohort WhatsApp channel or drop your architecture questions directly inside the Q&A tab below each lecture.',
+          createdAt: '2026-11-05T15:30:00Z',
+        },
+      ],
+      modules: [
+        {
+          id: 'mod-c1-1',
+          title: 'Module 1: Domain Boundaries & Type-Safe Contracts',
+          quiz: {
+            id: 'quiz-c1-1',
+            title: 'Module 1 Checkpoint: Type-Safe Boundaries',
+            passingScore: 70,
+            questions: [
+              {
+                id: 'qc1-1',
+                prompt: 'Why should workflow states like OrderStatus use discriminated unions instead of overlapping booleans?',
+                options: [
+                  'They eliminate impossible state combinations at compile time',
+                  'They automatically encrypt JSON payloads',
+                  'They reduce CSS bundle size in React',
+                ],
+                correctIndex: 0,
+                explanation: 'Discriminated unions enforce mutually exclusive state transitions so invalid combinations fail compilation.',
+              },
+              {
+                id: 'qc1-2',
+                prompt: 'Where should pure domain calculations (cart totals, commission math) live?',
+                options: [
+                  'Inside JSX click handlers',
+                  'In decoupled pure TypeScript utility modules',
+                  'Inside CSS stylesheets',
+                ],
+                correctIndex: 1,
+                explanation: 'Pure domain modules run in milliseconds under node:test without browser or DOM overhead.',
+              },
+              {
+                id: 'qc1-3',
+                prompt: 'What does RFC 9457 standardize for API responses?',
+                options: [
+                  'WebSocket frame compression',
+                  'Predictable HTTP Problem Details error envelopes',
+                  'Automatic SQL indexing',
+                ],
+                correctIndex: 1,
+                explanation: 'RFC 9457 defines a consistent JSON structure (type, title, status, detail) for HTTP error recovery.',
+              },
+            ],
+          },
+          lectures: [
+            {
+              id: 'lec-c1-1',
+              title: '1.1 Designing Explicit State Machines in TypeScript',
+              durationMinutes: 18,
+              isPreview: true,
+              lectureType: 'video',
+              summary:
+                'Replace boolean flags with exhaustive discriminated unions so invalid states cannot compile.',
+              keyTakeaways: [
+                'Eliminate impossible states at the type boundary',
+                'Pattern matching with never exhaustiveness checks',
+                'Sharing Zod/TypeScript contracts across server and client',
+              ],
+              resourceFileName: 'state-machine-starter.ts',
+              chapters: [
+                { timeSeconds: 0, label: 'Why boolean flags cause production bugs' },
+                { timeSeconds: 260, label: 'Discriminated union modeling' },
+                { timeSeconds: 640, label: 'Exhaustiveness checks with never' },
+              ],
+              transcript:
+                'Welcome to Lesson 1.1. Notice how overlapping booleans like isPaid and isRefunded allow invalid combinations. By switching to a single tagged union with status discriminators, TypeScript guarantees every transition handler accounts for every valid state.',
+            },
+            {
+              id: 'lec-c1-2',
+              title: '1.2 Command vs Query Separation in Service Layers',
+              durationMinutes: 24,
+              isPreview: true,
+              summary:
+                'Decouple transactional writes from read-optimized projections without over-engineering.',
+              keyTakeaways: [
+                'Pure domain functions vs side-effect adapters',
+                'Testing business rules in milliseconds with node:test',
+              ],
+              resourceFileName: 'cqrs-service-blueprint.pdf',
+            },
+            {
+              id: 'lec-c1-3',
+              title: '1.3 Request Validation & Error Envelopes',
+              durationMinutes: 21,
+              isPreview: false,
+              summary:
+                'Build deterministic HTTP problem-detail responses for predictable client recovery.',
+              keyTakeaways: [
+                'RFC 9457 error formatting',
+                'Separating domain errors from infrastructure faults',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'mod-c1-2',
+          title: 'Module 2: Transactional Outbox & Queue Reliability',
+          quiz: {
+            id: 'quiz-c1-2',
+            title: 'Module 2 Checkpoint: Outbox & Idempotency',
+            passingScore: 70,
+            questions: [
+              {
+                id: 'qc2-1',
+                prompt: 'How does the Transactional Outbox pattern prevent dual-write inconsistency?',
+                options: [
+                  'It writes the domain record and outbox event in the same atomic DB transaction',
+                  'It disables database transactions altogether',
+                  'It retries HTTP GET requests infinitely',
+                ],
+                correctIndex: 0,
+                explanation: 'Persisting both the business row and the outbox event atomically ensures events are never lost if the broker blips.',
+              },
+              {
+                id: 'qc2-2',
+                prompt: 'What is the primary purpose of an Idempotency-Key header on checkout endpoints?',
+                options: [
+                  'Compressing response payloads',
+                  'Preventing duplicate charges when clients retry timed-out requests',
+                  'Bypassing authentication checks',
+                ],
+                correctIndex: 1,
+                explanation: 'Idempotency keys let the server return the cached original result safely on network retries.',
+              },
+            ],
+          },
+          lectures: [
+            {
+              id: 'lec-c1-4',
+              title: '2.1 Why Dual Writes Fail Under Load',
+              durationMinutes: 22,
+              isPreview: false,
+              summary:
+                'Trace real failure modes when updating a database and publishing a message broker event.',
+              keyTakeaways: [
+                'Atomic commits with outbox tables',
+                'At-least-once delivery semantics',
+              ],
+            },
+            {
+              id: 'lec-c1-5',
+              title: '2.2 Idempotency Keys for Checkout & Webhooks',
+              durationMinutes: 29,
+              isPreview: false,
+              summary:
+                'Guarantee single-charge safety even under aggressive client retries and network splits.',
+              keyTakeaways: [
+                'Scoped idempotency storage with TTL',
+                'Locking concurrent duplicate requests cleanly',
+              ],
+              resourceFileName: 'idempotency-middleware.ts',
+            },
+            {
+              id: 'lec-c1-6',
+              title: '2.3 Dead-Letter Queues & Exponential Backoff',
+              durationMinutes: 26,
+              isPreview: false,
+              summary:
+                'Design jittered retry schedules and operator replay tooling for failed jobs.',
+              keyTakeaways: [
+                'Full jitter backoff formula',
+                'Safe manual replay dashboards',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'mod-c1-3',
+          title: 'Module 3: Production Telemetry & Zero-Downtime Migrations',
+          lectures: [
+            {
+              id: 'lec-c1-7',
+              title: '3.1 Expand-and-Contract SQL Migrations',
+              durationMinutes: 27,
+              isPreview: false,
+              summary:
+                'Evolve live tables safely while old and new application containers run side by side.',
+              keyTakeaways: [
+                'Avoiding table-wide locks in PostgreSQL',
+                'Dual-writing during column transitions',
+              ],
+            },
+            {
+              id: 'lec-c1-8',
+              title: '3.2 Capstone Review & Production Readiness Checklist',
+              durationMinutes: 19,
+              isPreview: false,
+              summary:
+                'Audit latency budgets, circuit breakers, and graceful shutdown hooks.',
+              keyTakeaways: [
+                'SIGTERM connection draining',
+                'P99 latency instrumentation',
+              ],
+              resourceFileName: 'production-audit-checklist.md',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-course-2',
+    slug: 'swiss-grid-design-systems-engineering',
+    title: 'Swiss Grid Design Systems & Component Engineering',
+    subtitle:
+      'Bridge Figma design tokens, accessible React primitives, and editorial typographic hierarchy into one cohesive UI library.',
+    description:
+      'Learn how principal product designers and UI engineers craft high-contrast, accessible interfaces with disciplined spacing math, motion budgets, and zero visual clutter. Includes complete token templates and React component patterns.',
+    type: 'course',
+    category: 'Design & UI Systems',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Dr. Elena Vance',
+    instructorRole: 'Principal Systems Architect',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 55000,
+    originalPrice: 120000,
+    rating: 4.8,
+    reviewCount: 865,
+    studentsCount: 11240,
+    thumbnail: '/src/assets/images/course_design_systems_1794890416323.jpg',
+    level: 'All Levels',
+    language: 'English',
+    updatedAt: '2026-10-18',
+    status: 'published',
+    featured: true,
+    bestseller: false,
+    formatLabel: '9.5 Hours Video',
+    includedInMembershipTier: 'starter',
+    learningOutcomes: [
+      'Establish 60-30-10 color systems with WCAG AA contrast guarantees',
+      'Build keyboard-accessible dialogs, tabs, and popovers without bloat',
+      'Implement responsive Swiss modular grids and tabular numeric tables',
+      'Ship multi-brand CSS variable token pipelines in Tailwind CSS',
+    ],
+    requirements: [
+      'Basic HTML, CSS, and React component experience',
+    ],
+    courseData: {
+      totalHours: 9.5,
+      modules: [
+        {
+          id: 'mod-c2-1',
+          title: 'Module 1: Typographic Hierarchy & Spatial Math',
+          quiz: {
+            id: 'quiz-c2-1',
+            title: 'Module 1 Checkpoint: Spatial Hierarchy',
+            passingScore: 70,
+            questions: [
+              {
+                id: 'qc21-1',
+                prompt: 'What does tabular-nums prevent inside financial tables and analytics counters?',
+                options: [
+                  'Horizontal layout jitter when numbers update dynamically',
+                  'Font downloading delays',
+                  'Dark mode contrast failures',
+                ],
+                correctIndex: 0,
+                explanation: 'Tabular numerals give every digit uniform width so columns stay aligned vertically.',
+              },
+            ],
+          },
+          lectures: [
+            {
+              id: 'lec-c2-1',
+              title: '1.1 Modular Scales & Optical Alignment',
+              durationMinutes: 16,
+              isPreview: true,
+              summary:
+                'Calculate balanced container padding, nested border radii, and readable line lengths.',
+              keyTakeaways: [
+                'Outer padding vs inner child spacing rules',
+                'Tabular figures for dashboards and pricing',
+              ],
+            },
+            {
+              id: 'lec-c2-2',
+              title: '1.2 Color Discipline & Neutral Temperature',
+              durationMinutes: 20,
+              isPreview: false,
+              summary:
+                'Choose cohesive warm or cool neutral scales without muddy gray contrast.',
+              keyTakeaways: [
+                'Surface elevation deltas',
+                'Accessible semantic state pairing',
+              ],
+            },
+          ],
+        },
+        {
+          id: 'mod-c2-2',
+          title: 'Module 2: Accessible Primitives & Motion Budgets',
+          lectures: [
+            {
+              id: 'lec-c2-3',
+              title: '2.1 Focus Management in Drawers and Modals',
+              durationMinutes: 24,
+              isPreview: true,
+              summary:
+                'Handle Escape dismissal, keyboard navigation, and screen reader labels cleanly.',
+              keyTakeaways: [
+                'Semantic native controls vs div soup',
+                'Compositor-only hover and reveal transitions',
+              ],
+            },
+            {
+              id: 'lec-c2-4',
+              title: '2.2 Publishing Versioned Component Packages',
+              durationMinutes: 22,
+              isPreview: false,
+              summary:
+                'Automate visual regression snapshots and semantic changelog releases.',
+              keyTakeaways: [
+                'Tree-shakeable ESM exports',
+                'Zero-runtime CSS token layers',
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-ebook-1',
+    slug: 'pragmatic-typescript-patterns-handbook',
+    title: 'The Pragmatic TypeScript Patterns Handbook',
+    subtitle:
+      '340-page field manual covering conditional types, schema inference, zero-cost abstractions, and monorepo ergonomics.',
+    description:
+      'Written for practicing engineers who want deeper mastery over TypeScript’s structural type system without unreadable type gymnastics. Every chapter pairs real production codebases with annotated trade-off analyses and downloadable sample repositories.',
+    type: 'ebook',
+    category: 'Software Engineering',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Dr. Elena Vance',
+    instructorRole: 'Principal Systems Architect',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 30000,
+    originalPrice: 50000,
+    rating: 4.9,
+    reviewCount: 642,
+    studentsCount: 9380,
+    thumbnail: '/src/assets/images/ebook_typescript_handbook_1794890416886.jpg',
+    galleryImages: [
+      '/src/assets/images/ebook_typescript_handbook_1794890416886.jpg',
+      BLOG_INLINE_ARCH_IMAGE,
+      TEMPLATES_TOOLKIT_COVER,
+    ],
+    level: 'Intermediate',
+    language: 'English',
+    updatedAt: '2026-11-01',
+    status: 'published',
+    featured: true,
+    bestseller: true,
+    formatLabel: '340 Pages · PDF / EPUB',
+    includedInMembershipTier: 'starter',
+    bundleProductIds: ['prod-course-1', 'prod-tpl-1'],
+    downloadLimit: 10,
+    variants: [
+      {
+        id: 'var-eb1-personal',
+        name: 'Personal Edition (PDF + EPUB + MOBI)',
+        sku: 'CM-EB1-PER',
+        format: 'PDF + EPUB + MOBI',
+        priceDelta: 0,
+        licenseType: 'Personal',
+        downloadLimit: 10,
+      },
+      {
+        id: 'var-eb1-team',
+        name: 'Engineering Team Pack (5 Seats + Source Repo)',
+        sku: 'CM-EB1-TEAM',
+        format: 'PDF + EPUB + Git Archive',
+        priceDelta: 25000,
+        licenseType: 'Team',
+        downloadLimit: 50,
+      },
+      {
+        id: 'var-eb1-agency',
+        name: 'Commercial Agency License (Unlimited Seats)',
+        sku: 'CM-EB1-AGC',
+        format: 'All Formats + Print Rights',
+        priceDelta: 65000,
+        licenseType: 'Commercial Agency',
+        downloadLimit: 250,
+      },
+    ],
+    digitalResourceMeta: {
+      deliverableFormat: 'DRM-Free PDF, EPUB, MOBI + GitHub Sample Archive',
+      itemsCountLabel: '340 Pages · 5 Deep Chapters',
+      compatibility: 'Kindle, Apple Books, Kobo, VS Code',
+      sku: 'CM-EB1-PER',
+      version: 'v2.4',
+      includedAssets: [
+        '340-Page Full Color PDF & Reflowable EPUB',
+        'Complete TypeScript 7 Pattern Code Archive',
+        'Compiler Trace Performance Playbook',
+      ],
+      changelog: [
+        {
+          version: '2.4.0',
+          date: '2026-11-01',
+          highlights: [
+            'Added Chapter 5 compiler trace profiling walkthroughs',
+            'Updated branded type helpers for strict ESM moduleResolution',
+          ],
+        },
+        {
+          version: '2.0.0',
+          date: '2026-08-18',
+          highlights: ['Expanded discriminated union patterns for async workflows'],
+        },
+      ],
+    },
+    learningOutcomes: [
+      'Master branded types, template literal routes, and builder inference',
+      'Eliminate runtime type assertions using type predicates and schemas',
+      'Speed up large workspace tsc builds by up to 60% with project references',
+      'Includes full PDF, EPUB, and Kindle-ready MOBI editions + code archive',
+    ],
+    requirements: [
+      '6+ months writing TypeScript in React, Node.js, or full-stack apps',
+    ],
+    ebookData: {
+      pages: 340,
+      formats: ['PDF', 'EPUB', 'MOBI'],
+      isbn: '978-1-958204-12-4',
+      fileSize: '18.4 MB',
+      chapters: [
+        {
+          id: 'ch-1',
+          number: 1,
+          title: 'Structural Typing vs Nominal Discipline',
+          pages: 48,
+          previewExcerpt:
+            'TypeScript checks shapes, not names. While structural compatibility makes refactoring effortless across JSON boundaries, it introduces subtle risks when two identifiers share the same primitive type—such as UserId and OrderId both aliasing string. Branded opaque types close this gap with zero runtime overhead: declare a unique symbol tag on the intersection type and enforce construction through a single validated factory.',
+        },
+        {
+          id: 'ch-2',
+          number: 2,
+          title: 'Discriminated Unions & Exhaustive State Flows',
+          pages: 56,
+          previewExcerpt:
+            'Most UI bugs live in combinations of boolean flags like isLoading, hasError, and isSuccess. Modeling asynchronous workflows as explicit tagged union members turns ambiguous combinations into compile-time errors before a single test executes.',
+        },
+        {
+          id: 'ch-3',
+          number: 3,
+          title: 'Inference-First API & Hook Design',
+          pages: 62,
+          previewExcerpt:
+            'Good generic functions rarely force callers to pass explicit angle-bracket type parameters. By anchoring inference on constraint arguments and const type modifiers, your SDK surfaces autocomplete automatically.',
+        },
+        {
+          id: 'ch-4',
+          number: 4,
+          title: 'Template Literal Types for Routing & Event Buses',
+          pages: 54,
+          previewExcerpt:
+            'Extract dynamic route parameters directly from string path literals so link builders and analytics event emitters stay synchronized across teams.',
+        },
+        {
+          id: 'ch-5',
+          number: 5,
+          title: 'Compiler Performance & Monorepo Boundaries',
+          pages: 60,
+          previewExcerpt:
+            'Diagnose slow type-checking hotspots with tsc --generateTrace and isolate expensive conditional types behind explicit interface boundaries.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-sw-1',
+    slug: 'gridforge-pro-ui-admin-kit',
+    title: 'GridForge Pro UI & Admin Starter Kit',
+    subtitle:
+      'Production-ready React 19 + Tailwind CSS v4 component suite with 95+ accessible templates, data grids, and license manager.',
+    description:
+      'Accelerate SaaS and commerce launches with GridForge Pro. Built with clean modular TypeScript, zero external runtime lock-in, full keyboard navigation, and lifetime point-release updates. Includes instant license key provisioning for solo developers or agencies.',
+    type: 'software',
+    category: 'Developer Tools',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Dr. Elena Vance',
+    instructorRole: 'Principal Systems Architect',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 80000,
+    originalPrice: 130000,
+    rating: 4.9,
+    reviewCount: 518,
+    studentsCount: 6240,
+    thumbnail: '/src/assets/images/software_ui_kit_1794890416149.jpg',
+    level: 'All Levels',
+    language: 'TypeScript / React',
+    updatedAt: '2026-11-08',
+    status: 'published',
+    featured: true,
+    bestseller: true,
+    formatLabel: 'v3.2.0 ZIP + License',
+    learningOutcomes: [
+      '95+ production React + Tailwind v4 components with full source code',
+      'High-density virtualized data tables, command palettes, and checkout drawers',
+      'Automated license key generation with domain seat management',
+      'Figma master token library + Vite / Next.js starter templates included',
+    ],
+    requirements: [
+      'Node.js 18+ and React 18 or React 19',
+      'Tailwind CSS v4.0+',
+    ],
+    softwareData: {
+      version: '3.2.0',
+      platforms: ['React 19', 'Next.js 15', 'Vite 8', 'macOS / Windows / Linux'],
+      fileSize: '42.6 MB (.zip)',
+      licenseTiers: [
+        {
+          id: 'tier-solo',
+          name: 'Personal Solo License',
+          seats: 1,
+          priceMultiplier: 1,
+          description: '1 production domain · Unlimited local dev · 1 year updates',
+        },
+        {
+          id: 'tier-team',
+          name: 'Studio Team License',
+          seats: 5,
+          priceMultiplier: 1.75,
+          description: 'Up to 5 production domains · Team seat sharing · Lifetime updates',
+        },
+        {
+          id: 'tier-agency',
+          name: 'Agency Unlimited',
+          seats: 25,
+          priceMultiplier: 2.8,
+          description: 'Up to 25 client deployments · Priority Slack & source access',
+        },
+      ],
+      releases: [
+        {
+          version: '3.2.0',
+          date: '2026-11-08',
+          highlights: [
+            'Added React 19 Server Action form primitives and optimistic cart hooks',
+            'Improved keyboard focus trap performance in nested slide-over drawers',
+            'Reduced CSS bundle footprint by 18% via native Tailwind v4 @theme tokens',
+          ],
+        },
+        {
+          version: '3.1.2',
+          date: '2026-09-22',
+          highlights: [
+            'Fixed Safari subpixel border rendering in dense financial tables',
+            'Added CSV & JSON export adapters for admin ledger grids',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-course-3',
+    slug: 'production-postgresql-query-tuning',
+    title: 'Production PostgreSQL & Query Optimization',
+    subtitle:
+      'Read EXPLAIN ANALYZE like a database kernel engineer, design composite indexes, and eliminate lock contention.',
+    description:
+      'Stop guessing why queries slow down at 10 million rows. This deep-dive engineering course walks through B-Tree vs GIN index internals, MVCC vacuum tuning, connection pooling with PgBouncer, and practical partitioning strategies.',
+    type: 'course',
+    category: 'Data & Infrastructure',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Marcus Chen',
+    instructorRole: 'Staff Database Engineer',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 50000,
+    originalPrice: 100000,
+    rating: 4.7,
+    reviewCount: 412,
+    studentsCount: 7810,
+    thumbnail: '/src/assets/images/course_fullstack_architecture_1794890415282.jpg',
+    level: 'Advanced',
+    language: 'English',
+    updatedAt: '2026-09-14',
+    status: 'published',
+    featured: false,
+    formatLabel: '8.0 Hours Video',
+    learningOutcomes: [
+      'Diagnose sequential scans, hash spills, and inaccurate row estimates',
+      'Choose optimal composite index column order for multi-tenant workloads',
+      'Configure autovacuum thresholds to stop table bloat before it starts',
+    ],
+    requirements: ['Intermediate SQL knowledge (JOINs, GROUP BY, CTEs)'],
+    courseData: {
+      totalHours: 8.0,
+      modules: [
+        {
+          id: 'mod-c3-1',
+          title: 'Module 1: Query Planner & EXPLAIN Internals',
+          lectures: [
+            {
+              id: 'lec-c3-1',
+              title: '1.1 Anatomy of EXPLAIN (ANALYZE, BUFFERS)',
+              durationMinutes: 25,
+              isPreview: true,
+              summary: 'Interpret shared hit vs read counts to measure true I/O cost.',
+              keyTakeaways: ['Buffer cache hit ratio myths', 'Cost units decoded'],
+            },
+            {
+              id: 'lec-c3-2',
+              title: '1.2 Composite & Partial Indexes in Practice',
+              durationMinutes: 30,
+              isPreview: false,
+              summary: 'Shrink index memory footprint by indexing only active rows.',
+              keyTakeaways: ['Equality before range rule', 'Index-only scans'],
+            },
+          ],
+        },
+        {
+          id: 'mod-c3-2',
+          title: 'Module 2: Concurrency, Locks & Connection Pooling',
+          lectures: [
+            {
+              id: 'lec-c3-3',
+              title: '2.1 Detecting Deadlocks & Lock Queues',
+              durationMinutes: 22,
+              isPreview: false,
+              summary: 'Use pg_stat_activity and lock_timeout to protect checkout latency.',
+              keyTakeaways: ['Row-level FOR UPDATE SKIP LOCKED', 'Safe DDL timeouts'],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-ebook-2',
+    slug: 'zero-to-scale-saas-unit-economics',
+    title: 'Zero-to-Scale SaaS Pricing & Unit Economics',
+    subtitle:
+      'Practical frameworks for tiered packaging, net dollar retention modeling, and B2B digital product monetization.',
+    description:
+      'An actionable 210-page playbook for founders and product leaders structuring subscriptions, hybrid usage pricing, and digital licensing tiers. Includes spreadsheet formulas and real case studies.',
+    type: 'ebook',
+    category: 'Business & Product',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Claire Beaumont',
+    instructorRole: 'SaaS Monetization Advisor',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 25000,
+    originalPrice: 40000,
+    rating: 4.6,
+    reviewCount: 289,
+    studentsCount: 4120,
+    thumbnail: '/src/assets/images/ebook_typescript_handbook_1794890416886.jpg',
+    level: 'Beginner',
+    language: 'English',
+    updatedAt: '2026-08-29',
+    status: 'published',
+    featured: false,
+    formatLabel: '210 Pages · PDF / EPUB',
+    learningOutcomes: [
+      'Quantify willingness-to-pay with Van Westendorp survey models',
+      'Structure seat-based vs usage-based tiers without customer friction',
+      'Design annual expansion hooks and coupon campaigns that protect margin',
+    ],
+    requirements: ['No prerequisites required'],
+    ebookData: {
+      pages: 210,
+      formats: ['PDF', 'EPUB'],
+      isbn: '978-1-958204-28-5',
+      fileSize: '11.2 MB',
+      chapters: [
+        {
+          id: 'eb2-ch1',
+          number: 1,
+          title: 'Why Cost-Plus Pricing Leaves 40% Margin Behind',
+          pages: 38,
+          previewExcerpt:
+            'Software and digital goods enjoy near-zero marginal distribution cost. Pricing based on server bills anchors your product to commodities instead of customer workflow value.',
+        },
+        {
+          id: 'eb2-ch2',
+          number: 2,
+          title: 'Packaging Value Metrics That Scale Naturally',
+          pages: 44,
+          previewExcerpt:
+            'Your value metric should correlate tightly with the ROI your buyer receives—whether active seats, verified domains, or monthly processed orders.',
+        },
+        {
+          id: 'eb2-ch3',
+          number: 3,
+          title: 'Coupon Discipline & Promotional Guardrails',
+          pages: 42,
+          previewExcerpt:
+            'Permanent discounting erodes reference price. Time-boxed launch campaigns paired with minimum spend thresholds preserve perceived value while accelerating conversion.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-sw-2',
+    slug: 'schemapulse-cli-migration-studio',
+    title: 'SchemaPulse CLI & Migration Studio',
+    subtitle:
+      'Cross-platform desktop & CLI tool for visual SQL schema diffs, safe migration previews, and seed snapshots.',
+    description:
+      'Inspect PostgreSQL, MySQL, and SQLite schemas visually, generate deterministic Drizzle or raw SQL migrations, and catch destructive column drops before CI merges.',
+    type: 'software',
+    category: 'Developer Tools',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Marcus Chen',
+    instructorRole: 'Staff Database Engineer',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 60000,
+    originalPrice: 90000,
+    rating: 4.8,
+    reviewCount: 310,
+    studentsCount: 3890,
+    thumbnail: '/src/assets/images/software_ui_kit_1794890416149.jpg',
+    level: 'Intermediate',
+    language: 'CLI / Desktop',
+    updatedAt: '2026-10-30',
+    status: 'published',
+    featured: false,
+    formatLabel: 'v2.4.1 Binary + Key',
+    learningOutcomes: [
+      'Visual ER diffing across staging and production branches',
+      'Automated lock-risk linting for ALTER TABLE statements',
+      'Instant anonymized seed export for local dev environments',
+    ],
+    requirements: ['macOS 13+, Windows 11, or Linux x64/arm64'],
+    softwareData: {
+      version: '2.4.1',
+      platforms: ['macOS Universal', 'Linux x64/arm64', 'Windows 11', 'Docker CLI'],
+      fileSize: '64.1 MB (.tar.gz / .dmg)',
+      licenseTiers: [
+        {
+          id: 'sp-solo',
+          name: 'Individual Workstation',
+          seats: 2,
+          priceMultiplier: 1,
+          description: '2 developer machines · CLI + Desktop GUI',
+        },
+        {
+          id: 'sp-team',
+          name: 'Engineering Team Pack',
+          seats: 10,
+          priceMultiplier: 2.2,
+          description: '10 seats + CI/CD runner activation keys',
+        },
+      ],
+      releases: [
+        {
+          version: '2.4.1',
+          date: '2026-10-30',
+          highlights: [
+            'Added PostgreSQL 17 partitioning diff inspection',
+            'Improved SSH bastion tunnel reconnect stability',
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-course-4',
+    slug: 'ai-agents-production-rag-systems',
+    title: 'AI Agents & Production Retrieval Systems',
+    subtitle:
+      'Design deterministic tool-calling AI agents, eval harnesses, and low-latency retrieval pipelines for real products.',
+    description:
+      'Move beyond fragile prompt wrappers. Learn structured output contracts, multi-step tool routing, semantic caching, and automated regression evaluations for AI applications.',
+    type: 'course',
+    category: 'AI',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Dr. Elena Vance',
+    instructorRole: 'Principal Systems Architect',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 70000,
+    originalPrice: 140000,
+    rating: 4.9,
+    reviewCount: 610,
+    studentsCount: 8940,
+    thumbnail: BLOG_AI_VIBE_IMAGE,
+    level: 'Intermediate',
+    language: 'English',
+    updatedAt: '2026-11-12',
+    status: 'published',
+    featured: false,
+    bestseller: true,
+    formatLabel: '12.0 Hours Video',
+    learningOutcomes: [
+      'Architect schema-validated AI tool calls with automatic retries and fallbacks',
+      'Build automated golden-dataset evaluation suites before shipping model upgrades',
+      'Control latency and token budgets across streaming multi-agent workflows',
+    ],
+    requirements: ['Familiarity with TypeScript or Python and REST APIs'],
+    courseData: {
+      totalHours: 12.0,
+      modules: [
+        {
+          id: 'mod-c4-1',
+          title: 'Module 1: Structured Tool Calling & Grounding',
+          lectures: [
+            {
+              id: 'lec-c4-1',
+              title: '1.1 Deterministic Agent Loops & State Contracts',
+              durationMinutes: 22,
+              isPreview: true,
+              summary: 'Bound agent execution with explicit step budgets and typed tool schemas.',
+              keyTakeaways: ['Max-iteration guards', 'Typed JSON schema validation'],
+            },
+            {
+              id: 'lec-c4-2',
+              title: '1.2 Hybrid Vector + Keyword Retrieval',
+              durationMinutes: 28,
+              isPreview: false,
+              summary: 'Combine BM25 lexical matching with semantic embeddings for high recall.',
+              keyTakeaways: ['Reciprocal rank fusion', 'Chunk metadata filtering'],
+            },
+          ],
+        },
+        {
+          id: 'mod-c4-2',
+          title: 'Module 2: Evaluation Harnesses & Guardrails',
+          lectures: [
+            {
+              id: 'lec-c4-3',
+              title: '2.1 Scoring Accuracy, Latency & Cost in CI',
+              durationMinutes: 24,
+              isPreview: false,
+              summary: 'Run automated grading rubrics against golden user prompts on every PR.',
+              keyTakeaways: ['Regression thresholds', 'Tracing tool call failures'],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-course-5',
+    slug: 'vibe-coding-mastery-prompt-to-production',
+    title: 'Vibe Coding Mastery: Specification-First AI Building',
+    subtitle:
+      'Turn natural-language intent into clean, tested, production-ready full-stack software at 5x engineering speed.',
+    description:
+      'Master the modern Vibe Coding workflow: decomposing product specs, steering coding assistants with architectural constraints, running tight verification loops, and refactoring generated code into maintainable modules.',
+    type: 'course',
+    category: 'Vibe Coding',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Dr. Elena Vance',
+    instructorRole: 'Principal Systems Architect',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 60000,
+    originalPrice: 120000,
+    rating: 4.9,
+    reviewCount: 482,
+    studentsCount: 7420,
+    thumbnail: BLOG_AI_VIBE_IMAGE,
+    level: 'All Levels',
+    language: 'English',
+    updatedAt: '2026-11-14',
+    status: 'published',
+    featured: false,
+    bestseller: true,
+    formatLabel: '8.5 Hours Video',
+    learningOutcomes: [
+      'Write concise architectural specs that steer AI coding sessions without drift',
+      'Spot and eliminate silent regressions using fast unit and browser test loops',
+      'Go from blank repository to live deployed MVP in one focused weekend',
+    ],
+    requirements: ['Basic familiarity with building web apps'],
+    courseData: {
+      totalHours: 8.5,
+      modules: [
+        {
+          id: 'mod-c5-1',
+          title: 'Module 1: Spec-Driven Vibe Coding',
+          lectures: [
+            {
+              id: 'lec-c5-1',
+              title: '1.1 Prompting With Domain Invariants, Not Vague Wishes',
+              durationMinutes: 19,
+              isPreview: true,
+              summary: 'Keep AI code clean by defining data models and boundaries upfront.',
+              keyTakeaways: ['Context window hygiene', 'Single-responsibility modules'],
+            },
+            {
+              id: 'lec-c5-2',
+              title: '1.2 Tight Browser & Unit Verification Loops',
+              durationMinutes: 26,
+              isPreview: false,
+              summary: 'Use Playwright snapshots and node:test checks to verify every iteration.',
+              keyTakeaways: ['Catching layout drift early', 'Zero dead-click audits'],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-course-6',
+    slug: 'zero-downtime-apps-deployment-cloud-run',
+    title: 'Zero-Downtime Apps Deployment: Docker, Cloud Run & CI/CD',
+    subtitle:
+      'Ship full-stack Node.js, React, and PostgreSQL apps to production with HTTPS, secrets, rollbacks, and health checks.',
+    description:
+      'Bridge the gap between localhost and resilient production hosting. Configure multi-stage Docker builds, Cloud Run traffic splitting, zero-downtime migrations, and automated GitHub Actions release pipelines.',
+    type: 'course',
+    category: 'Apps Deployment',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Marcus Chen',
+    instructorRole: 'Staff Database Engineer',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 55000,
+    originalPrice: 110000,
+    rating: 4.8,
+    reviewCount: 394,
+    studentsCount: 6150,
+    thumbnail: BLOG_APPS_DEPLOYMENT_IMAGE,
+    level: 'Intermediate',
+    language: 'English',
+    updatedAt: '2026-11-11',
+    status: 'published',
+    featured: false,
+    formatLabel: '10.0 Hours Video',
+    learningOutcomes: [
+      'Containerize full-stack apps with lean multi-stage Dockerfiles under 150MB',
+      'Automate blue-green Cloud Run & Vercel/Fly deployments with instant rollbacks',
+      'Manage runtime secrets, health probes, and structured logs cleanly',
+    ],
+    requirements: ['Basic Git and command-line familiarity'],
+    courseData: {
+      totalHours: 10.0,
+      modules: [
+        {
+          id: 'mod-c6-1',
+          title: 'Module 1: Containers, Health Probes & CI Pipelines',
+          lectures: [
+            {
+              id: 'lec-c6-1',
+              title: '1.1 Multi-Stage Docker Builds for Vite + Express',
+              durationMinutes: 21,
+              isPreview: true,
+              summary: 'Strip devDependencies and ship immutable production artifacts.',
+              keyTakeaways: ['Layer caching', 'Non-root container users'],
+            },
+            {
+              id: 'lec-c6-2',
+              title: '1.2 Canary Releases & Instant Traffic Rollback',
+              durationMinutes: 27,
+              isPreview: false,
+              summary: 'Route 10% production traffic to new revisions before full cutover.',
+              keyTakeaways: ['Smoke test gates', 'Readiness endpoints'],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-course-7',
+    slug: 'technical-leadership-engineering-mentorship',
+    title: 'Technical Leadership & Engineering Mentorship Systems',
+    subtitle:
+      'Lead high-trust engineering teams, write crisp RFC decision memos, and mentor mid-level developers to Staff impact.',
+    description:
+      'Designed for newly promoted Tech Leads, Engineering Managers, and Senior ICs stepping into mentorship and cross-team leadership.',
+    type: 'course',
+    category: 'Leadership',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Claire Beaumont',
+    instructorRole: 'VP of Engineering & Advisor',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 50000,
+    originalPrice: 95000,
+    rating: 4.9,
+    reviewCount: 318,
+    studentsCount: 5430,
+    thumbnail: BLOG_LEADERSHIP_MENTORSHIP_IMAGE,
+    level: 'All Levels',
+    language: 'English',
+    updatedAt: '2026-11-09',
+    status: 'published',
+    featured: false,
+    formatLabel: '7.5 Hours Video',
+    learningOutcomes: [
+      'Run high-signal 1-on-1 mentorship sessions that accelerate promotion readiness',
+      'Lead architectural RFC reviews without becoming a bottleneck',
+      'Align engineering roadmaps with measurable business outcomes',
+    ],
+    requirements: ['2+ years working on collaborative software teams'],
+    courseData: {
+      totalHours: 7.5,
+      modules: [
+        {
+          id: 'mod-c7-1',
+          title: 'Module 1: High-Trust Coaching & Technical Influence',
+          lectures: [
+            {
+              id: 'lec-c7-1',
+              title: '1.1 Coaching Through Questions vs Taking Over the Keyboard',
+              durationMinutes: 18,
+              isPreview: true,
+              summary: 'Build independent problem-solvers through structured mentorship rituals.',
+              keyTakeaways: ['Delegation ladder', 'Constructive PR review framing'],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-ebook-3',
+    slug: 'engineering-mentorship-field-manual',
+    title: 'The Engineering Mentorship Field Manual',
+    subtitle:
+      '190-page practical guide to structured 1-on-1 coaching, sponsorship, feedback frameworks, and career ladders.',
+    description:
+      'A concise handbook for senior engineers and mentors building deliberate talent pipelines inside fast-moving tech organizations.',
+    type: 'ebook',
+    digitalSubType: 'ebook',
+    category: 'Mentorship',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Claire Beaumont',
+    instructorRole: 'VP of Engineering & Advisor',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 24000,
+    originalPrice: 39000,
+    rating: 4.8,
+    reviewCount: 215,
+    studentsCount: 3680,
+    thumbnail: BLOG_LEADERSHIP_MENTORSHIP_IMAGE,
+    level: 'All Levels',
+    language: 'English',
+    updatedAt: '2026-11-06',
+    status: 'published',
+    featured: false,
+    formatLabel: '190 Pages · PDF / EPUB',
+    learningOutcomes: [
+      'Structure 30-60-90 day onboarding plans for junior and mid-level hires',
+      'Deliver candid growth feedback using concrete behavioral examples',
+      'Track mentee milestones toward Senior and Staff promotions',
+    ],
+    requirements: ['No prerequisites required'],
+    ebookData: {
+      pages: 190,
+      formats: ['PDF', 'EPUB'],
+      isbn: '978-1-958204-41-4',
+      fileSize: '9.8 MB',
+      chapters: [
+        {
+          id: 'eb3-ch1',
+          number: 1,
+          title: 'From Helpful Coworker to Intentional Mentor',
+          pages: 34,
+          previewExcerpt:
+            'Ad-hoc Slack answers solve today’s bug; structured mentorship builds tomorrow’s architect. Define clear quarterly growth outcomes at your very first session.',
+        },
+        {
+          id: 'eb3-ch2',
+          number: 2,
+          title: 'Designing High-Leverage Code Review Feedback',
+          pages: 41,
+          previewExcerpt:
+            'Separate blocking correctness issues from stylistic nitpicks so mentees learn architectural judgment without feeling micromanaged.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-tpl-1',
+    slug: 'saas-ai-launch-architecture-templates',
+    title: 'AI & SaaS Launch Architecture Notion + RFC Templates',
+    subtitle:
+      '28 plug-and-play system RFCs, deployment readiness scorecards, and AI product PRD templates.',
+    description:
+      'Save weeks of blank-page planning with battle-tested engineering specs, security review templates, and release checklists tailored for AI and web app launches.',
+    type: 'ebook',
+    digitalSubType: 'template',
+    category: 'Apps Deployment',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Dr. Elena Vance',
+    instructorRole: 'Principal Systems Architect',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 27000,
+    originalPrice: 49000,
+    rating: 4.9,
+    reviewCount: 276,
+    studentsCount: 4410,
+    thumbnail: TEMPLATES_TOOLKIT_COVER,
+    galleryImages: [
+      TEMPLATES_TOOLKIT_COVER,
+      SHOWCASE_CLOUD_OPS_IMAGE,
+      BLOG_APPS_DEPLOYMENT_IMAGE,
+    ],
+    level: 'All Levels',
+    language: 'Notion / Markdown / DOCX',
+    updatedAt: '2026-11-10',
+    status: 'published',
+    featured: false,
+    bestseller: true,
+    formatLabel: '28 Templates · Notion + MD',
+    includedInMembershipTier: 'pro',
+    bundleProductIds: ['prod-course-1', 'prod-ebook-1'],
+    downloadLimit: 15,
+    variants: [
+      {
+        id: 'var-tpl1-solo',
+        name: 'Builder Standard Pack (Notion + Markdown)',
+        sku: 'CM-TPL1-STD',
+        format: 'Notion + Markdown',
+        priceDelta: 0,
+        licenseType: 'Personal',
+        downloadLimit: 15,
+      },
+      {
+        id: 'var-tpl1-agency',
+        name: 'Team & Agency White-Label Pack',
+        sku: 'CM-TPL1-WL',
+        format: 'Notion + MD + DOCX + Client Rights',
+        priceDelta: 35000,
+        licenseType: 'Commercial Agency',
+        downloadLimit: 100,
+      },
+    ],
+    learningOutcomes: [
+      'Architecture Decision Record (ADR) & System RFC templates',
+      'Go-Live Apps Deployment, DNS, SSL & rollback runbook templates',
+      'AI feature risk assessment & prompt spec worksheet',
+    ],
+    requirements: ['Free Notion account or any Markdown editor'],
+    digitalResourceMeta: {
+      deliverableFormat: 'Notion Workspace + Markdown Pack',
+      itemsCountLabel: '28 Production Templates',
+      compatibility: 'Notion, Obsidian, GitHub Docs, Linear',
+      sku: 'CM-TPL1-STD',
+      version: 'v1.6',
+      includedAssets: [
+        'System Architecture RFC Template',
+        'Pre-Deployment Cutover Checklist',
+        'AI Agent Specification Sheet',
+        'Incident Post-Mortem Blameless Template',
+      ],
+      changelog: [
+        {
+          version: '1.6.0',
+          date: '2026-11-10',
+          highlights: [
+            'Added Cloud Run zero-downtime cutover checklist',
+            'Included AI agent safety & schema evaluation rubric',
+          ],
+        },
+      ],
+    },
+    ebookData: {
+      pages: 85,
+      formats: ['Notion', 'Markdown', 'PDF'],
+      isbn: 'TPL-2026-APP01',
+      fileSize: '6.4 MB',
+      chapters: [
+        {
+          id: 'tpl1-ch1',
+          number: 1,
+          title: 'System RFC & Trade-off Matrix Template',
+          pages: 22,
+          previewExcerpt:
+            'Includes Context, Non-Goals, Proposed Architecture, Failure Modes, and Rollback Plan prompts ready to duplicate into your team workspace.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-tpl-2',
+    slug: 'mentorship-1on1-career-rubric-templates',
+    title: '1-on-1 Mentorship & Engineering Career Rubric Templates',
+    subtitle:
+      '22 structured coaching agendas, quarterly growth matrices, and brag-doc templates for mentors and leaders.',
+    description:
+      'Everything Tech Leads and Mentors need to run consistent, motivating 1-on-1s and transparent engineering progression reviews.',
+    type: 'ebook',
+    digitalSubType: 'template',
+    category: 'Mentorship',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Claire Beaumont',
+    instructorRole: 'VP of Engineering & Advisor',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 22000,
+    originalPrice: 38000,
+    rating: 4.8,
+    reviewCount: 184,
+    studentsCount: 2950,
+    thumbnail: BLOG_LEADERSHIP_MENTORSHIP_IMAGE,
+    level: 'All Levels',
+    language: 'Notion / Google Docs',
+    updatedAt: '2026-11-05',
+    status: 'published',
+    featured: false,
+    formatLabel: '22 Templates · Notion + Docs',
+    learningOutcomes: [
+      'Weekly & bi-weekly mentorship check-in agendas with coaching prompts',
+      'L3-to-Staff engineering competency & impact rubric spreadsheets',
+      'Structured quarterly promotion packet & brag-doc templates',
+    ],
+    requirements: ['Notion or Google Workspace'],
+    digitalResourceMeta: {
+      deliverableFormat: 'Notion + Google Docs + CSV',
+      itemsCountLabel: '22 Mentorship Templates',
+      compatibility: 'Notion, Google Docs, Word',
+      includedAssets: [
+        'First 90 Days Mentorship Roadmap',
+        'Weekly 1-on-1 Coaching Tracker',
+        'Promotion Packet & Impact Log',
+      ],
+    },
+    ebookData: {
+      pages: 64,
+      formats: ['Notion', 'DOCX', 'PDF'],
+      isbn: 'TPL-2026-MEN02',
+      fileSize: '4.9 MB',
+      chapters: [
+        {
+          id: 'tpl2-ch1',
+          number: 1,
+          title: 'The High-Signal 1-on-1 Agenda Blueprint',
+          pages: 18,
+          previewExcerpt:
+            'Shift 1-on-1 conversations away from status updates toward blockers, skill stretches, and long-term career leverage.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-tk-1',
+    slug: 'zero-to-prod-apps-deployment-ops-toolkit',
+    title: 'Zero-to-Prod Apps Deployment & Cloud Ops Toolkit',
+    subtitle:
+      'Hardened Dockerfiles, GitHub Actions workflows, Cloud Run Terraform specs, and SSL/healthcheck scripts.',
+    description:
+      'Stop copy-pasting fragile deployment snippets. Drop our audited container, CI/CD, and monitoring scripts straight into your Node.js, React, or Next.js repository.',
+    type: 'ebook',
+    digitalSubType: 'toolkit',
+    category: 'Apps Deployment',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Marcus Chen',
+    instructorRole: 'Staff Database Engineer',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 35000,
+    originalPrice: 60000,
+    rating: 4.9,
+    reviewCount: 295,
+    studentsCount: 5120,
+    thumbnail: BLOG_APPS_DEPLOYMENT_IMAGE,
+    level: 'Intermediate',
+    language: 'YAML / Shell / HCL',
+    updatedAt: '2026-11-13',
+    status: 'published',
+    featured: false,
+    bestseller: true,
+    formatLabel: '40+ Scripts · ZIP + Guide',
+    learningOutcomes: [
+      'Production multi-stage Dockerfiles for Express, Vite, and Next.js',
+      'Zero-downtime Cloud Run, Railway & Fly.io GitHub Actions pipelines',
+      'Automated database backup, health probe & uptime alert scripts',
+    ],
+    requirements: ['Git + Docker basics'],
+    digitalResourceMeta: {
+      deliverableFormat: 'ZIP Archive (YAML, Dockerfile, Bash, HCL)',
+      itemsCountLabel: '40+ Deployment Scripts',
+      compatibility: 'Docker, Google Cloud Run, GitHub Actions, Fly.io',
+      includedAssets: [
+        'Dockerfile.node-production',
+        'deploy-cloud-run.yml Workflow',
+        'postgres-safe-backup.sh',
+        'nginx-tls-headers.conf',
+      ],
+    },
+    ebookData: {
+      pages: 78,
+      formats: ['ZIP', 'YAML', 'PDF'],
+      isbn: 'TLK-2026-DEP01',
+      fileSize: '8.7 MB',
+      chapters: [
+        {
+          id: 'tk1-ch1',
+          number: 1,
+          title: 'Pre-Deployment Security & Env Var Audit',
+          pages: 24,
+          previewExcerpt:
+            'Verify non-root execution, graceful SIGTERM shutdown, and zero baked-in secrets before exposing port 3000/8080 to public traffic.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-tk-2',
+    slug: 'engineering-leadership-rituals-toolkit',
+    title: 'Engineering Leadership & Team Rituals Toolkit',
+    subtitle:
+      'Complete operating system for technical leaders: quarterly planning calculators, incident playbooks, and hiring scorecards.',
+    description:
+      'Equip engineering managers and tech leads with repeatable operating rhythms that reduce meeting bloat while raising shipping predictability.',
+    type: 'ebook',
+    digitalSubType: 'toolkit',
+    category: 'Leadership',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Claire Beaumont',
+    instructorRole: 'VP of Engineering & Advisor',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 29000,
+    originalPrice: 49000,
+    rating: 4.8,
+    reviewCount: 168,
+    studentsCount: 3140,
+    thumbnail: TEMPLATES_TOOLKIT_COVER,
+    level: 'All Levels',
+    language: 'Notion / CSV / PDF',
+    updatedAt: '2026-11-04',
+    status: 'published',
+    featured: false,
+    formatLabel: '18 Playbooks · ZIP + Notion',
+    learningOutcomes: [
+      'Quarterly capacity & tech-debt allocation worksheets',
+      'Structured technical interview loops & scoring rubrics',
+      'High-signal weekly engineering demo & retro facilitation guides',
+    ],
+    requirements: ['No prerequisites required'],
+    digitalResourceMeta: {
+      deliverableFormat: 'Playbook PDF + Notion + Spreadsheets',
+      itemsCountLabel: '18 Leadership Playbooks',
+      compatibility: 'Notion, Excel, Google Sheets',
+      includedAssets: [
+        'Tech Debt Allocation Calculator',
+        'Senior Engineer Interview Rubric',
+        'Incident Commander Quick-Action Card',
+      ],
+    },
+    ebookData: {
+      pages: 72,
+      formats: ['PDF', 'CSV', 'Notion'],
+      isbn: 'TLK-2026-LDR02',
+      fileSize: '5.5 MB',
+      chapters: [
+        {
+          id: 'tk2-ch1',
+          number: 1,
+          title: 'The 20% Architecture Health Budget',
+          pages: 19,
+          previewExcerpt:
+            'Treat reliability, test speed, and refactors as permanent product capacity rather than a once-a-year emergency rewrite.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'prod-sw-3',
+    slug: 'deployguard-cli-preflight-inspector',
+    title: 'DeployGuard CLI & Preflight Release Inspector',
+    subtitle:
+      'Automated pre-deployment CLI scanner catching leaked secrets, missing env vars, broken health routes, and Docker bloat.',
+    description:
+      'Run DeployGuard locally or inside CI before pushing containers to production. Validates environment schemas, bundle sizes, CSP headers, and database migration safety in under 4 seconds.',
+    type: 'software',
+    category: 'Apps Deployment',
+    instructorId: 'user-instructor-1',
+    instructorName: 'Marcus Chen',
+    instructorRole: 'Staff Database Engineer',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 65000,
+    originalPrice: 99000,
+    rating: 4.9,
+    reviewCount: 245,
+    studentsCount: 3180,
+    thumbnail: BLOG_APPS_DEPLOYMENT_IMAGE,
+    level: 'Intermediate',
+    language: 'CLI / Node / Docker',
+    updatedAt: '2026-11-13',
+    status: 'published',
+    featured: false,
+    formatLabel: 'v1.8.0 Binary + Key',
+    learningOutcomes: [
+      'Instant .env vs runtime process validation before container startup',
+      'Automated Docker image layer & bundle-size regression warnings',
+      'Zero-config GitHub Actions SARIF report integration',
+    ],
+    requirements: ['Node.js 20+ or Docker CLI'],
+    softwareData: {
+      version: '1.8.0',
+      platforms: ['macOS Universal', 'Linux x64/arm64', 'Windows 11', 'GitHub Actions'],
+      fileSize: '38.2 MB (.tar.gz)',
+      licenseTiers: [
+        {
+          id: 'dg-solo',
+          name: 'Developer Solo License',
+          seats: 2,
+          priceMultiplier: 1,
+          description: '2 workstations · Local + 1 CI pipeline',
+        },
+        {
+          id: 'dg-org',
+          name: 'Engineering Org License',
+          seats: 15,
+          priceMultiplier: 2.3,
+          description: '15 seats · Unlimited CI/CD runners & priority updates',
+        },
+      ],
+      releases: [
+        {
+          version: '1.8.0',
+          date: '2026-11-13',
+          highlights: [
+            'Added Cloud Run & Vercel environment parity checker',
+            'Improved zero-downtime healthcheck probe verification',
+          ],
+        },
+      ],
+    },
+  },
+];
+
+export const SEED_BLOG_POSTS: BlogPost[] = [
+  {
+    id: 'blog-1',
+    slug: 'vibe-coding-with-production-guardrails',
+    title: 'Vibe Coding With Production Guardrails: From Prompt to Durable Architecture',
+    subtitle:
+      'Why specification-first prompting, strict TypeScript boundaries, and fast browser verification turn AI-assisted coding into senior-level output.',
+    excerpt:
+      'Vibe coding unlocks unprecedented build velocity, but unguided prompts create brittle spaghetti. Here is the exact 4-step specification and test loop top builders use to ship clean production apps.',
+    category: 'Vibe Coding',
+    authorId: 'user-instructor-1',
+    authorName: 'Dr. Elena Vance',
+    authorRole: 'Principal Systems Architect',
+    authorAvatar: INSTRUCTOR_AVATAR,
+    coverImage: BLOG_AI_VIBE_IMAGE,
+    readTimeMinutes: 7,
+    publishedAt: '2026-11-15T09:00:00Z',
+    updatedAt: '2026-11-15T09:00:00Z',
+    status: 'published',
+    featured: true,
+    tags: ['Vibe Coding', 'AI', 'TypeScript', 'Testing'],
+    relatedProductIds: ['prod-course-5', 'prod-tpl-1', 'prod-sw-1'],
+    sections: [
+      {
+        id: 'b1-s1',
+        heading: '01. Anchor Every Session With Domain Invariants',
+        body: 'The fastest way to derail an AI coding session is starting with vague UI wishes without defining your core state contracts. Before generating a single component, specify your canonical types, valid state transitions, and persistence keys. When the model sees strict discriminated unions, it generates clean, predictable handlers instead of ad-hoc boolean flags.',
+        pullQuote:
+          'Vibe coding is not the absence of engineering discipline; it is shifting your effort from manual typing to crisp specification and rapid verification.',
+      },
+      {
+        id: 'b1-s2',
+        blockType: 'section',
+        heading: '02. Keep Business Rules Out of React Components',
+        body: 'Pure calculation functions—cart totals, permission checks, search filters, and route parsers—belong in standalone TypeScript utility modules. Decoupling logic from JSX lets you verify edge cases in milliseconds with Node’s built-in test runner before touching the browser.',
+        imageUrl: BLOG_INLINE_ARCH_IMAGE,
+        imageCaption: 'Fig. 2 — Separating pure TypeScript domain graphs from UI rendering keeps AI-assisted iterations predictable.',
+        imageAlt: 'Software engineer analyzing modular React and GraphQL architecture diagram on studio monitor',
+        imageAlign: 'wide',
+        codeSnippet: `// Keep domain rules pure and unit-testable
+export function calculateDiscountedTotal(subtotal: number, percent: number): number {
+  const clamped = Math.min(100, Math.max(0, percent));
+  return Math.round((subtotal * (1 - clamped / 100)) * 100) / 100;
+}`,
+      },
+      {
+        id: 'b1-s3',
+        blockType: 'checklist',
+        heading: '03. Close the Loop With Real Browser Snapshots',
+        body: 'Always inspect the live rendered application across desktop and mobile viewports after major feature blocks. Automated DOM assertions catch clipped text, horizontal overflow, and broken click handlers that TypeScript compilation alone never sees.',
+        checklistItems: [
+          'Verify desktop (1440px) and mobile (390px) viewports show zero horizontal overflow',
+          'Run fast node:test assertions on all pricing, routing, and quiz rules',
+          'Inspect console logs and failed image/API requests before shipping',
+        ],
+      },
+    ],
+    comments: [
+      {
+        id: 'bc-1',
+        userId: 'user-student-1',
+        userName: 'Alex Rivera',
+        userRole: 'customer',
+        body: 'Separating pure pricing/filtering utilities from UI components cut our AI refactoring bugs in half this sprint.',
+        createdAt: '2026-11-15T14:20:00Z',
+      },
+    ],
+  },
+  {
+    id: 'blog-2',
+    slug: 'architecting-deterministic-ai-agents-in-production',
+    title: 'Architecting Deterministic AI Agents That Actually Work in Production',
+    subtitle:
+      'Replace open-ended prompt chains with schema-enforced tool contracts, step budgets, and automated CI evaluation harnesses.',
+    excerpt:
+      'Most AI demos look magical on slide decks and break on real customer inputs. Learn how engineering teams bound agent autonomy with typed schemas and golden evaluation datasets.',
+    category: 'AI',
+    authorId: 'user-instructor-1',
+    authorName: 'Dr. Elena Vance',
+    authorRole: 'Principal Systems Architect',
+    authorAvatar: INSTRUCTOR_AVATAR,
+    coverImage: PROMPT_PACK_COVER,
+    readTimeMinutes: 8,
+    publishedAt: '2026-11-13T10:30:00Z',
+    updatedAt: '2026-11-13T10:30:00Z',
+    status: 'published',
+    featured: false,
+    tags: ['AI', 'Agents', 'Evaluations', 'RAG'],
+    relatedProductIds: ['prod-course-4', 'prod-tk-1', 'prod-course-1'],
+    sections: [
+      {
+        id: 'b2-s1',
+        heading: '01. Treat Prompts and Tool Schemas Like Public APIs',
+        body: 'An agent is only as reliable as the contracts between your LLM router and backend tools. Enforce strict schema validation on every tool argument, return crisp human-readable recovery errors when parameters fail validation, and cap maximum reasoning loops.',
+      },
+      {
+        id: 'b2-s2',
+        heading: '02. Measure Regression Before Swapping Models',
+        body: 'Every change to a system prompt or model version should run against 30–50 realistic test cases covering edge inputs, grounding accuracy, and latency budgets. If retrieval recall drops below your threshold, block the release automatically.',
+        pullQuote:
+          'Never deploy a prompt edit based on three cherry-picked examples—treat evaluation suites like unit tests for intelligence.',
+      },
+    ],
+    comments: [],
+  },
+  {
+    id: 'blog-3',
+    slug: 'zero-downtime-apps-deployment-checklist',
+    title: 'Zero-Downtime Apps Deployment: The Practical Release Checklist',
+    subtitle:
+      'A step-by-step guide to multi-stage containers, safe SQL migrations, health probes, and instant traffic rollbacks.',
+    excerpt:
+      'Deploying on a Friday should be boring, not terrifying. Walk through the exact container, database, and rollback practices that keep web applications online during every release.',
+    category: 'Apps Deployment',
+    authorId: 'user-instructor-1',
+    authorName: 'Marcus Chen',
+    authorRole: 'Staff Database Engineer',
+    authorAvatar: INSTRUCTOR_AVATAR,
+    coverImage: BLOG_APPS_DEPLOYMENT_IMAGE,
+    readTimeMinutes: 9,
+    publishedAt: '2026-11-11T08:15:00Z',
+    updatedAt: '2026-11-11T08:15:00Z',
+    status: 'published',
+    featured: false,
+    tags: ['Apps Deployment', 'Docker', 'Cloud Run', 'CI/CD'],
+    relatedProductIds: ['prod-course-6', 'prod-tk-1', 'prod-sw-3'],
+    sections: [
+      {
+        id: 'b3-s1',
+        heading: '01. Separate Build Artifacts From Runtime Secrets',
+        body: 'Compile your frontend bundle and server entrypoint in an isolated builder stage, then copy only runtime artifacts into a slim non-root container. Inject API keys and database URLs exclusively via environment configuration at runtime—never bake secrets into image layers.',
+      },
+      {
+        id: 'b3-s2',
+        heading: '02. Expand-and-Contract Database Evolutions',
+        body: 'During a rolling or blue-green deployment, old and new application containers run concurrently for several minutes. Always add new columns as nullable first, backfill asynchronously, deploy application code, and drop deprecated columns only in a later cleanup release.',
+        codeSnippet: `# Example readiness check before shifting Cloud Run traffic
+curl -fsS https://staging-revision.example.app/healthz || exit 1`,
+      },
+    ],
+    comments: [],
+  },
+  {
+    id: 'blog-4',
+    slug: 'structured-engineering-mentorship-that-scales',
+    title: 'How Senior Engineers Run Mentorship That Accelerates Careers',
+    subtitle:
+      'Move beyond ad-hoc debugging help to structured coaching rubrics, paired architectural thinking, and sponsorship.',
+    excerpt:
+      'Great mentorship multiplies the capability of an entire engineering organization. Discover repeatable 1-on-1 habits and code review techniques that grow independent senior builders.',
+    category: 'Mentorship',
+    authorId: 'user-instructor-1',
+    authorName: 'Claire Beaumont',
+    authorRole: 'VP of Engineering & Advisor',
+    authorAvatar: INSTRUCTOR_AVATAR,
+    coverImage: BLOG_LEADERSHIP_MENTORSHIP_IMAGE,
+    readTimeMinutes: 6,
+    publishedAt: '2026-11-08T11:00:00Z',
+    updatedAt: '2026-11-08T11:00:00Z',
+    status: 'published',
+    featured: false,
+    tags: ['Mentorship', 'Career Growth', 'Code Reviews'],
+    relatedProductIds: ['prod-ebook-3', 'prod-tpl-2', 'prod-course-7'],
+    sections: [
+      {
+        id: 'b4-s1',
+        heading: '01. Ask Guiding Questions Before Giving the Answer',
+        body: 'When a mentee asks how to solve a tricky bug or design problem, resist typing the patch immediately. Ask what failure modes they have already ruled out and which trade-offs worry them most. Helping someone build their own mental debugging checklist pays dividends forever.',
+        pullQuote:
+          'Mentorship succeeds the day your mentee anticipates the exact architectural edge case you were about to raise.',
+      },
+      {
+        id: 'b4-s2',
+        blockType: 'section',
+        heading: '02. Pair Feedback With Visible Growth Milestones',
+        body: 'Use shared 1-on-1 trackers and clear competency rubrics so mentees always know how their daily execution translates into Staff-level scope and recognition.',
+        imageUrl: BLOG_INLINE_MENTOR_IMAGE,
+        imageCaption: 'Fig. 2 — Whiteboard architectural coaching sessions build independent debugging instincts.',
+        imageAlt: 'Senior mentor and engineer collaborating at architecture whiteboard',
+        imageAlign: 'center',
+      },
+    ],
+    comments: [],
+  },
+  {
+    id: 'blog-5',
+    slug: 'technical-leadership-writing-clear-decision-memos',
+    title: 'Technical Leadership Without Bottlenecks: Writing Crisp RFC Memos',
+    subtitle:
+      'How Staff Engineers and Engineering Leaders align distributed teams asynchronously without drowning calendars in status meetings.',
+    excerpt:
+      'As engineering teams scale, verbal alignment breaks down. Well-structured architectural RFCs preserve institutional memory and empower teams to execute autonomously.',
+    category: 'Leadership',
+    authorId: 'user-instructor-1',
+    authorName: 'Claire Beaumont',
+    authorRole: 'VP of Engineering & Advisor',
+    authorAvatar: INSTRUCTOR_AVATAR,
+    coverImage: TEMPLATES_TOOLKIT_COVER,
+    readTimeMinutes: 7,
+    publishedAt: '2026-11-05T13:45:00Z',
+    updatedAt: '2026-11-05T13:45:00Z',
+    status: 'published',
+    featured: false,
+    tags: ['Leadership', 'RFCs', 'Engineering Management'],
+    relatedProductIds: ['prod-course-7', 'prod-tk-2', 'prod-tpl-1'],
+    sections: [
+      {
+        id: 'b5-s1',
+        heading: '01. Lead With Constraints and Non-Goals',
+        body: 'Long design documents lose readers when they bury the problem statement under twenty pages of diagrams. Start every memo in one screen: what measurable bottleneck we are solving, what is explicitly out of scope, and the top two rejected alternatives.',
+      },
+      {
+        id: 'b5-s2',
+        heading: '02. Set Explicit Sign-Off Deadlines',
+        body: 'Distinguish between reversible two-way door choices and irreversible data-model commitments. Give reviewers a 48-hour window to raise blocking invariants—then move decisively into delivery.',
+      },
+    ],
+    comments: [],
+  },
+  {
+    id: 'blog-6',
+    slug: 'from-local-prototype-to-monetized-ai-app',
+    title: 'From Weekend Vibe-Coded Prototype to Monetized SaaS Deployment',
+    subtitle:
+      'Connecting rapid AI prototyping, payment verification, license provisioning, and production Cloud Run hosting in one clean workflow.',
+    excerpt:
+      'Shipping a compelling prototype takes hours today; turning it into a secure, revenue-ready digital product requires thoughtful deployment, licensing, and community onboarding.',
+    category: 'Apps Deployment',
+    authorId: 'user-instructor-1',
+    authorName: 'Dr. Elena Vance',
+    authorRole: 'Principal Systems Architect',
+    authorAvatar: INSTRUCTOR_AVATAR,
+    coverImage: BLOG_APPS_DEPLOYMENT_IMAGE,
+    readTimeMinutes: 6,
+    publishedAt: '2026-11-02T15:00:00Z',
+    updatedAt: '2026-11-02T15:00:00Z',
+    status: 'published',
+    featured: false,
+    tags: ['Apps Deployment', 'Vibe Coding', 'SaaS'],
+    relatedProductIds: ['prod-tpl-1', 'prod-course-6', 'prod-sw-1'],
+    sections: [
+      {
+        id: 'b6-s1',
+        heading: '01. Harden Checkout, Webhooks & Access Controls First',
+        body: 'Before opening traffic, verify that every premium download, course enrollment, or software license key unlocks strictly after confirmed payment—whether via instant card settlement or verified bank transfer approval.',
+      },
+    ],
+    comments: [],
+  },
+  {
+    id: 'blog-giveaway-prompts',
+    slug: 'free-giveaway-vibe-coding-specification-prompt-playbook',
+    title: 'Free Give-Away: The Complete Vibe Coding Specification & Prompt Playbook',
+    subtitle:
+      'Copy our battle-tested kickoff specifications, anti-spaghetti system constraints, and refactor checklists—completely free.',
+    excerpt:
+      'Instead of locking basic AI prompts behind a paywall, we are publishing our entire Vibe Coding Prompt & Specification Playbook as a free community give-away to help builders ship cleaner full-stack software.',
+    category: 'Vibe Coding',
+    authorId: 'user-instructor-1',
+    authorName: 'Dr. Elena Vance',
+    authorRole: 'Principal Systems Architect',
+    authorAvatar: INSTRUCTOR_AVATAR,
+    coverImage: PROMPT_PACK_COVER,
+    readTimeMinutes: 9,
+    publishedAt: '2026-11-17T08:00:00Z',
+    updatedAt: '2026-11-17T08:00:00Z',
+    status: 'published',
+    featured: true,
+    tags: ['Vibe Coding', 'Free Give-Away', 'System Specs', 'TypeScript'],
+    relatedProductIds: ['prod-course-5', 'prod-tpl-1', 'prod-tk-1'],
+    sections: [
+      {
+        id: 'bg-s1',
+        blockType: 'callout',
+        calloutTone: 'tip',
+        heading: 'Why We Turned This Into a Free Community Give-Away',
+        body: 'Raw text prompts are fast to copy, while real competitive advantage lives in working architecture, reusable starter kits, deployment runbooks, and structured engineering education. Use every specification template below freely in your projects.',
+      },
+      {
+        id: 'bg-s2',
+        blockType: 'section',
+        heading: '01. The "Refine Vague Idea" Kickoff Specification Prompt',
+        body: 'Before asking an AI coding assistant to write components, paste a crisp scope contract that forces it to lock down domain types, user roles, edge cases, and failure states first.',
+        codeSnippet: `Act as a principal full-stack engineer.
+Before writing UI code for: [DESCRIBE IDEA IN 2 SENTENCES],
+1. Define the canonical TypeScript domain types and discriminated union statuses.
+2. List the 3 highest-risk edge cases (auth, currency rounding, empty states).
+3. Separate pure business logic into standalone unit-testable functions before building React views.`,
+      },
+      {
+        id: 'bg-s3',
+        blockType: 'image',
+        heading: 'Spec-First Visual Reference',
+        body: 'Mapping system contracts before UI generation prevents mid-project rewrites.',
+        imageUrl: BLOG_INLINE_ARCH_IMAGE,
+        imageCaption: 'Figure 1: Define state invariants and pure utilities before styling screens.',
+        imageAlt: 'Engineering specification workstation showing structured architecture diagrams',
+        imageAlign: 'wide',
+      },
+      {
+        id: 'bg-s4',
+        blockType: 'checklist',
+        heading: '02. Pre-Ship Verification Checklist for Vibe Coders',
+        body: 'Run this 4-step verification loop at the end of every feature sprint so your rapid prototypes behave like senior production software.',
+        checklistItems: [
+          'Verify all pricing, discount, and entitlement rules with node:test unit assertions',
+          'Check desktop (1440px) and mobile (390px) viewports for zero horizontal overflow',
+          'Confirm zero uncaught console errors or failed API requests in a real browser',
+          'Audit navigation menus, submenus, and call/WhatsApp links on real touch viewports',
+        ],
+      },
+    ],
+    comments: [],
+  },
+];
+
+export const SEED_REVIEWS: ProductReview[] = [
+  {
+    id: 'rev-1',
+    productId: 'prod-course-1',
+    userId: 'user-ext-1',
+    userName: 'Jordan Takahashi',
+    rating: 5,
+    comment:
+      'The transactional outbox and idempotency module alone saved our checkout team weeks of production firefighting. Extremely clear explanations.',
+    createdAt: '2026-10-22T14:15:00Z',
+  },
+  {
+    id: 'rev-2',
+    productId: 'prod-course-1',
+    userId: 'user-ext-2',
+    userName: 'Priya Nair',
+    rating: 5,
+    comment:
+      'Finally a TypeScript architecture course that focuses on real failure modes instead of toy TODO apps. Worth every dollar.',
+    createdAt: '2026-10-11T09:30:00Z',
+  },
+  {
+    id: 'rev-3',
+    productId: 'prod-ebook-1',
+    userId: 'user-ext-3',
+    userName: 'David Lindqvist',
+    rating: 5,
+    comment:
+      'Cleanest explanation of branded types and inference boundaries I have read. I keep the PDF open next to my IDE daily.',
+    createdAt: '2026-11-02T17:45:00Z',
+  },
+  {
+    id: 'rev-4',
+    productId: 'prod-sw-1',
+    userId: 'user-ext-4',
+    userName: 'Hannah Kowalski',
+    rating: 5,
+    comment:
+      'Used the Studio Team license across four client portals. Zero bloat, crisp tabular layouts, and domain key activation worked instantly.',
+    createdAt: '2026-11-09T11:20:00Z',
+  },
+];
+
+export const SEED_COUPONS: Coupon[] = [
+  {
+    id: 'coup-1',
+    code: 'LEARN20',
+    discountType: 'percent',
+    value: 20,
+    minSpend: 30000,
+    active: true,
+    usageCount: 42,
+    maxUses: 500,
+    expiresAt: '2027-12-31T23:59:59Z',
+  },
+  {
+    id: 'coup-2',
+    code: 'PRO50',
+    discountType: 'percent',
+    value: 50,
+    minSpend: 100000,
+    active: true,
+    usageCount: 14,
+    maxUses: 100,
+    expiresAt: '2027-12-31T23:59:59Z',
+  },
+  {
+    id: 'coup-3',
+    code: 'WELCOME10',
+    discountType: 'fixed',
+    value: 10000,
+    minSpend: 20000,
+    active: true,
+    usageCount: 89,
+    maxUses: 1000,
+    expiresAt: '2027-12-31T23:59:59Z',
+  },
+];
+
+export const SEED_ORDERS: Order[] = [
+  {
+    id: 'ORD-1041',
+    userId: 'user-student-1',
+    customerName: 'Alex Rivera',
+    customerEmail: 'student@coursemart.io',
+    items: [
+      {
+        productId: 'prod-course-1',
+        productTitle: 'Distributed Systems & Full-Stack TypeScript Architecture',
+        productType: 'course',
+        price: 65000,
+      },
+      {
+        productId: 'prod-ebook-1',
+        productTitle: 'The Pragmatic TypeScript Patterns Handbook',
+        productType: 'ebook',
+        price: 30000,
+      },
+    ],
+    subtotal: 95000,
+    discount: 19000,
+    couponCode: 'LEARN20',
+    total: 76000,
+    status: 'completed',
+    createdAt: '2026-11-04T16:20:00Z',
+  },
+  {
+    id: 'ORD-1042',
+    userId: 'user-student-1',
+    customerName: 'Alex Rivera',
+    customerEmail: 'student@coursemart.io',
+    items: [
+      {
+        productId: 'prod-sw-1',
+        productTitle: 'GridForge Pro UI & Admin Starter Kit',
+        productType: 'software',
+        price: 80000,
+        tierName: 'Personal Solo License',
+        seats: 1,
+      },
+    ],
+    subtotal: 80000,
+    discount: 0,
+    total: 80000,
+    status: 'completed',
+    createdAt: '2026-11-10T11:05:00Z',
+  },
+];
+
+export const SEED_LICENSES: LicenseKey[] = [
+  {
+    id: 'lic-1001',
+    key: 'CM-GF32-9K4P-X7M2-8Q1R',
+    productId: 'prod-sw-1',
+    productTitle: 'GridForge Pro UI & Admin Starter Kit',
+    userId: 'user-student-1',
+    orderId: 'ORD-1042',
+    tierName: 'Personal Solo License',
+    maxSeats: 1,
+    activatedDomains: ['portal.alexrivera.dev'],
+    status: 'active',
+    createdAt: '2026-11-10T11:05:00Z',
+  },
+];
+
+export const SEED_PROGRESS: CourseProgress[] = [
+  {
+    userId: 'user-student-1',
+    productId: 'prod-course-1',
+    completedLectureIds: ['lec-c1-1', 'lec-c1-2'],
+    lastLectureId: 'lec-c1-3',
+    notesByLecture: {
+      'lec-c1-1':
+        'Key rule: model OrderStatus transitions as a discriminated union rather than overlapping boolean flags.',
+    },
+    questions: [
+      {
+        id: 'q-1',
+        lectureId: 'lec-c1-1',
+        userName: 'Alex Rivera',
+        question: 'Should validation schemas live in the shared domain package or edge router?',
+        answer:
+          'Keep canonical Zod schemas alongside domain types so both API handlers and React forms share exact error rules.',
+        createdAt: '2026-11-06T09:12:00Z',
+      },
+    ],
+    updatedAt: '2026-11-12T18:30:00Z',
+  },
+];
+
+export const DEFAULT_APPEARANCE: StorefrontAppearance = {
+  brandName: 'Coursemart',
+  accentTheme: 'indigo',
+  announcementEnabled: true,
+  announcementText:
+    'Builder Sprint Week: Save 20% sitewide on Courses, Digital Products (eBooks, Templates, Toolkits), and Software',
+  announcementCoupon: 'LEARN20',
+  announcementCountdownEnabled: true,
+  announcementEndsAt: '2026-11-26T23:59:59Z',
+  heroTitle: 'Skills, digital products, and tools built for builders.',
+  heroSubtitle:
+    'Master AI, Vibe Coding, Leadership, Mentorship, and Apps Deployment through structured courses, eBooks, templates, toolkits, and software.',
+  heroCtaLabel: 'Explore Catalog',
+  showFeaturedSection: true,
+  showCatalogSection: true,
+  showTrustStrip: true,
+  sectionOrder: ['featured', 'catalog', 'trust'],
+};
+
+export const SEED_WHATSAPP_GROUPS: WhatsAppGroup[] = [
+  {
+    id: 'wag-1',
+    name: 'Coursemart Builders & VIP Announcements',
+    description:
+      'Public community for product launches, flash coupon codes, and live architecture Q&A.',
+    inviteUrl: 'https://chat.whatsapp.com/CoursemartBuildersVIP01',
+    category: 'general',
+    membersCount: 412,
+    maxMembers: 1024,
+    active: true,
+    visibility: 'public',
+    createdAt: '2026-10-01T09:00:00Z',
+  },
+  {
+    id: 'wag-2',
+    name: 'Distributed TypeScript Cohort',
+    description:
+      'Dedicated peer-learning & instructor office hours for Distributed Systems course enrollees.',
+    inviteUrl: 'https://chat.whatsapp.com/DistTypeScriptCohort02',
+    category: 'course',
+    productId: 'prod-course-1',
+    membersCount: 186,
+    maxMembers: 500,
+    active: true,
+    visibility: 'enrolled_only',
+    createdAt: '2026-10-15T12:00:00Z',
+  },
+  {
+    id: 'wag-3',
+    name: 'GridForge Pro License Holders',
+    description:
+      'Release notes, changelog previews, and priority deployment support for software buyers.',
+    inviteUrl: 'https://chat.whatsapp.com/GridForgeProSupport03',
+    category: 'software',
+    productId: 'prod-sw-1',
+    membersCount: 94,
+    maxMembers: 500,
+    active: true,
+    visibility: 'enrolled_only',
+    createdAt: '2026-11-02T14:30:00Z',
+  },
+];
+
+export const SEED_MEMBERSHIP_PLANS: MembershipPlan[] = [
+  {
+    id: 'starter',
+    name: 'Starter Member',
+    audienceLabel: 'For solo builders & continuous learners',
+    tagline: 'Core foundational courses, DRM-free eBooks, and automatic 15% catalog savings.',
+    monthlyPrice: 19000,
+    annualPrice: 180000,
+    storeDiscountPercent: 15,
+    courseAccessLabel: 'Starter-tier Courses included',
+    digitalAccessLabel: 'Starter eBooks & 15% off storewide',
+    supportLevel: 'Community WhatsApp Access',
+    perks: [
+      'Direct enrollment in Starter-tier Video Courses',
+      'Full access to Starter eBooks & Guides in My Library',
+      '15% automatic Member Discount on all paid courses & software',
+      'Verifiable completion certificates & quiz tracking',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro Builder',
+    audienceLabel: 'For shipping engineers & product leads',
+    tagline: 'Full access to Pro + Starter courses, Notion templates, eBooks, and 25% software savings.',
+    monthlyPrice: 39000,
+    annualPrice: 370000,
+    storeDiscountPercent: 25,
+    courseAccessLabel: 'All Pro & Starter Courses included',
+    digitalAccessLabel: 'eBooks & Production Templates included',
+    supportLevel: 'Priority Mentor Q&A + Office Hours',
+    featured: true,
+    perks: [
+      'Instant unlock for all Pro & Starter Courses (including Distributed TypeScript)',
+      'Download included Notion Templates, Playbooks & eBooks',
+      '25% automatic Member Discount on Commercial Licenses & Toolkits',
+      'Priority instructor Q&A responses & cohort office hours',
+    ],
+  },
+  {
+    id: 'vip',
+    name: 'VIP Executive',
+    audienceLabel: 'For agencies, CTOs & engineering teams',
+    tagline: 'Every course, toolkit, and resource tier unlocked plus 40% software licensing savings and VIP advisory.',
+    monthlyPrice: 79000,
+    annualPrice: 750000,
+    storeDiscountPercent: 40,
+    courseAccessLabel: '100% Catalog Courses unlocked',
+    digitalAccessLabel: 'All eBooks, Templates & Toolkits included',
+    supportLevel: 'Private VIP WhatsApp + Direct Advisory',
+    perks: [
+      'Unlocks every Course and Digital Resource across the entire platform',
+      '40% automatic Member Discount on Multi-Seat Software Licenses',
+      'Private VIP Executive WhatsApp desk with Tintol advisory',
+      'Early access to newly released architecture blueprints & templates',
+    ],
+  },
+];
+
+export const SEED_USER_MEMBERSHIPS: UserMembership[] = [
+  {
+    id: 'mem-demo-1',
+    userId: 'user-student-1',
+    planId: 'starter',
+    billingCycle: 'monthly',
+    status: 'active',
+    paymentMethod: 'card',
+    startedAt: '2026-11-01T09:00:00Z',
+    renewsAt: '2026-12-01T09:00:00Z',
+  },
+];
+
+export const SEED_AFFILIATES: AffiliateProfile[] = [
+  {
+    id: 'aff-1',
+    userId: 'user-student-1',
+    userName: 'Alex Rivera',
+    userEmail: 'student@coursemart.io',
+    code: 'ALEX25',
+    commissionRate: 25,
+    clicks: 148,
+    payoutMethod: 'GTB Bank Transfer',
+    bankDetails: 'GTB · 0029103844 · Alex Rivera Consulting',
+    active: true,
+    joinedAt: '2026-10-12T10:00:00Z',
+  },
+];
+
+export const SEED_AFFILIATE_CONVERSIONS: AffiliateConversion[] = [
+  {
+    id: 'aconv-0',
+    affiliateCode: 'ALEX25',
+    affiliateUserId: 'user-student-1',
+    orderId: 'ORD-1035',
+    buyerName: 'Tunde Adeyemi',
+    orderTotal: 180000,
+    commissionAmount: 45000,
+    status: 'paid',
+    createdAt: '2026-10-22T11:10:00Z',
+  },
+  {
+    id: 'aconv-1',
+    affiliateCode: 'ALEX25',
+    affiliateUserId: 'user-student-1',
+    orderId: 'ORD-1039',
+    buyerName: 'Sophia Mensah',
+    orderTotal: 128000,
+    commissionAmount: 32000,
+    status: 'approved',
+    createdAt: '2026-11-08T14:22:00Z',
+  },
+  {
+    id: 'aconv-2',
+    affiliateCode: 'ALEX25',
+    affiliateUserId: 'user-student-1',
+    orderId: 'ORD-1040',
+    buyerName: 'Daniel Okafor',
+    orderTotal: 65000,
+    commissionAmount: 16250,
+    status: 'pending',
+    createdAt: '2026-11-14T16:40:00Z',
+  },
+];
+
+export const SEED_PAYOUT_REQUESTS: AffiliatePayoutRequest[] = [
+  {
+    id: 'apay-1',
+    affiliateUserId: 'user-student-1',
+    affiliateName: 'Alex Rivera',
+    affiliateCode: 'ALEX25',
+    amount: 45000,
+    bankDetails: 'GTB · 0029103844 · Alex Rivera Consulting',
+    status: 'paid',
+    requestedAt: '2026-10-28T09:15:00Z',
+    processedAt: '2026-10-29T11:30:00Z',
+  },
+];
+
+export const SEED_SHOWCASE_SITES: ShowcaseSite[] = [
+  {
+    id: 'show-1',
+    name: 'TreasurePay Global Treasury',
+    url: 'https://treasurepay.tintolservices.com',
+    image: SHOWCASE_FINTECH_IMAGE,
+    active: true,
+    order: 1,
+    createdAt: '2026-11-02T10:00:00Z',
+  },
+  {
+    id: 'show-2',
+    name: 'AetherFlow AI Studio',
+    url: 'https://aetherflow.coursemart.io',
+    image: SHOWCASE_AI_WORKSPACE_IMAGE,
+    active: true,
+    order: 2,
+    createdAt: '2026-11-05T11:00:00Z',
+  },
+  {
+    id: 'show-3',
+    name: 'Aurora Academy Portal',
+    url: 'https://aurora.coursemart.io',
+    image: SHOWCASE_LMS_ACADEMY_IMAGE,
+    active: true,
+    order: 3,
+    createdAt: '2026-11-08T12:00:00Z',
+  },
+  {
+    id: 'show-4',
+    name: 'CloudFlow Release Console',
+    url: 'https://cloudflow.coursemart.io',
+    image: SHOWCASE_CLOUD_OPS_IMAGE,
+    active: true,
+    order: 4,
+    createdAt: '2026-11-11T14:00:00Z',
+  },
+];
+
+export const SEED_EVENTS: CoursemartEvent[] = [
+  {
+    id: 'evt-1',
+    slug: 'vibe-coding-production-apps-workshop',
+    title: 'Vibe Coding to Production: Spec-First AI Engineering Workshop',
+    subtitle:
+      'Build, unit-test, and deploy a full-stack React + Supabase + Paystack web application live in one intensive 3-hour studio.',
+    description:
+      'A practical hands-on engineering workshop led by Dr. Elena Vance. Instead of fragile AI prompting, you will practice specification-first coding, strict TypeScript domain boundaries, database schema design, and zero-downtime Vercel + Supabase deployment.',
+    format: 'workshop',
+    category: 'Vibe Coding',
+    deliveryMode: 'Live Virtual (Zoom / Meet)',
+    locationOrLink: 'Private Zoom Studio Link (sent immediately in confirmation pack)',
+    startAt: '2026-12-05T15:00:00Z',
+    endAt: '2026-12-05T18:00:00Z',
+    timezone: 'WAT (UTC+1)',
+    speakerName: 'Dr. Elena Vance',
+    speakerRole: 'Principal Systems Architect',
+    speakerAvatar: INSTRUCTOR_AVATAR,
+    coverImage: BLOG_AI_VIBE_IMAGE,
+    price: 0,
+    capacity: 120,
+    status: 'published',
+    featured: true,
+    agenda: [
+      '00:00 - 00:40 · Writing unambiguous architecture specs before generating code',
+      '00:40 - 01:30 · Building pure TypeScript domain logic + node:test verification harnesses',
+      '01:30 - 02:20 · Connecting Supabase PostgreSQL, Resend email webhooks, and Paystack verification',
+      '02:20 - 03:00 · Vercel production deployment checklist & live Q&A clinic',
+    ],
+    preEventMaterials: [
+      {
+        id: 'mat-1-1',
+        title: 'Pre-Workshop Environment & Node 22 Setup Checklist',
+        type: 'checklist',
+        urlOrNotes: 'Install Node.js 22+, Git, and create free Vercel & Supabase accounts prior to kickoff.',
+        summary: '10-minute environment check so you can code along live without setup delays.',
+      },
+      {
+        id: 'mat-1-2',
+        title: 'Architecture Spec Template (Markdown & Prompt Playbook)',
+        type: 'pdf',
+        urlOrNotes: 'Included in your Coursemart registration confirmation pack & Free Playbook article.',
+        summary: 'Use this 1-page specification scaffold before our first live exercise.',
+      },
+      {
+        id: 'mat-1-3',
+        title: 'Starter Repository & Verification Harness Guide',
+        type: 'repo',
+        urlOrNotes: 'npx tsx --test src/utils/*.test.ts starter boilerplate notes.',
+        summary: 'Preview the test-driven structure we will expand during the workshop.',
+      },
+    ],
+    acknowledgementMessage:
+      'Your seat for the Spec-First Vibe Coding Workshop is confirmed! Download your pre-event checklist and calendar invite below so you arrive ready to build.',
+    createdAt: '2026-11-10T09:00:00Z',
+  },
+  {
+    id: 'evt-2',
+    slug: 'ai-leadership-and-engineering-systems-seminar',
+    title: 'Executive Seminar: Governing AI Workflows & Engineering Reliability',
+    subtitle:
+      'Architect safe human-in-the-loop approvals, fraud-resistant payment verification, and scalable engineering teams.',
+    description:
+      'Designed for engineering managers, technical founders, and team leads evaluating AI automation without risking brand reputation, payment fraud, or account bans. Covers safe social publishing queues, opted-in newsletter deliverability, and Paystack vs. manual bank settlement controls.',
+    format: 'seminar',
+    category: 'Leadership',
+    deliveryMode: 'Hybrid (In-Person + Live Stream)',
+    locationOrLink: 'Victoria Island Executive Lounge + Encrypted HD Livestream',
+    startAt: '2026-12-12T10:00:00Z',
+    endAt: '2026-12-12T13:00:00Z',
+    timezone: 'WAT (UTC+1)',
+    speakerName: 'Marcus Sterling',
+    speakerRole: 'Platform Operations Director',
+    speakerAvatar: INSTRUCTOR_AVATAR,
+    coverImage: BLOG_LEADERSHIP_MENTORSHIP_IMAGE,
+    price: 25000,
+    capacity: 80,
+    status: 'published',
+    featured: true,
+    agenda: [
+      '10:00 - 10:45 · Safe AI Governance: Human-in-the-loop vs. risky full automation',
+      '10:45 - 11:30 · Fraud-proof commerce: Paystack verification & manual bank audit flows',
+      '11:30 - 12:20 · Email deliverability, opt-in compliance, and brand protection on WhatsApp',
+      '12:20 - 13:00 · Executive Roundtable & Systems Review',
+    ],
+    preEventMaterials: [
+      {
+        id: 'mat-2-1',
+        title: 'Engineering Governance & Payment Audit Slide Deck Preview',
+        type: 'slides',
+        urlOrNotes: 'Pre-read executive brief (18 slides) + Architecture Risk Scorecard.',
+        summary: 'Review the 5-point safety rubric before our live roundtable discussion.',
+      },
+      {
+        id: 'mat-2-2',
+        title: 'Case Study: Scaling Digital Marketplaces Without Platform Bans',
+        type: 'pdf',
+        urlOrNotes: 'Pre-event reading case study from Tintol Business Services operations.',
+        summary: 'Practical policies covering email consent and safe WhatsApp community design.',
+      },
+    ],
+    acknowledgementMessage:
+      'Thank you for registering for the Executive AI Governance Seminar. Your pre-read slide deck summary and calendar block are ready below.',
+    createdAt: '2026-11-12T11:30:00Z',
+  },
+  {
+    id: 'evt-3',
+    slug: 'cohort-distributed-typescript-online-course',
+    title: '4-Week Live Online Course: Distributed Systems & Full-Stack Deployment',
+    subtitle:
+      'Cohort-based live online course with weekly code reviews, cloud deployment clinics, and certification.',
+    description:
+      'An interactive 4-week live online course cohort combining structured video lessons, live weekly debugging clinics, Supabase & Vercel deployment walkthroughs, and peer architecture feedback.',
+    format: 'online-course',
+    category: 'Apps Deployment',
+    deliveryMode: 'Live Virtual (Zoom / Meet)',
+    locationOrLink: 'Coursemart Live Cohort Portal + Private Cohort WhatsApp Group',
+    startAt: '2027-01-09T17:00:00Z',
+    endAt: '2027-01-09T19:00:00Z',
+    timezone: 'WAT (UTC+1)',
+    speakerName: 'Dr. Elena Vance',
+    speakerRole: 'Principal Systems Architect',
+    speakerAvatar: INSTRUCTOR_AVATAR,
+    coverImage: BLOG_APPS_DEPLOYMENT_IMAGE,
+    price: 0,
+    capacity: 60,
+    status: 'published',
+    featured: false,
+    agenda: [
+      'Week 1 · Domain Modeling, State Machines & Supabase Schema Design',
+      'Week 2 · Payment Integrity (Paystack Webhooks + Idempotency Keys)',
+      'Week 3 · Automated Testing, Error Boundaries & Email Pipelines',
+      'Week 4 · Production Vercel Release, Observability & Final Project Showcase',
+    ],
+    preEventMaterials: [
+      {
+        id: 'mat-3-1',
+        title: '4-Week Cohort Syllabus & Pre-Course Reading Map',
+        type: 'pdf',
+        urlOrNotes: 'Complete module schedule, office hours timetable, and grading rubric.',
+        summary: 'Plan your weekly study cadence and bookmark the pre-work lessons.',
+      },
+      {
+        id: 'mat-3-2',
+        title: 'GitHub & Vercel Readiness Video Brief',
+        type: 'video',
+        urlOrNotes: 'Watch the 12-minute orientation inside My Library before Week 1 opens.',
+        summary: 'Walks through repository setup and environment secret hygiene.',
+      },
+    ],
+    acknowledgementMessage:
+      'Welcome to the 4-Week Distributed Systems Live Online Course Cohort! Your seat is reserved and your Week 0 pre-work pack is unlocked below.',
+    createdAt: '2026-11-14T14:00:00Z',
+  },
+];
+
+export const SEED_EVENT_REGISTRATIONS: EventRegistration[] = [
+  {
+    id: 'evreg-1',
+    eventId: 'evt-1',
+    eventTitle: 'Vibe Coding to Production: Spec-First AI Engineering Workshop',
+    fullName: 'Alex Rivera',
+    email: 'student@coursemart.io',
+    phone: '+2348011223344',
+    organization: 'Rivera Digital Labs',
+    roleTitle: 'Senior Product Engineer',
+    experienceLevel: 'Intermediate',
+    attendanceMode: 'Live Virtual',
+    learningGoals: 'Standardize Supabase + Vercel deployment workflows for client apps.',
+    newsletterOptIn: true,
+    confirmationCode: 'EVT-94A21B',
+    paymentStatus: 'free',
+    acknowledgementEmailStatus: 'in_app_ready',
+    registeredAt: '2026-11-15T10:15:00Z',
+  },
+  {
+    id: 'evreg-2',
+    eventId: 'evt-1',
+    eventTitle: 'Vibe Coding to Production: Spec-First AI Engineering Workshop',
+    fullName: 'Chioma Nwosu',
+    email: 'chioma.nwosu@lagoscloud.dev',
+    organization: 'LagosCloud Studio',
+    roleTitle: 'Full-Stack Developer',
+    experienceLevel: 'Intermediate',
+    attendanceMode: 'Live Virtual',
+    learningGoals: 'Build safer Paystack verification pipelines with automated tests.',
+    newsletterOptIn: true,
+    confirmationCode: 'EVT-78C40D',
+    paymentStatus: 'free',
+    acknowledgementEmailStatus: 'in_app_ready',
+    registeredAt: '2026-11-16T08:40:00Z',
+  },
+  {
+    id: 'evreg-3',
+    eventId: 'evt-2',
+    eventTitle: 'Executive Seminar: Governing AI Workflows & Engineering Reliability',
+    fullName: 'Tunde Adeyemi',
+    email: 'tunde@fintechbridge.ng',
+    organization: 'FintechBridge Africa',
+    roleTitle: 'VP of Engineering',
+    experienceLevel: 'Advanced',
+    attendanceMode: 'In-Person',
+    learningGoals: 'Establish human-in-the-loop approval guardrails for engineering teams.',
+    newsletterOptIn: false,
+    confirmationCode: 'EVT-33F19E',
+    paymentStatus: 'paid_paystack',
+    paymentReference: 'PSK-DEMO-8812',
+    acknowledgementEmailStatus: 'in_app_ready',
+    registeredAt: '2026-11-16T14:20:00Z',
+  },
+];
+
+export const SEED_SOCIAL_DRAFTS: SocialPostDraft[] = [
+  {
+    id: 'soc-1',
+    sourceType: 'blog',
+    sourceId: 'blog-giveaway-prompts',
+    sourceTitle: 'Free Give-Away: The Specification-First Vibe Coding Playbook',
+    platform: 'linkedin',
+    content:
+      'Why pay for recycled prompt packs when clear engineering specifications produce 10x better software?\n\nWe published our complete Specification-First Vibe Coding Playbook as a free community resource on Coursemart — complete with copy-ready architecture templates and verification checklists.',
+    hashtags: ['#Coursemart', '#VibeCoding', '#SoftwareArchitecture'],
+    status: 'draft',
+    generatedBy: 'template',
+    createdAt: '2026-11-16T09:00:00Z',
+    updatedAt: '2026-11-16T09:00:00Z',
+  },
+  {
+    id: 'soc-2',
+    sourceType: 'event',
+    sourceId: 'evt-1',
+    sourceTitle: 'Vibe Coding to Production: Spec-First AI Engineering Workshop',
+    platform: 'whatsapp_group',
+    content:
+      '*Free Live Workshop: Vibe Coding to Production*\n\nReserve your seat and instantly unlock your pre-event environment checklist + starter playbook on Coursemart (/events).\n\nCopy & post manually to your community WhatsApp Group.',
+    hashtags: [],
+    status: 'scheduled',
+    scheduledFor: '2026-11-25T10:00:00Z',
+    generatedBy: 'template',
+    createdAt: '2026-11-16T11:00:00Z',
+    updatedAt: '2026-11-16T11:15:00Z',
+  },
+];
+
+export const SEED_EMAIL_CAMPAIGNS: EmailBroadcastCampaign[] = [
+  {
+    id: 'camp-1',
+    subject: 'Pre-Event Checklist & Free Vibe Coding Playbook Inside',
+    preheader: 'Unlock the free Specification-First Playbook + reserve your December workshop seat.',
+    bodyHtml:
+      '<p>Hello Builders,</p><p>Our free Specification-First Vibe Coding Playbook is live in the Coursemart Blogs hub, and registrations are open for the December Spec-First Workshop.</p><p>Visit /events to register and download your pre-event materials pack.</p>',
+    audience: 'newsletter_opted_in',
+    recipientCount: 3,
+    provider: 'draft_only',
+    status: 'draft',
+    createdAt: '2026-11-16T12:00:00Z',
+  },
+];
+
+

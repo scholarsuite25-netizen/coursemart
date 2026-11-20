@@ -1,0 +1,6 @@
+{
+  "name": "Coursemart — Digital Marketplace & LMS",
+  "description": "Curated marketplace and learning management platform for video training courses, technical eBooks, and licensed software tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
