@@ -186,6 +186,29 @@ export const SEED_CALENDAR_ENGAGEMENTS: CalendarEngagement[] = [
   },
 ];
 
+export const SEED_FACILITATOR_BOOKINGS: FacilitatorBooking[] = [
+  {
+    id: 'booking-seed-sample-01',
+    reference: 'FAC-2026-001A',
+    referenceCode: 'FAC-2026-001A',
+    name: 'Prof. Babatunde Adeleke',
+    organization: 'Ogun State Higher Education Consortium',
+    email: 'babatunde.adeleke@highered.org.ng',
+    phone: '+234 802 345 6789',
+    phoneWhatsApp: '+234 802 345 6789',
+    eventTitle: 'Higher Education Digital Transformation & AI Leadership Summit',
+    date: '2026-12-15',
+    venue: 'Executive Senate Chamber / Live Virtual Stream',
+    locationType: 'Hybrid',
+    scope: 'Keynote',
+    audienceSize: '200',
+    objectives:
+      'Keynote on Management Consultancy, Virtual Library Management Systems, ICT for Higher Institutions, and Higher Ed Portal Architecture.',
+    createdAt: '2026-11-20T10:00:00.000Z',
+    status: 'pending',
+  },
+];
+
 export const storageService = {
   getProducts: (): Product[] => readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS),
   saveProducts: (products: Product[]): void => writeStorage(STORAGE_KEYS.PRODUCTS, products),
@@ -351,18 +374,23 @@ export const storageService = {
     writeStorage(STORAGE_KEYS.CALENDAR_ENGAGEMENTS, engagements),
 
   getFacilitatorBookings: (): FacilitatorBooking[] =>
-    readStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, []),
+    readStorage<FacilitatorBooking[]>(STORAGE_KEYS.FACILITATOR_BOOKINGS, SEED_FACILITATOR_BOOKINGS),
   saveFacilitatorBooking: (booking: FacilitatorBooking): void => {
     const current = readStorage<FacilitatorBooking[]>(STORAGE_KEYS.FACILITATOR_BOOKINGS, []);
-    const index = current.findIndex((b) => b.id === booking.id);
+    const index = current.findIndex((b) => b.id === booking.id || b.reference === booking.reference);
     const updated =
       index >= 0
-        ? current.map((b) => (b.id === booking.id ? booking : b))
+        ? current.map((b) => (b.id === booking.id || b.reference === booking.reference ? booking : b))
         : [...current, booking];
     writeStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, updated);
   },
   saveFacilitatorBookings: (bookings: FacilitatorBooking[]): void =>
     writeStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, bookings),
+  deleteFacilitatorBooking: (id: string): void => {
+    const current = readStorage<FacilitatorBooking[]>(STORAGE_KEYS.FACILITATOR_BOOKINGS, []);
+    const updated = current.filter((b) => b.id !== id && b.reference !== id);
+    writeStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, updated);
+  },
 
   resetAllDemoData: (): void => {
     if (typeof window === 'undefined') return;

@@ -58,7 +58,7 @@ export function FacilitatorBookingModal({
   onClose,
   initialDate,
 }: FacilitatorBookingModalProps) {
-  const { calendarEngagements, submitFacilitatorBooking } = useStore();
+  const { isFacilitatorDateFree, submitFacilitatorBooking } = useStore();
 
   const [formData, setFormData] = useState<FacilitatorBookingInput>({
     ...DEFAULT_FORM,
@@ -158,11 +158,8 @@ export function FacilitatorBookingModal({
         if (strVal < todayIso) {
           return 'Selected date cannot be in the past.';
         }
-        const isAlreadyBooked = calendarEngagements.some(
-          (eng) => eng.date === strVal && eng.type === 'booked'
-        );
-        if (isAlreadyBooked) {
-          return 'This date is already committed for another engagement. Please choose an open date.';
+        if (!isFacilitatorDateFree(strVal)) {
+          return 'This date is already committed for another engagement. Please choose an open date from the calendar.';
         }
         break;
 
@@ -404,10 +401,22 @@ export function FacilitatorBookingModal({
                 <button
                   type="button"
                   onClick={() => {
+                    onClose();
+                    const el = document.getElementById('appointments-roster');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold text-sm hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  View in Appointments Table
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
                     setSubmittedBooking(null);
                     setFormData({ ...DEFAULT_FORM, date: initialDate || '' });
                   }}
-                  className="w-full sm:w-auto px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-sm transition-colors"
+                  className="w-full sm:w-auto px-5 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-sm transition-colors cursor-pointer"
                 >
                   Book Another Engagement
                 </button>

@@ -43,6 +43,6 @@ export interface FacilitatorBooking extends FacilitatorBookingInput {
   reference: string;
   referenceCode?: string; // Compatibility alias for reference
   createdAt: string;
-  status: 'pending' | 'confirmed' | 'declined';
+  status: 'pending' | 'accepted' | 'confirmed' | 'declined';
   whatsAppDispatchUrl?: string;
 }

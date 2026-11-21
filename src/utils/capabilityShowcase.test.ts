@@ -943,6 +943,61 @@ export function saveFacilitatorBookingRecord(
   return [...store, booking];
 }
 
+export function isDateFreeForAppointment(
+  dateStr: string,
+  calendarBookedDates: string[],
+  otherAcceptedBookings: { date: string; status: string }[],
+  excludeBookingId?: string
+): boolean {
+  if (calendarBookedDates.includes(dateStr)) return false;
+  const isConflict = otherAcceptedBookings.some(
+    (b: any) =>
+      b.date === dateStr &&
+      (b.status === 'accepted' || b.status === 'confirmed') &&
+      b.id !== excludeBookingId &&
+      b.referenceCode !== excludeBookingId
+  );
+  return !isConflict;
+}
+
+export function toggleFacilitatorAppointmentStatus(
+  booking: FacilitatorBookingRecord,
+  targetStatus: 'accepted' | 'declined' | 'pending',
+  calendarBookedDates: string[],
+  allBookings: FacilitatorBookingRecord[]
+): {
+  success: boolean;
+  error?: string;
+  updatedRecord?: FacilitatorBookingRecord;
+  updatedCalendar?: string[];
+} {
+  if (targetStatus === 'accepted') {
+    const isFree = isDateFreeForAppointment(
+      booking.date,
+      calendarBookedDates,
+      allBookings,
+      booking.id
+    );
+    if (!isFree) {
+      return {
+        success: false,
+        error: `Cannot accept: Date (${booking.date}) is not free in the first instance.`,
+      };
+    }
+    return {
+      success: true,
+      updatedRecord: { ...booking, status: 'confirmed' }, // or 'accepted'
+      updatedCalendar: Array.from(new Set([...calendarBookedDates, booking.date])),
+    };
+  }
+
+  return {
+    success: true,
+    updatedRecord: { ...booking, status: targetStatus as any },
+    updatedCalendar: calendarBookedDates.filter((d) => d !== booking.date),
+  };
+}
+
 // F11: Vercel Free Features Exploration & Config
 export function validateVercelJsonConfig(configPath: string): {
   valid: boolean;
@@ -2454,6 +2509,112 @@ describe('CourseMart Platform Capability Showcase (F1-F11) E2E Test Suite', () =
       const forgedLookup = verifyCertificateCode('CM-CERT-ABCD-9999', testDb);
       assert.equal(forgedLookup.valid, false);
       assert.equal(forgedLookup.status, 'not_found');
+    });
+
+    it('T3-12: Facilitator Appointments Table & Date Availability Protocol (No Acceptance on Occupied Dates)', () => {
+      // 1. Initial State: Date '2026-11-28' is already booked on the calendar
+      const bookedDates = ['2026-11-28'];
+
+      // 2. Appointment A submitted for '2026-11-28' (occupied date)
+      const appointmentA: FacilitatorBookingRecord = {
+        name: 'Dean Olumide Adebayo',
+        organization: 'Covenant University Tech Directorate',
+        email: 'dean.tech@covenant.edu.ng',
+        phoneWhatsApp: '+234 803 111 2233',
+        eventTitle: 'AI in Academia Leadership Summit',
+        date: '2026-11-28',
+        venue: 'Main Auditorium',
+        locationType: 'Physical',
+        scope: 'Keynote',
+        audienceSize: 300,
+        objectives: 'Keynote lecture on AI Integration for Faculty & Senate',
+        id: 'booking_apt_a',
+        referenceCode: 'FAC-2026-394B',
+        createdAt: '2026-11-21T10:00:00.000Z',
+        status: 'pending',
+        whatsAppDispatchUrl: '',
+      };
+
+      // 3. User exact input is preserved in the record
+      assert.equal(appointmentA.referenceCode, 'FAC-2026-394B');
+      assert.equal(appointmentA.name, 'Dean Olumide Adebayo');
+      assert.equal(appointmentA.organization, 'Covenant University Tech Directorate');
+      assert.equal(appointmentA.date, '2026-11-28');
+      assert.equal(appointmentA.status, 'pending');
+
+      // 4. RULE ENFORCEMENT: Facilitator CANNOT accept if date is not free in the first instance
+      const acceptAttemptA = toggleFacilitatorAppointmentStatus(
+        appointmentA,
+        'accepted',
+        bookedDates,
+        [appointmentA]
+      );
+      assert.equal(acceptAttemptA.success, false);
+      assert.match(
+        acceptAttemptA.error || '',
+        /not free in the first instance/i
+      );
+
+      // 5. Appointment B submitted for an open, free date '2026-12-16'
+      const appointmentB: FacilitatorBookingRecord = {
+        ...appointmentA,
+        id: 'booking_apt_b',
+        referenceCode: 'FAC-2026-888C',
+        date: '2026-12-16',
+        eventTitle: 'Higher Ed Management Consultancy Workshop',
+        status: 'pending',
+      };
+
+      // 6. Verify date '2026-12-16' is free in the first instance
+      const isFreeB = isDateFreeForAppointment(
+        appointmentB.date,
+        bookedDates,
+        [appointmentA, appointmentB]
+      );
+      assert.equal(isFreeB, true);
+
+      // 7. Facilitator accepts Appointment B: succeeds and automatically locks calendar date
+      const acceptAttemptB = toggleFacilitatorAppointmentStatus(
+        appointmentB,
+        'accepted',
+        bookedDates,
+        [appointmentA, appointmentB]
+      );
+      assert.equal(acceptAttemptB.success, true);
+      assert.equal(acceptAttemptB.updatedRecord?.status, 'confirmed');
+      assert.ok(acceptAttemptB.updatedCalendar?.includes('2026-12-16'));
+
+      // 8. Now date '2026-12-16' is locked; another appointment C for that same date cannot be accepted
+      const updatedCalendar = acceptAttemptB.updatedCalendar || [];
+      const appointmentC: FacilitatorBookingRecord = {
+        ...appointmentA,
+        id: 'booking_apt_c',
+        referenceCode: 'FAC-2026-999D',
+        date: '2026-12-16',
+        status: 'pending',
+      };
+      const acceptAttemptC = toggleFacilitatorAppointmentStatus(
+        appointmentC,
+        'accepted',
+        updatedCalendar,
+        [appointmentA, appointmentB, appointmentC]
+      );
+      assert.equal(acceptAttemptC.success, false);
+      assert.match(
+        acceptAttemptC.error || '',
+        /not free in the first instance/i
+      );
+
+      // 9. When declined, the appointment is marked declined and released
+      const declineB = toggleFacilitatorAppointmentStatus(
+        appointmentB,
+        'declined',
+        updatedCalendar,
+        [appointmentA, appointmentB]
+      );
+      assert.equal(declineB.success, true);
+      assert.equal(declineB.updatedRecord?.status, 'declined');
+      assert.ok(!declineB.updatedCalendar?.includes('2026-12-16'));
     });
   });
 });

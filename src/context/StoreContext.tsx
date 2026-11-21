@@ -336,12 +336,22 @@ export interface StoreContextValue {
   // Facilitator Booking & Calendar Engagements (Milestone 3)
   facilitatorBookings: FacilitatorBooking[];
   calendarEngagements: CalendarEngagement[];
+  isFacilitatorDateFree: (date: string, excludeBookingId?: string) => boolean;
   submitFacilitatorBooking: (input: FacilitatorBookingInput) => {
     success: boolean;
     booking?: FacilitatorBooking;
     whatsappUrl: string;
     error?: string;
   };
+  setFacilitatorBookingStatus: (
+    bookingId: string,
+    newStatus: 'pending' | 'accepted' | 'declined' | 'confirmed'
+  ) => { success: boolean; error?: string };
+  updateFacilitatorBookingStatus: (
+    id: string,
+    status: 'pending' | 'accepted' | 'declined' | 'confirmed'
+  ) => { success: boolean; error?: string };
+  deleteFacilitatorBooking: (id: string) => void;
 }
 
 const DEFAULT_FILTERS: ProductFilterState = {
@@ -3376,6 +3386,127 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [showToast]
   );
 
+  const isFacilitatorDateFree = useCallback(
+    (dateStr: string, excludeBookingId?: string): boolean => {
+      if (!dateStr) return false;
+      const cleanDate = dateStr.trim();
+
+      // 1. Check if calendar engagement is booked (ignoring entry created by this booking)
+      const hasCalendarConflict = calendarEngagements.some(
+        (eng) =>
+          eng.date === cleanDate &&
+          eng.type === 'booked' &&
+          eng.id !== `cal-booking-${excludeBookingId}`
+      );
+      if (hasCalendarConflict) return false;
+
+      // 2. Check if another booking has already been accepted/confirmed
+      const hasAcceptedConflict = facilitatorBookings.some(
+        (b) =>
+          b.date === cleanDate &&
+          (b.status === 'accepted' || b.status === 'confirmed') &&
+          b.id !== excludeBookingId &&
+          b.reference !== excludeBookingId
+      );
+      if (hasAcceptedConflict) return false;
+
+      return true;
+    },
+    [calendarEngagements, facilitatorBookings]
+  );
+
+  const setFacilitatorBookingStatus = useCallback(
+    (
+      bookingId: string,
+      newStatus: 'pending' | 'accepted' | 'declined' | 'confirmed'
+    ): { success: boolean; error?: string } => {
+      const target = facilitatorBookings.find(
+        (b) => b.id === bookingId || b.reference === bookingId
+      );
+      if (!target) {
+        showToast('Appointment not found.');
+        return { success: false, error: 'Appointment not found.' };
+      }
+
+      const normalizedStatus = newStatus === 'confirmed' ? 'accepted' : newStatus;
+
+      if (normalizedStatus === 'accepted') {
+        // Enforce rule: "There should not be acceptance if the date is not free in the first instance"
+        const free = isFacilitatorDateFree(target.date, target.id);
+        if (!free) {
+          const err = `Cannot accept appointment: Date ${target.date} is not free in the first instance. It is already committed to another engagement.`;
+          showToast(err);
+          return { success: false, error: err };
+        }
+
+        // Auto-lock this date on the facilitator availability calendar
+        const calEntryId = `cal-booking-${target.id}`;
+        setCalendarEngagements((prev) => {
+          const filtered = prev.filter((e) => e.id !== calEntryId && e.date !== target.date);
+          const newCalEntry: CalendarEngagement = {
+            id: calEntryId,
+            date: target.date,
+            title: `${target.eventTitle} (${target.organization})`,
+            type: 'booked',
+            locationType: (target.locationType || 'Physical').toLowerCase() as any,
+            organization: target.organization,
+          };
+          const nextCal = [...filtered, newCalEntry];
+          storageService.saveCalendarEngagements(nextCal);
+          return nextCal;
+        });
+      } else {
+        // When declined or set to pending, release any auto-locked calendar engagement
+        const calEntryId = `cal-booking-${target.id}`;
+        setCalendarEngagements((prev) => {
+          const filtered = prev.filter((e) => e.id !== calEntryId);
+          storageService.saveCalendarEngagements(filtered);
+          return filtered;
+        });
+      }
+
+      // Update state and persistence
+      setFacilitatorBookings((prev) => {
+        const next = prev.map((b) =>
+          b.id === target.id || b.reference === target.reference
+            ? { ...b, status: normalizedStatus }
+            : b
+        );
+        storageService.saveFacilitatorBookings(next);
+        return next;
+      });
+
+      const msg =
+        normalizedStatus === 'accepted'
+          ? `Appointment ${target.reference} accepted! Date ${target.date} is locked on calendar.`
+          : normalizedStatus === 'declined'
+          ? `Appointment ${target.reference} declined. Date ${target.date} has been released.`
+          : `Appointment ${target.reference} set to pending review.`;
+
+      showToast(msg);
+      return { success: true };
+    },
+    [facilitatorBookings, isFacilitatorDateFree, showToast]
+  );
+
+  const deleteFacilitatorBooking = useCallback(
+    (id: string) => {
+      const target = facilitatorBookings.find((b) => b.id === id || b.reference === id);
+      if (target) {
+        const calEntryId = `cal-booking-${target.id}`;
+        setCalendarEngagements((prev) => {
+          const filtered = prev.filter((e) => e.id !== calEntryId);
+          storageService.saveCalendarEngagements(filtered);
+          return filtered;
+        });
+      }
+      storageService.deleteFacilitatorBooking(id);
+      setFacilitatorBookings((prev) => prev.filter((b) => b.id !== id && b.reference !== id));
+      showToast('Appointment record removed.');
+    },
+    [facilitatorBookings, showToast]
+  );
+
   const submitFacilitatorBooking = useCallback(
     (
       input: FacilitatorBookingInput
@@ -3390,16 +3521,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         return { success: false, whatsappUrl: '', error: 'Event date is required.' };
       }
 
-      // Check if date is already booked in calendarEngagements or facilitatorBookings
-      const isEngBooked = calendarEngagements.some(
-        (eng) => eng.date === candidateDate && eng.type === 'booked'
-      );
-      const isExistingBooking = facilitatorBookings.some(
-        (b) => b.date === candidateDate && b.status !== 'declined'
-      );
-
-      if (isEngBooked || isExistingBooking) {
-        return { success: false, whatsappUrl: '', error: 'Date is already booked.' };
+      // "There should not be acceptance if the date is not free in the first instance"
+      if (!isFacilitatorDateFree(candidateDate)) {
+        return {
+          success: false,
+          whatsappUrl: '',
+          error: `Selected date (${candidateDate}) is not free in the first instance. It is already booked for another engagement. Please choose an open date from the calendar.`,
+        };
       }
 
       const randomSuffix = Math.random()
@@ -3443,7 +3571,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       newBooking.whatsAppDispatchUrl = whatsappUrl;
 
       storageService.saveFacilitatorBooking(newBooking);
-      setFacilitatorBookings((prev) => [...prev, newBooking]);
+      setFacilitatorBookings((prev) => [newBooking, ...prev]);
 
       return {
         success: true,
@@ -3451,7 +3579,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         whatsappUrl,
       };
     },
-    [calendarEngagements, facilitatorBookings]
+    [isFacilitatorDateFree]
   );
 
   const resetDemoDatabase = useCallback(() => {
@@ -3604,7 +3732,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     resetDemoDatabase,
     facilitatorBookings,
     calendarEngagements,
+    isFacilitatorDateFree,
     submitFacilitatorBooking,
+    setFacilitatorBookingStatus,
+    updateFacilitatorBookingStatus: setFacilitatorBookingStatus,
+    deleteFacilitatorBooking,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

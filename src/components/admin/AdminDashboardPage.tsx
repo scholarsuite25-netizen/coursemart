@@ -4,6 +4,7 @@ import {
   ArrowUp,
   Bot,
   Calendar,
+  CalendarCheck,
   CheckCircle2,
   Copy,
   Crown,
@@ -65,11 +66,13 @@ import { CommunityModerationPanel } from './CommunityModerationPanel';
 import { AutomationAgentsPanel } from './AutomationAgentsPanel';
 import { AffiliateManagementPanel } from './AffiliateManagementPanel';
 import { WhatsAppMemberImporterPanel } from './WhatsAppMemberImporterPanel';
+import { AppointmentsTable } from '../promoter/AppointmentsTable';
 
 type AdminTab =
   | 'dashboard'
   | 'products'
   | 'events'
+  | 'appointments'
   | 'blogs'
   | 'email'
   | 'social'
@@ -133,7 +136,18 @@ export function AdminDashboardPage() {
     showToast,
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      if (p === 'appointments' || p === 'bookings' || p === 'facilitator') return 'appointments';
+      if (p === 'events') return 'events';
+      if (p === 'products') return 'products';
+      if (p === 'blogs') return 'blogs';
+      if (p === 'email') return 'email';
+      if (p === 'orders') return 'orders';
+    }
+    return 'dashboard';
+  });
   const [editingProduct, setEditingProduct] = useState<Product | null | undefined>(undefined);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null | undefined>(undefined);
   const [productSearch, setProductSearch] = useState('');
@@ -388,6 +402,7 @@ export function AdminDashboardPage() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'events', label: 'Events & Roster', icon: Calendar },
+    { id: 'appointments', label: 'Facilitator Bookings', icon: CalendarCheck },
     { id: 'blogs', label: 'Blogs & Comments', icon: FileText },
     { id: 'email', label: 'Email Broadcast', icon: Mail },
     { id: 'social', label: 'Social Queue', icon: Sparkles },
@@ -2355,6 +2370,17 @@ export function AdminDashboardPage() {
           )}
           {/* 11. EVENTS & ATTENDEE ROSTER */}
           {activeTab === 'events' && <EventsManagerPanel />}
+
+          {/* 11B. FACILITATOR APPOINTMENTS & BOOKINGS */}
+          {activeTab === 'appointments' && (
+            <div className="space-y-4">
+              <AppointmentsTable
+                title="Facilitator Appointments & Booking Management"
+                subtitle="Official engagement roster for S. B. OMOTOSO (FCIA, MILR, MSc, MNIM). Review booking inquiries, enforce date availability, toggle Accept or Decline, and dispatch WhatsApp notifications."
+                showAdminControls={true}
+              />
+            </div>
+          )}
 
           {/* 12. EMAIL BROADCAST STUDIO */}
           {activeTab === 'email' && <EmailBroadcastPanel />}

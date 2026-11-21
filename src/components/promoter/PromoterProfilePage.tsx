@@ -28,6 +28,7 @@ import {
 import { useStore } from '../../context/StoreContext';
 import { InteractiveCalendar } from './InteractiveCalendar';
 import { FacilitatorBookingModal } from './FacilitatorBookingModal';
+import { AppointmentsTable } from './AppointmentsTable';
 
 export function PromoterProfilePage() {
   const { calendarEngagements } = useStore();
@@ -520,6 +521,15 @@ export function PromoterProfilePage() {
             engagements={calendarEngagements}
             selectedDate={selectedDate}
             onSelectDate={handleSelectDateFromCalendar}
+          />
+        </section>
+
+        {/* 6B. FACILITATOR APPOINTMENTS & ENGAGEMENT ROSTER TABLE */}
+        <section id="appointments-roster" className="space-y-4">
+          <AppointmentsTable
+            title="Facilitator Appointments & Engagement Roster"
+            subtitle="Live schedule of keynote invitations, masterclasses, and executive appointments with instant facilitator Accept/Decline toggle."
+            showAdminControls={true}
           />
         </section>
 
