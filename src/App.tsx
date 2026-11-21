@@ -6,6 +6,8 @@ import { Footer } from './components/storefront/Footer';
 import { Header } from './components/storefront/Header';
 import { StorefrontPage } from './components/storefront/StorefrontPage';
 import { EnquiryAssistantWidget } from './components/storefront/EnquiryAssistantWidget';
+import { WhatsAppHelpWidget } from './components/common/WhatsAppHelpWidget';
+import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { parseAppRoute } from './utils/catalogAndBlogs';
 
 // Route-level code splitting: only the shell and the default landing page load
@@ -66,6 +68,48 @@ const MemberPromptVaultPage = lazy(() =>
     default: m.MemberPromptVaultPage,
   }))
 );
+
+const promoterModules = import.meta.glob<{
+  default?: React.ComponentType<any>;
+  PromoterProfilePage?: React.ComponentType<any>;
+}>('./components/promoter/PromoterProfilePage.{tsx,ts,jsx,js}');
+
+const verifyModules = import.meta.glob<{
+  default?: React.ComponentType<any>;
+  VerifyCertificatePage?: React.ComponentType<any>;
+}>('./components/lms/VerifyCertificatePage.{tsx,ts,jsx,js}');
+
+const PromoterProfilePage = lazy(async () => {
+  const keys = Object.keys(promoterModules);
+  if (keys.length > 0 && promoterModules[keys[0]]) {
+    const mod = await promoterModules[keys[0]]();
+    return { default: mod.PromoterProfilePage || mod.default || (() => null) };
+  }
+  return {
+    default: () => (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Executive Promoter Profile</h1>
+        <p className="text-sm text-slate-500 mt-2">S. B. OMOTOSO (FCIA, MILR, MSc, MNIM) — Loading...</p>
+      </div>
+    ),
+  };
+});
+
+const VerifyCertificatePage = lazy(async () => {
+  const keys = Object.keys(verifyModules);
+  if (keys.length > 0 && verifyModules[keys[0]]) {
+    const mod = await verifyModules[keys[0]]();
+    return { default: mod.VerifyCertificatePage || mod.default || (() => null) };
+  }
+  return {
+    default: () => (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Certificate Verification</h1>
+        <p className="text-sm text-slate-500 mt-2">Authenticating credential...</p>
+      </div>
+    ),
+  };
+});
 
 function PageFallback() {
   return (
@@ -166,6 +210,12 @@ function AppRouter() {
     case 'vault':
       content = <MemberPromptVaultPage />;
       break;
+    case 'promoter':
+      content = <PromoterProfilePage />;
+      break;
+    case 'verify-certificate':
+      content = <VerifyCertificatePage certificateId={parsed.certificateId} />;
+      break;
     case 'home':
     default:
       content = <StorefrontPage />;
@@ -173,7 +223,7 @@ function AppRouter() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900 dark:bg-[#0b1329] dark:text-slate-100 transition-colors">
       {!isStandaloneShell && (
         <>
           <AnnouncementBar />
@@ -188,6 +238,9 @@ function AppRouter() {
       {!isStandaloneShell && <Footer />}
 
       {!isStandaloneShell && <EnquiryAssistantWidget />}
+
+      <WhatsAppHelpWidget />
+      <PwaInstallPrompt />
 
       <CartDrawer />
 

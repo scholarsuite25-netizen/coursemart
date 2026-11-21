@@ -25,6 +25,8 @@ import {
   Volume2,
   VolumeX,
   Mic,
+  Printer,
+  Tv,
   X,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -33,6 +35,8 @@ import {
   calculateModuleProgress,
   getCourseProgressSummary,
 } from '../../utils/commerce';
+import { generateCertificateCode } from '../../utils/certificateUtils';
+import { CertificateModal } from './CertificateModal';
 import { runEnquiryAgent } from '../../utils/agentAutomation';
 import { isCopyProtectionActive } from '../../utils/contentProtection';
 import { LectureVideoCanvasPlayer } from './LectureVideoCanvasPlayer';
@@ -101,6 +105,8 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   const [loadingAiAnswerId, setLoadingAiAnswerId] = useState<string | null>(null);
   const [isSubmittingAi, setIsSubmittingAi] = useState<boolean>(false);
   const [certificateOpen, setCertificateOpen] = useState(false);
+  const [autoOpenedCert, setAutoOpenedCert] = useState(false);
+  const [theaterMode, setTheaterMode] = useState(false);
 
   // Interactive Quiz modal state
   const [activeQuizModule, setActiveQuizModule] = useState<CourseModule | null>(null);
@@ -203,10 +209,185 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   const activeTimestampedNotes =
     (activeLecture && progress?.timestampedNotesByLecture?.[activeLecture.id]) ?? [];
 
+  // Auto-open certificate modal when course reaches 100% completion
+  useEffect(() => {
+    if (product && progressPct === 100 && !autoOpenedCert) {
+      if (!progress?.certificateCode) {
+        issueCourseCertificate(product.id);
+      }
+      setCertificateOpen(true);
+      setAutoOpenedCert(true);
+    }
+  }, [product, progressPct, autoOpenedCert, progress?.certificateCode, issueCourseCertificate]);
+
   const formatTimer = (sec: number) => {
     const mins = Math.floor(sec / 60);
     const rem = Math.floor(sec % 60);
     return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+  };
+
+  const handleSeekToNoteTimestamp = (timeLabel: string) => {
+    const clean = timeLabel.replace(/[\[\]]/g, '').trim();
+    const parts = clean.split(':').map((p) => parseInt(p, 10));
+    let sec = 0;
+    if (!parts.some(isNaN)) {
+      if (parts.length === 2) {
+        sec = parts[0] * 60 + parts[1];
+      } else if (parts.length === 3) {
+        sec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      }
+    }
+    setElapsedSeconds(sec);
+    setIsPlaying(true);
+    showToast(`Jumped player to [${clean}]`);
+  };
+
+  const handlePrintNotes = () => {
+    if (!product || !activeLecture) return;
+    const printWindow = window.open('', '_blank', 'width=850,height=700');
+    const student = currentUser?.name || 'CourseMart Student';
+    const notesContent = progress?.notesByLecture[activeLecture.id] || noteDraft || 'No general scratchpad notes entered.';
+    const timestampNotes = (progress?.timestampedNotesByLecture?.[activeLecture.id] || [])
+      .map((tn) => `<li style="margin-bottom:8px;"><strong>[${tn.timeLabel}]</strong> ${tn.text}</li>`)
+      .join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Study Notes - ${product.title} - ${activeLecture.title}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px; color: #0a192f; line-height: 1.6; }
+    .header { border-bottom: 2px solid #d4af37; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .logo { font-size: 18px; font-weight: 800; color: #0a192f; letter-spacing: 1px; }
+    .badge { font-size: 11px; font-weight: bold; color: #d4af37; text-transform: uppercase; }
+    h1 { font-size: 22px; margin: 4px 0; color: #0a192f; }
+    h2 { font-size: 16px; color: #475569; margin: 0 0 16px; }
+    .meta { font-size: 12px; color: #64748b; margin-bottom: 24px; background: #f8fafc; padding: 12px; border-radius: 6px; }
+    .section-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #0a192f; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-top: 24px; margin-bottom: 12px; }
+    .scratchpad { white-space: pre-wrap; font-size: 14px; background: #f8fafc; padding: 14px; border-radius: 6px; border: 1px solid #e2e8f0; }
+    ul { list-style: none; padding-left: 0; }
+    li { font-size: 13px; }
+    .footer { margin-top: 40px; font-size: 11px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="badge">CourseMart & Digital Wealth Creators</div>
+      <div class="logo">Official Executive Study Notes</div>
+    </div>
+    <div style="text-align:right; font-size:12px; color:#64748b;">
+      Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+    </div>
+  </div>
+  <h1>${product.title}</h1>
+  <h2>Lecture: ${activeLecture.title} (${activeLecture.moduleTitle})</h2>
+  <div class="meta">
+    <strong>Student:</strong> ${student} &nbsp;|&nbsp;
+    <strong>Instructor:</strong> ${product.instructorName} &nbsp;|&nbsp;
+    <strong>Course Progress:</strong> ${progressPct}%
+  </div>
+
+  <div class="section-title">Timestamped Lecture Bookmarks & Insights</div>
+  ${timestampNotes ? `<ul>${timestampNotes}</ul>` : '<p style="font-size:13px; color:#64748b;">No timestamped notes saved for this lecture.</p>'}
+
+  <div class="section-title">Full Lesson Scratchpad Notes</div>
+  <div class="scratchpad">${notesContent}</div>
+
+  <div class="footer">
+    Generated from CourseMart LMS Platform &bull; Endorsed by S. B. OMOTOSO &bull; coursemart.ng
+  </div>
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 250); };</script>
+</body>
+</html>`;
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+    } else {
+      window.print();
+    }
+    showToast('Study notes printable view opened');
+  };
+
+  const handleDownloadNotesDoc = (format: 'doc' | 'txt' = 'doc') => {
+    if (!product || !activeLecture) return;
+    const student = currentUser?.name || 'CourseMart Student';
+    const notesContent = progress?.notesByLecture[activeLecture.id] || noteDraft || 'No scratchpad notes entered.';
+    const timestampNotes = progress?.timestampedNotesByLecture?.[activeLecture.id] || [];
+
+    if (format === 'txt') {
+      const txt = `COURSEMART & DIGITAL WEALTH CREATORS - STUDY NOTES
+=====================================================
+Course:     ${product.title}
+Lecture:    ${activeLecture.title} (${activeLecture.moduleTitle})
+Student:    ${student}
+Instructor: ${product.instructorName}
+Date:       ${new Date().toISOString().slice(0, 10)}
+Progress:   ${progressPct}%
+
+TIMESTAMPED BOOKMARKS:
+-----------------------------------------------------
+${timestampNotes.length > 0 ? timestampNotes.map((tn) => `[${tn.timeLabel}] ${tn.text}`).join('\n') : '(None)'}
+
+FULL LESSON SCRATCHPAD NOTES:
+-----------------------------------------------------
+${notesContent}
+
+=====================================================
+Endorsed by S. B. OMOTOSO (FCIA, MILR, MSc, MNIM)
+coursemart.ng
+`;
+      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${product.slug}-${activeLecture.id}-study-notes.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Study notes (.txt) downloaded');
+    } else {
+      const docHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><title>Study Notes - ${product.title}</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20pt; }
+h1 { color: #0a192f; font-size: 18pt; }
+h2 { color: #555555; font-size: 13pt; }
+.header { border-bottom: 2pt solid #d4af37; padding-bottom: 10pt; margin-bottom: 15pt; }
+.meta { background-color: #f1f5f9; padding: 10pt; font-size: 10pt; }
+.section { font-weight: bold; font-size: 12pt; margin-top: 15pt; color: #0a192f; border-bottom: 1pt solid #cbd5e1; }
+.scratchpad { background-color: #f8fafc; padding: 10pt; border: 1pt solid #e2e8f0; font-size: 10pt; }
+</style>
+</head>
+<body>
+<div class='header'>
+  <div style='color:#d4af37; font-weight:bold; font-size:10pt;'>COURSEMART & DIGITAL WEALTH CREATORS</div>
+  <h1>${product.title}</h1>
+  <h2>Lecture: ${activeLecture.title} (${activeLecture.moduleTitle})</h2>
+  <div class='meta'>
+    <b>Student:</b> ${student} | <b>Instructor:</b> ${product.instructorName} | <b>Date:</b> ${new Date().toLocaleDateString()}
+  </div>
+</div>
+<div class='section'>Timestamped Lecture Insights</div>
+${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.timeLabel}]</b> ${tn.text}</li>`).join('')}</ul>` : '<p>No timestamped notes.</p>'}
+<div class='section'>Scratchpad Notes</div>
+<div class='scratchpad'>${notesContent.replace(/\n/g, '<br/>')}</div>
+<p style='margin-top:20pt; font-size:9pt; color:#64748b;'>Endorsed by S. B. OMOTOSO &bull; CourseMart LMS</p>
+</body>
+</html>`;
+      const blob = new Blob([docHtml], { type: 'application/msword;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${product.slug}-${activeLecture.id}-study-notes.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Study notes (.doc) downloaded');
+    }
   };
 
   const handleSaveNote = (e: React.FormEvent) => {
@@ -405,6 +586,20 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
 
           <button
             type="button"
+            onClick={() => setTheaterMode((prev) => !prev)}
+            title={theaterMode ? 'Exit theater mode' : 'Enter theater mode'}
+            aria-label={theaterMode ? 'Exit theater mode' : 'Enter theater mode'}
+            className={`p-1.5 rounded cursor-pointer transition ${
+              theaterMode
+                ? 'bg-[#d4af37] text-[#0a192f] font-bold'
+                : 'text-slate-300 hover:text-white hover:bg-[#112240]'
+            }`}
+          >
+            <Tv className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
             onClick={() => setSidebarOpen((prev) => !prev)}
             aria-label={sidebarOpen ? 'Collapse curriculum sidebar' : 'Expand curriculum sidebar'}
             className="p-1.5 text-slate-300 hover:text-white rounded hover:bg-[#112240] cursor-pointer"
@@ -423,8 +618,8 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
         <ContentProtectionWrapper enabled={isProtected} className="flex-1 min-w-0 flex flex-col">
           {/* Theater Video Player */}
           {activeLecture && (
-            <div className="bg-[#081221] text-white">
-              <div className="max-w-5xl mx-auto p-3 sm:p-6 space-y-3">
+            <div className={`transition-colors duration-300 text-white ${theaterMode ? 'bg-[#030712] py-4' : 'bg-[#081221]'}`}>
+              <div className={`mx-auto p-3 sm:p-6 space-y-3 transition-all duration-300 ${theaterMode ? 'max-w-7xl' : 'max-w-5xl'}`}>
                 <div className="flex items-center justify-between text-xs text-slate-400">
                   <span className="truncate pr-2">{activeLecture.moduleTitle}</span>
                   <span className="font-mono shrink-0">
@@ -755,90 +950,139 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
             )}
 
             {activeTab === 'notes' && activeLecture && (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div className="md:col-span-6 space-y-4">
-                  <form onSubmit={handleAddPinnedNote} className="space-y-2.5">
-                    <label
-                      htmlFor="pinned-note-input"
-                      className="block font-display text-sm font-bold text-slate-900"
+              <div className="space-y-5">
+                {/* 1-Click Study Notes Export Header */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-lg">
+                  <div>
+                    <h3 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
+                      Study Notes & Lecture Bookmarks
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Click any timestamp to seek video. Export notes for offline revision.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePrintNotes}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0a192f] text-white rounded text-xs font-semibold hover:bg-[#112240] transition cursor-pointer shadow-sm"
+                      title="Print or save notes as PDF"
                     >
-                      Pin Timestamped Note at {formatTimer(elapsedSeconds)}
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        id="pinned-note-input"
-                        type="text"
-                        value={pinnedNoteText}
-                        onChange={(e) => setPinnedNoteText(e.target.value)}
-                        placeholder="Bookmark insight at current timestamp..."
-                        className="flex-1 h-9 px-3 text-xs border border-slate-300 rounded-md"
-                      />
-                      <button
-                        type="submit"
-                        className="inline-flex items-center gap-1 px-3 h-9 text-xs font-bold bg-[#d4af37] text-[#0a192f] rounded-md cursor-pointer shrink-0"
-                      >
-                        <BookmarkPlus className="w-3.5 h-3.5" />
-                        <span>Pin</span>
-                      </button>
-                    </div>
-                  </form>
-
-                  <div className="space-y-2">
-                    {activeTimestampedNotes.length === 0 ? (
-                      <p className="text-xs text-slate-500">
-                        No timestamped bookmarks for this lecture yet.
-                      </p>
-                    ) : (
-                      activeTimestampedNotes.map((tn) => (
-                        <div
-                          key={tn.id}
-                          className="p-3 border border-slate-200 rounded-lg bg-slate-50 flex items-start justify-between gap-3"
-                        >
-                          <div>
-                            <span className="font-mono text-[11px] font-bold text-[#0a192f] inline-flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {tn.timeLabel}
-                            </span>
-                            <p className="text-xs text-slate-800 mt-1">{tn.text}</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              deleteTimestampedNote(product.id, activeLecture.id, tn.id)
-                            }
-                            aria-label="Delete pinned note"
-                            className="text-slate-400 hover:text-rose-700 cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    )}
+                      <Printer className="w-3.5 h-3.5 text-[#d4af37]" />
+                      <span>Print / PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadNotesDoc('doc')}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 bg-white text-slate-700 rounded text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
+                      title="Download notes formatted for Microsoft Word"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Download .doc</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadNotesDoc('txt')}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-300 bg-white text-slate-700 rounded text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
+                      title="Download notes as plain text"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-slate-600" />
+                      <span>.txt</span>
+                    </button>
                   </div>
                 </div>
 
-                <form onSubmit={handleSaveNote} className="md:col-span-6 space-y-3">
-                  <label
-                    htmlFor="lecture-notes-area"
-                    className="block font-display text-sm font-bold text-slate-900"
-                  >
-                    Full Lesson Scratchpad
-                  </label>
-                  <textarea
-                    id="lecture-notes-area"
-                    rows={6}
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    placeholder="Capture architecture insights, snippets, or reminders..."
-                    className="w-full p-3.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900"
-                  />
-                  <button
-                    type="submit"
-                    className="px-5 py-2 text-xs font-bold text-white bg-[#0a192f] hover:bg-[#112240] rounded-md cursor-pointer"
-                  >
-                    Save Scratchpad
-                  </button>
-                </form>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                  <div className="md:col-span-6 space-y-4">
+                    <form onSubmit={handleAddPinnedNote} className="space-y-2.5">
+                      <label
+                        htmlFor="pinned-note-input"
+                        className="block font-display text-sm font-bold text-slate-900"
+                      >
+                        Pin Timestamped Note at {formatTimer(elapsedSeconds)}
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          id="pinned-note-input"
+                          type="text"
+                          value={pinnedNoteText}
+                          onChange={(e) => setPinnedNoteText(e.target.value)}
+                          placeholder="Bookmark insight at current timestamp..."
+                          className="flex-1 h-9 px-3 text-xs border border-slate-300 rounded-md"
+                        />
+                        <button
+                          type="submit"
+                          className="inline-flex items-center gap-1 px-3 h-9 text-xs font-bold bg-[#d4af37] text-[#0a192f] rounded-md cursor-pointer shrink-0"
+                        >
+                          <BookmarkPlus className="w-3.5 h-3.5" />
+                          <span>Pin</span>
+                        </button>
+                      </div>
+                    </form>
+
+                    <div className="space-y-2">
+                      {activeTimestampedNotes.length === 0 ? (
+                        <p className="text-xs text-slate-500">
+                          No timestamped bookmarks for this lecture yet.
+                        </p>
+                      ) : (
+                        activeTimestampedNotes.map((tn) => (
+                          <div
+                            key={tn.id}
+                            className="p-3 border border-slate-200 rounded-lg bg-slate-50 flex items-start justify-between gap-3"
+                          >
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => handleSeekToNoteTimestamp(tn.timeLabel)}
+                                className="font-mono text-[11px] font-bold text-[#0a192f] inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-200 hover:bg-[#d4af37]/40 transition cursor-pointer"
+                                title={`Click to jump video player to ${tn.timeLabel}`}
+                                aria-label={`Jump video player to timestamp ${tn.timeLabel}`}
+                              >
+                                <Clock className="w-3 h-3 text-[#b48a1c]" />
+                                <span>[{tn.timeLabel}]</span>
+                              </button>
+                              <p className="text-xs text-slate-800 mt-1">{tn.text}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                deleteTimestampedNote(product.id, activeLecture.id, tn.id)
+                              }
+                              aria-label="Delete pinned note"
+                              className="text-slate-400 hover:text-rose-700 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSaveNote} className="md:col-span-6 space-y-3">
+                    <label
+                      htmlFor="lecture-notes-area"
+                      className="block font-display text-sm font-bold text-slate-900"
+                    >
+                      Full Lesson Scratchpad
+                    </label>
+                    <textarea
+                      id="lecture-notes-area"
+                      rows={6}
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      placeholder="Capture architecture insights, snippets, or reminders..."
+                      className="w-full p-3.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-slate-900"
+                    />
+                    <button
+                      type="submit"
+                      className="px-5 py-2 text-xs font-bold text-white bg-[#0a192f] hover:bg-[#112240] rounded-md cursor-pointer"
+                    >
+                      Save Scratchpad
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
 
@@ -1242,68 +1486,80 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
 
       {/* Certificate Modal */}
       {certificateOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Course completion certificate"
-        >
-          <div className="bg-white rounded-xl max-w-xl w-full p-6 sm:p-8 space-y-6 relative shadow-2xl">
-            <button
-              type="button"
-              onClick={() => setCertificateOpen(false)}
-              aria-label="Close certificate dialog"
-              className="absolute right-4 top-4 p-1.5 text-slate-500 hover:text-slate-900 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        progressPct === 100 ? (
+          <CertificateModal
+            isOpen={certificateOpen}
+            onClose={() => setCertificateOpen(false)}
+            certificateCode={
+              progress?.certificateCode ||
+              (currentUser && product ? generateCertificateCode(currentUser.id, product.id) : 'CM-CERT-VERIFIED')
+            }
+            studentName={currentUser?.name || 'Graduate Student'}
+            courseTitle={product.title}
+            completionDate={
+              progress?.updatedAt
+                ? new Date(progress.updatedAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                : new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+            }
+            instructorName={product.instructorName}
+            track={product.category || 'Executive Technology Mastery'}
+          />
+        ) : (
+          <div
+            className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Course completion certificate status"
+          >
+            <div className="bg-white rounded-xl max-w-md w-full p-6 sm:p-8 space-y-5 relative shadow-2xl text-center">
+              <button
+                type="button"
+                onClick={() => setCertificateOpen(false)}
+                aria-label="Close certificate dialog"
+                className="absolute right-4 top-4 p-1.5 text-slate-500 hover:text-slate-900 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            {progressPct < 100 ? (
-              <div className="text-center space-y-3 py-4">
-                <Award className="w-12 h-12 text-slate-300 mx-auto" />
+              <div className="w-16 h-16 rounded-full bg-[#d4af37]/15 border-2 border-[#d4af37] text-[#b48a1c] flex items-center justify-center mx-auto">
+                <Award className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-2">
                 <h3 className="font-display text-xl font-bold text-slate-900">
-                  Complete all lectures to unlock your certificate
+                  Complete All Lectures to Unlock Certificate
                 </h3>
-                <p className="text-sm text-slate-600 tabular-nums">
-                  You are currently at <strong>{progressPct}%</strong> completion ({completedIds.length}{' '}
-                  of {flatLectures.length} lectures).
+                <p className="text-sm text-slate-600">
+                  You are currently at <strong className="text-slate-900">{progressPct}%</strong> completion ({completedIds.length} of {flatLectures.length} lectures).
                 </p>
               </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="border-4 border-[#0a192f] rounded-lg p-6 sm:p-8 text-center space-y-3 bg-slate-50">
-                  <Award className="w-10 h-10 text-[#b4690e] mx-auto" />
-                  <p className="text-xs font-bold text-[#0a192f] tracking-wider uppercase">
-                    Verified Certificate of Completion
-                  </p>
-                  {progress?.certificateCode && (
-                    <p className="font-mono text-xs font-bold text-[#5624d0]">
-                      Verification ID: {progress.certificateCode}
-                    </p>
-                  )}
-                  <p className="text-xs text-slate-500">Awarded to</p>
-                  <h3 className="font-display text-2xl font-extrabold text-slate-900">
-                    {currentUser?.name}
-                  </h3>
-                  <p className="text-xs text-slate-600">for completing</p>
-                  <p className="font-display text-lg font-bold text-slate-900">{product.title}</p>
-                  <div className="pt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200">
-                    <span>Instructor: {product.instructorName}</span>
-                    <span className="tabular-nums">{new Date().toISOString().slice(0, 10)}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleDownloadCertificate}
-                  className="w-full py-3 text-sm font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md inline-flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download Verified Certificate</span>
-                </button>
+
+              {/* Progress bar */}
+              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                <div
+                  className="h-full bg-[#d4af37] transition-all duration-300"
+                  style={{ width: `${progressPct}%` }}
+                />
               </div>
-            )}
+
+              <button
+                type="button"
+                onClick={() => setCertificateOpen(false)}
+                className="w-full py-2.5 px-4 bg-[#0a192f] text-white rounded-lg text-xs font-bold hover:bg-[#132742] transition cursor-pointer"
+              >
+                Resume Course
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
     </div>
   );

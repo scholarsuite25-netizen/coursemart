@@ -105,6 +105,14 @@ export function InstructorStudioPage() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
+            onClick={() => navigate('/promoter')}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-[#0a192f] bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-md cursor-pointer dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4 text-[#d4af37]" />
+            <span>View Executive Promoter Profile</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setEditingBlog(null)}
             className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md cursor-pointer"
           >

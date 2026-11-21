@@ -262,6 +262,15 @@ export function Footer() {
             <li>
               <button
                 type="button"
+                onClick={() => navigate('/promoter')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left text-amber-300 font-semibold"
+              >
+                Executive Promoter Profile
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
                 onClick={() => navigate('/library')}
                 className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
               >

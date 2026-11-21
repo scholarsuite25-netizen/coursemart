@@ -271,6 +271,8 @@ export type ParsedAppRoute =
   | { page: 'affiliates' }
   | { page: 'showcase' }
   | { page: 'events' }
+  | { page: 'promoter' }
+  | { page: 'verify-certificate'; certificateId?: string }
   | { page: 'blogs-hub' }
   | { page: 'blogs-category'; category: BlogCategory; slug: string }
   | { page: 'blog-detail'; slug: string }
@@ -351,6 +353,24 @@ export function parseAppRoute(route: string): ParsedAppRoute {
   if (cleanPath === '/affiliates') return { page: 'affiliates' };
   if (cleanPath === '/showcase') return { page: 'showcase' };
   if (cleanPath === '/events') return { page: 'events' };
+  if (
+    cleanPath === '/promoter' ||
+    cleanPath === '/facilitator' ||
+    cleanPath === '/speaker' ||
+    cleanPath.startsWith('/promoter/') ||
+    cleanPath.startsWith('/facilitator/') ||
+    cleanPath.startsWith('/speaker/')
+  ) {
+    return { page: 'promoter' };
+  }
+  if (cleanPath === '/verify-certificate' || cleanPath.startsWith('/verify-certificate/')) {
+    const certParam =
+      searchParams.get('id') ||
+      searchParams.get('cert') ||
+      cleanPath.replace(/^\/verify-certificate\/?/, '') ||
+      undefined;
+    return { page: 'verify-certificate', certificateId: certParam || undefined };
+  }
   if (cleanPath.startsWith('/learn/')) {
     return { page: 'learn', productId: cleanPath.replace('/learn/', '') };
   }

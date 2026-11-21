@@ -36,6 +36,12 @@ import type {
   UserRole,
   WhatsAppGroup,
 } from '../types/marketplace';
+import type {
+  CalendarEngagement,
+  FacilitatorBooking,
+  FacilitatorBookingInput,
+} from '../types/promoter';
+import { buildWhatsAppUrl } from '../utils/whatsapp';
 import {
   buildPreEventAcknowledgementHtml,
   generateEventConfirmationCode,
@@ -66,9 +72,11 @@ export interface RouteState {
   path: string;
 }
 
-interface StoreContextValue {
+export interface StoreContextValue {
   route: string;
   navigate: (path: string) => void;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
   products: Product[];
   users: UserAccount[];
   orders: Order[];
@@ -324,6 +332,16 @@ interface StoreContextValue {
   updateUserRole: (userId: string, role: UserRole) => void;
   updateAppearance: (appearance: StorefrontAppearance) => void;
   resetDemoDatabase: () => void;
+
+  // Facilitator Booking & Calendar Engagements (Milestone 3)
+  facilitatorBookings: FacilitatorBooking[];
+  calendarEngagements: CalendarEngagement[];
+  submitFacilitatorBooking: (input: FacilitatorBookingInput) => {
+    success: boolean;
+    booking?: FacilitatorBooking;
+    whatsappUrl: string;
+    error?: string;
+  };
 }
 
 const DEFAULT_FILTERS: ProductFilterState = {
@@ -352,7 +370,37 @@ const PERSONAL_SYNC_KEYS = [
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
+export type StoreContextType = StoreContextValue;
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    try {
+      const saved = localStorage.getItem('cm_theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+    } catch {
+      // fallback
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    try {
+      localStorage.setItem('cm_theme', theme);
+    } catch {
+      // ignore
+    }
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   const [route, setRoute] = useState<string>(() => {
     if (typeof window === 'undefined') return '/';
     return window.location.pathname || '/';
@@ -416,6 +464,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
   const [forumReplies, setForumReplies] = useState<CommunityForumReply[]>(() =>
     storageService.getForumReplies()
+  );
+  const [facilitatorBookings, setFacilitatorBookings] = useState<FacilitatorBooking[]>(() =>
+    storageService.getFacilitatorBookings()
+  );
+  const [calendarEngagements, setCalendarEngagements] = useState<CalendarEngagement[]>(() =>
+    storageService.getCalendarEngagements()
   );
   const [publicServerConfig, setPublicServerConfig] = useState<PublicServerConfig>({
     supabaseConfigured: false,
@@ -3322,6 +3376,84 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [showToast]
   );
 
+  const submitFacilitatorBooking = useCallback(
+    (
+      input: FacilitatorBookingInput
+    ): {
+      success: boolean;
+      booking?: FacilitatorBooking;
+      whatsappUrl: string;
+      error?: string;
+    } => {
+      const candidateDate = (input.date || '').trim();
+      if (!candidateDate) {
+        return { success: false, whatsappUrl: '', error: 'Event date is required.' };
+      }
+
+      // Check if date is already booked in calendarEngagements or facilitatorBookings
+      const isEngBooked = calendarEngagements.some(
+        (eng) => eng.date === candidateDate && eng.type === 'booked'
+      );
+      const isExistingBooking = facilitatorBookings.some(
+        (b) => b.date === candidateDate && b.status !== 'declined'
+      );
+
+      if (isEngBooked || isExistingBooking) {
+        return { success: false, whatsappUrl: '', error: 'Date is already booked.' };
+      }
+
+      const randomSuffix = Math.random()
+        .toString(36)
+        .substring(2, 6)
+        .toUpperCase()
+        .padStart(4, '0');
+      const reference = `FAC-2026-${randomSuffix}`;
+      const phoneValue = input.phone || input.phoneWhatsApp || '';
+
+      const newBooking: FacilitatorBooking = {
+        ...input,
+        phone: phoneValue,
+        phoneWhatsApp: phoneValue,
+        id: `booking-${Date.now()}-${randomSuffix}`,
+        reference,
+        referenceCode: reference,
+        createdAt: new Date().toISOString(),
+        status: 'pending',
+      };
+
+      const messageLines = [
+        `*NEW EXECUTIVE FACILITATION INVITATION*`,
+        `Ref: ${newBooking.reference}`,
+        `--------------------------------------`,
+        `*Applicant:* ${newBooking.name}`,
+        `*Organization:* ${newBooking.organization}`,
+        `*Email:* ${newBooking.email}`,
+        `*Phone:* ${newBooking.phone}`,
+        `*Event Title:* ${newBooking.eventTitle}`,
+        `*Date:* ${newBooking.date}`,
+        `*Venue:* ${newBooking.venue} (${newBooking.locationType})`,
+        `*Scope:* ${newBooking.scope}`,
+        `*Audience Size:* ~${newBooking.audienceSize}`,
+        `*Objectives:* ${newBooking.objectives}`,
+        `--------------------------------------`,
+        `Sent from CourseMart Promoter Portal`,
+      ];
+
+      const whatsappUrl = buildWhatsAppUrl(messageLines.join('\n'), '2348034710699');
+      newBooking.whatsAppDispatchUrl = whatsappUrl;
+
+      storageService.saveFacilitatorBooking(newBooking);
+      setFacilitatorBookings((prev) => [...prev, newBooking]);
+
+      return {
+        success: true,
+        booking: newBooking,
+        whatsappUrl,
+      };
+    },
+    [calendarEngagements, facilitatorBookings]
+  );
+
   const resetDemoDatabase = useCallback(() => {
     storageService.resetAllDemoData();
     window.location.reload();
@@ -3467,7 +3599,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     deleteCoupon,
     updateUserRole,
     updateAppearance,
+    theme,
+    toggleTheme,
     resetDemoDatabase,
+    facilitatorBookings,
+    calendarEngagements,
+    submitFacilitatorBooking,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

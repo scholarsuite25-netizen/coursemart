@@ -51,6 +51,7 @@ import type {
   UserMembership,
   WhatsAppGroup,
 } from '../types/marketplace';
+import type { CalendarEngagement, FacilitatorBooking } from '../types/promoter';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'cm_db_products_ngn_v1',
@@ -78,6 +79,8 @@ const STORAGE_KEYS = {
   COMMUNITY_MESSAGES: 'cm_db_community_messages_v1',
   FORUM_THREADS: 'cm_db_forum_threads_v1',
   FORUM_REPLIES: 'cm_db_forum_replies_v1',
+  FACILITATOR_BOOKINGS: 'cm_db_facilitator_bookings_v1',
+  CALENDAR_ENGAGEMENTS: 'cm_db_calendar_engagements_v1',
   ACTIVE_REFERRAL_CODE: 'cm_session_ref_code_v1',
   CART: 'cm_session_cart_ngn_v1',
   WISHLIST: 'cm_session_wishlist_v1',
@@ -106,6 +109,82 @@ function writeStorage<T>(key: string, value: T): void {
     // Ignore storage quota errors gracefully
   }
 }
+
+export const SEED_CALENDAR_ENGAGEMENTS: CalendarEngagement[] = [
+  {
+    id: 'cal-eng-1',
+    date: '2026-11-28',
+    title: 'Abeokuta Polo Club Follow-Up & Youth Tech Cohort 2 Review',
+    type: 'booked',
+    locationType: 'physical',
+    organization: 'Abeokuta Polo Club / Ogun State Youth Tech Foundation',
+    timeSlot: '10:00 AM - 2:00 PM WAT',
+  },
+  {
+    id: 'cal-eng-2',
+    date: '2026-12-05',
+    title: 'Chrisland University Vibe Coding & AI Literacy Guest Lecture',
+    type: 'booked',
+    locationType: 'physical',
+    organization: 'Chrisland University (Dept. of Computer Science & Mass Comm)',
+    timeSlot: '11:00 AM - 1:30 PM WAT',
+  },
+  {
+    id: 'cal-eng-3',
+    date: '2026-12-12',
+    title: 'Bowen University Higher Ed Governance Advisory & Council Session',
+    type: 'booked',
+    locationType: 'hybrid',
+    organization: 'Bowen University',
+    timeSlot: '9:00 AM - 1:00 PM WAT',
+  },
+  {
+    id: 'cal-eng-4',
+    date: '2026-12-18',
+    title: 'Dominion University Registry Operations & Digital Records Workshop',
+    type: 'booked',
+    locationType: 'physical',
+    organization: 'Dominion University',
+    timeSlot: '10:00 AM - 3:00 PM WAT',
+  },
+  {
+    id: 'cal-eng-5',
+    date: '2027-01-15',
+    title: 'Atiba University Digital Infrastructure & E-Library Briefing',
+    type: 'booked',
+    locationType: 'hybrid',
+    organization: 'Atiba University',
+    timeSlot: '11:00 AM - 2:00 PM WAT',
+  },
+  {
+    id: 'cal-eng-6',
+    date: '2026-12-01',
+    title: 'Open Slot: Keynotes, Executive Masterclasses & AI Curriculum Advisory',
+    type: 'available',
+    locationType: 'virtual',
+  },
+  {
+    id: 'cal-eng-7',
+    date: '2026-12-10',
+    title: 'Open Slot: Corporate Governance & Institutional Strategy Consultation',
+    type: 'available',
+    locationType: 'hybrid',
+  },
+  {
+    id: 'cal-eng-8',
+    date: '2026-12-15',
+    title: 'Open Slot: Hands-On Vibe Coding & Software Architecture Workshop',
+    type: 'available',
+    locationType: 'physical',
+  },
+  {
+    id: 'cal-eng-9',
+    date: '2026-12-20',
+    title: 'Open Slot: Executive Panel & Smart Campus Technology Architecture',
+    type: 'available',
+    locationType: 'virtual',
+  },
+];
 
 export const storageService = {
   getProducts: (): Product[] => readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS),
@@ -265,6 +344,25 @@ export const storageService = {
       // ignore
     }
   },
+
+  getCalendarEngagements: (): CalendarEngagement[] =>
+    readStorage(STORAGE_KEYS.CALENDAR_ENGAGEMENTS, SEED_CALENDAR_ENGAGEMENTS),
+  saveCalendarEngagements: (engagements: CalendarEngagement[]): void =>
+    writeStorage(STORAGE_KEYS.CALENDAR_ENGAGEMENTS, engagements),
+
+  getFacilitatorBookings: (): FacilitatorBooking[] =>
+    readStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, []),
+  saveFacilitatorBooking: (booking: FacilitatorBooking): void => {
+    const current = readStorage<FacilitatorBooking[]>(STORAGE_KEYS.FACILITATOR_BOOKINGS, []);
+    const index = current.findIndex((b) => b.id === booking.id);
+    const updated =
+      index >= 0
+        ? current.map((b) => (b.id === booking.id ? booking : b))
+        : [...current, booking];
+    writeStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, updated);
+  },
+  saveFacilitatorBookings: (bookings: FacilitatorBooking[]): void =>
+    writeStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, bookings),
 
   resetAllDemoData: (): void => {
     if (typeof window === 'undefined') return;

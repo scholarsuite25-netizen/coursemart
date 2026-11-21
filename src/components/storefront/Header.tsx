@@ -12,13 +12,16 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Moon,
   Package,
   PlayCircle,
   Search,
   Share2,
   ShoppingCart,
   Sparkles,
+  Sun,
   User,
+  UserCheck,
   X,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -44,6 +47,8 @@ export function Header() {
     logout,
     navigate,
     route,
+    theme,
+    toggleTheme,
   } = useStore();
 
   const [productsMenuOpen, setProductsMenuOpen] = useState(false);
@@ -311,6 +316,19 @@ export function Header() {
               <div className="absolute right-0 top-full mt-1.5 w-60 bg-white text-slate-900 border border-slate-200 rounded-lg shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
                 <button
                   type="button"
+                  onClick={() => goToRoute('/promoter')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <UserCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Promoter & Facilitator</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    S.B.O.
+                  </span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => goToRoute('/vault')}
                   className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
                 >
@@ -419,6 +437,21 @@ export function Header() {
               </div>
             )}
           </div>
+
+          {/* 1-Click Theme Toggle (Desktop) */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="p-1.5 sm:p-2 text-slate-200 hover:text-[#f5c451] rounded-md hover:bg-[#112240] transition-colors cursor-pointer"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-300" />
+            ) : (
+              <Moon className="w-4 h-4 text-slate-200" />
+            )}
+          </button>
 
           {/* Wishlist */}
           <button
@@ -607,6 +640,29 @@ export function Header() {
             </div>
           </div>
 
+          {/* Mobile Theme Toggle Row */}
+          <div className="px-3 py-2 border-b border-[#1b3155] flex items-center justify-between bg-[#081528]">
+            <span className="text-xs font-semibold text-slate-300">Theme</span>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-md bg-[#112240] border border-[#263d66] text-white hover:text-[#f5c451] cursor-pointer"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Light Mode</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-slate-200" />
+                  <span>Dark Mode</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Mobile Navigation List with Dynamic Accordions */}
           <div className="p-2 space-y-1">
             {/* Courses */}
@@ -751,6 +807,14 @@ export function Header() {
               </button>
               {mobileMoreOpen && (
                 <div className="bg-[#081528] px-3 py-1.5 space-y-1 border-t border-[#1b3155]">
+                  <button
+                    type="button"
+                    onClick={() => goToRoute('/promoter')}
+                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-amber-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
+                  >
+                    <span>Promoter & Facilitator</span>
+                    <span className="text-[9px] bg-amber-900 text-amber-200 px-1.5 py-0.5 rounded">S.B.O.</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => goToRoute('/vault')}
