@@ -64,6 +64,7 @@ import { SocialQueuePanel } from './SocialQueuePanel';
 import { CommunityModerationPanel } from './CommunityModerationPanel';
 import { AutomationAgentsPanel } from './AutomationAgentsPanel';
 import { AffiliateManagementPanel } from './AffiliateManagementPanel';
+import { WhatsAppMemberImporterPanel } from './WhatsAppMemberImporterPanel';
 
 type AdminTab =
   | 'dashboard'
@@ -1267,6 +1268,8 @@ export function AdminDashboardPage() {
           {/* 4B. WHATSAPP GROUPS MANAGEMENT */}
           {activeTab === 'whatsapp' && (
             <div className="space-y-6">
+              <WhatsAppMemberImporterPanel />
+
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h1 className="font-display text-2xl font-bold text-[#1d2327]">

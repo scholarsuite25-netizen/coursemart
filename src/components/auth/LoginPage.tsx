@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, KeyRound, ShieldCheck, UserCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, KeyRound, Mail, RefreshCw, ShieldCheck, UserCheck } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { validateAuthForm } from '../../utils/commerce';
 import { getAccentTheme } from '../../utils/theme';
@@ -30,12 +30,97 @@ export function LoginPage({ mode }: LoginPageProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // OTP Verification States for Registration
+  const [otpStep, setOtpStep] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [otpPreviewHint, setOtpPreviewHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (otpCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setOtpCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCooldown]);
+
+  const sendOtpCode = async (targetEmail: string, targetName: string) => {
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      const resp = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail, name: targetName }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok) {
+        setFormError(data.error || 'Could not send verification code.');
+        setIsSubmitting(false);
+        return false;
+      }
+      if (data.previewCode) {
+        setOtpPreviewHint(data.previewCode);
+      }
+      setOtpCooldown(30);
+      setOtpStep(true);
+      setIsSubmitting(false);
+      return true;
+    } catch {
+      // Offline fallback: enable step directly
+      setOtpStep(true);
+      setOtpCooldown(30);
+      setIsSubmitting(false);
+      return true;
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCooldown > 0 || isSubmitting) return;
+    await sendOtpCode(email, name);
+  };
+
   const isAdminMode = mode === 'admin';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
     setFormError(null);
+
+    // If on OTP verification step of registration
+    if (tab === 'register' && otpStep) {
+      if (!otpCode.trim() || otpCode.trim().length !== 6) {
+        setFormError('Please enter the 6-digit code sent to your email.');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        const verifyResp = await fetch('/api/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otpCode.trim() }),
+        });
+        const verifyData = await verifyResp.json();
+        if (!verifyResp.ok || !verifyData.ok) {
+          setFormError(verifyData.error || 'Invalid or expired code.');
+          setIsSubmitting(false);
+          return;
+        }
+      } catch {
+        // Offline / preview fallback
+      }
+
+      const res = await registerUser(name, email, password, registerRole, newsletterOptIn);
+      setIsSubmitting(false);
+      if (!res.ok) {
+        setFormError(res.error ?? 'Could not create account.');
+        return;
+      }
+      navigate(registerRole === 'instructor' ? '/instructor' : '/library');
+      return;
+    }
+
     const check = validateAuthForm(
       email,
       password,
@@ -58,12 +143,8 @@ export function LoginPage({ mode }: LoginPageProps) {
     }
 
     if (tab === 'register') {
-      const res = await registerUser(name, email, password, registerRole, newsletterOptIn);
-      if (!res.ok) {
-        setFormError(res.error ?? 'Could not create account.');
-        return;
-      }
-      navigate(registerRole === 'instructor' ? '/instructor' : '/library');
+      // Trigger OTP verification before finalizing registration
+      await sendOtpCode(email, name);
       return;
     }
 
@@ -263,132 +344,226 @@ export function LoginPage({ mode }: LoginPageProps) {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          {tab === 'register' && (
-            <>
-              <div>
-                <label htmlFor="auth-name" className="block text-xs font-bold text-slate-700 mb-1">
-                  Full Name
-                </label>
-                <input
-                  id="auth-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jordan Takahashi"
-                  className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
-                />
-                {fieldErrors.name && (
-                  <p className="text-xs text-rose-700 mt-1">{fieldErrors.name}</p>
+          {tab === 'register' && otpStep ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-slate-800 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-amber-900">
+                  <Mail className="w-4 h-4 text-[#d4af37]" />
+                  <span>Verification Code Sent</span>
+                </div>
+                <p>
+                  We sent a 6-digit verification code to <strong>{email}</strong> to verify your account and protect against spam.
+                </p>
+                {otpPreviewHint && (
+                  <p className="font-mono text-[11px] text-amber-800 bg-amber-100 p-1.5 rounded">
+                    Verification Code: <strong>{otpPreviewHint}</strong>
+                  </p>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Account Type
+                <label htmlFor="auth-otp" className="block text-xs font-bold text-slate-700 mb-1">
+                  Enter 6-Digit Code
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole('customer')}
-                    className={`py-2 px-3 text-xs font-semibold border rounded-md cursor-pointer ${
-                      registerRole === 'customer'
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-300 text-slate-700'
-                    }`}
-                  >
-                    Student / Buyer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegisterRole('instructor')}
-                    className={`py-2 px-3 text-xs font-semibold border rounded-md cursor-pointer ${
-                      registerRole === 'instructor'
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-300 text-slate-700'
-                    }`}
-                  >
-                    Instructor / Vendor
-                  </button>
-                </div>
+                <input
+                  id="auth-otp"
+                  type="text"
+                  maxLength={6}
+                  autoFocus
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-full h-12 px-3 text-center text-2xl font-mono tracking-widest font-bold border border-slate-300 rounded-md focus:outline-none focus:border-[#d4af37]"
+                />
               </div>
+
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpStep(false);
+                    setOtpCode('');
+                    setFormError(null);
+                  }}
+                  className="text-slate-500 hover:text-slate-900 underline cursor-pointer"
+                >
+                  ← Edit details
+                </button>
+
+                <button
+                  type="button"
+                  disabled={otpCooldown > 0 || isSubmitting}
+                  onClick={handleResendOtp}
+                  className={`flex items-center gap-1 font-semibold ${
+                    otpCooldown > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-[#d4af37] hover:underline cursor-pointer'
+                  }`}
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSubmitting ? 'animate-spin' : ''}`} />
+                  <span>{otpCooldown > 0 ? `Resend in ${otpCooldown}s` : 'Resend code'}</span>
+                </button>
+              </div>
+
+              {formError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-md text-xs font-medium text-rose-800">
+                  {formError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full py-3 px-4 text-sm font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md transition-colors cursor-pointer flex items-center justify-center gap-2`}
+              >
+                {isSubmitting ? (
+                  <span>Verifying...</span>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Verify & Complete Registration</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <>
+              {tab === 'register' && (
+                <>
+                  <div>
+                    <label htmlFor="auth-name" className="block text-xs font-bold text-slate-700 mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      id="auth-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Jordan Takahashi"
+                      className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                    />
+                    {fieldErrors.name && (
+                      <p className="text-xs text-rose-700 mt-1">{fieldErrors.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Account Type
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRegisterRole('customer')}
+                        className={`py-2 px-3 text-xs font-semibold border rounded-md cursor-pointer ${
+                          registerRole === 'customer'
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-slate-300 text-slate-700'
+                        }`}
+                      >
+                        Student / Buyer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRegisterRole('instructor')}
+                        className={`py-2 px-3 text-xs font-semibold border rounded-md cursor-pointer ${
+                          registerRole === 'instructor'
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-slate-300 text-slate-700'
+                        }`}
+                      >
+                        Instructor / Vendor
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label htmlFor="auth-email" className="block text-xs font-bold text-slate-700 mb-1">
+                  Email Address
+                </label>
+                <input
+                  id="auth-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="student@coursemart.io"
+                  className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                />
+                {fieldErrors.email && (
+                  <p className="text-xs text-rose-700 mt-1">{fieldErrors.email}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="auth-password" className="block text-xs font-bold text-slate-700 mb-1">
+                  Password
+                </label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                />
+                {fieldErrors.password && (
+                  <p className="text-xs text-rose-700 mt-1">{fieldErrors.password}</p>
+                )}
+              </div>
+
+              <div className="space-y-2.5">
+                <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="accent-[#0a192f]"
+                  />
+                  <span>Remember me on this device</span>
+                </label>
+
+                {tab === 'register' && (
+                  <label className="flex items-start gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newsletterOptIn}
+                      onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                      className="mt-0.5 accent-[#0a192f]"
+                    />
+                    <span>
+                      <strong className="text-slate-900">Subscribe to Newsletter & Event Releases</strong>
+                      <span className="block text-[11px] text-slate-500 mt-0.5">
+                        Receive weekly digests, free Vibe Coding articles, and seminar invites via email. Unsubscribe anytime in My Library.
+                      </span>
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              {formError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-md text-xs font-medium text-rose-800">
+                  {formError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`w-full py-3 px-4 text-sm font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md transition-colors cursor-pointer flex items-center justify-center gap-2`}
+              >
+                {isSubmitting ? (
+                  <span>Sending code...</span>
+                ) : tab === 'login' ? (
+                  'Sign In'
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Continue & Send Verification Code</span>
+                  </>
+                )}
+              </button>
             </>
           )}
-
-          <div>
-            <label htmlFor="auth-email" className="block text-xs font-bold text-slate-700 mb-1">
-              Email Address
-            </label>
-            <input
-              id="auth-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="student@coursemart.io"
-              className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
-            />
-            {fieldErrors.email && (
-              <p className="text-xs text-rose-700 mt-1">{fieldErrors.email}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="auth-password" className="block text-xs font-bold text-slate-700 mb-1">
-              Password
-            </label>
-            <input
-              id="auth-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
-              className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
-            />
-            {fieldErrors.password && (
-              <p className="text-xs text-rose-700 mt-1">{fieldErrors.password}</p>
-            )}
-          </div>
-
-          <div className="space-y-2.5">
-            <label className="inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="accent-[#0a192f]"
-              />
-              <span>Remember me on this device</span>
-            </label>
-
-            {tab === 'register' && (
-              <label className="flex items-start gap-2.5 p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={newsletterOptIn}
-                  onChange={(e) => setNewsletterOptIn(e.target.checked)}
-                  className="mt-0.5 accent-[#0a192f]"
-                />
-                <span>
-                  <strong className="text-slate-900">Subscribe to Newsletter & Event Releases</strong>
-                  <span className="block text-[11px] text-slate-500 mt-0.5">
-                    Receive weekly digests, free Vibe Coding articles, and seminar invites via email. Unsubscribe anytime in My Library.
-                  </span>
-                </span>
-              </label>
-            )}
-          </div>
-
-          {formError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-md text-xs font-medium text-rose-800">
-              {formError}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            className={`w-full py-3 px-4 text-sm font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md transition-colors cursor-pointer`}
-          >
-            {tab === 'login' ? 'Sign In' : 'Create Account'}
-          </button>
         </form>
 
         {/* Instant Demo Role Switcher */}

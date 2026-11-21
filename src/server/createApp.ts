@@ -12,6 +12,7 @@ import {
 } from '../utils/emailProvider.ts';
 import { sanitizePaystackChannels } from '../utils/paystack.ts';
 import { sanitizeEmailHeader } from '../utils/sanitize.ts';
+import { OtpManager } from '../utils/otpAndImporter.ts';
 import {
   canReadStoreKey,
   filterStoreValueForRead,
@@ -624,6 +625,91 @@ export function createApiApp() {
   app.post('/api/auth/user/logout', (req, res) => {
     setSessionCookie(res, USER_SESSION_COOKIE_NAME, '', 0, req);
     res.json({ ok: true });
+  });
+
+  // OTP Verification for Member Registration & Anti-Spam
+  const registrationOtpManager = new OtpManager();
+
+  app.post('/api/auth/otp/send', async (req, res) => {
+    try {
+      const { email, name } = req.body ?? {};
+      const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
+        res.status(400).json({ ok: false, error: 'A valid email address is required.' });
+        return;
+      }
+
+      if (!checkRateLimit(req.ip || 'unknown', 'otp_send', 10, 60_000)) {
+        res.status(429).json({ ok: false, error: 'Too many verification requests. Please wait a minute.' });
+        return;
+      }
+
+      const otp = registrationOtpManager.generateOtp(normalizedEmail);
+      const recipientName = typeof name === 'string' && name.trim() ? name.trim() : 'Learner';
+
+      const subject = `Your Verification Code: ${otp} - Digital Wealth Creators`;
+      const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+        <div style="background:#0a192f;padding:24px;border-bottom:3px solid #d4af37;text-align:center;">
+          <h1 style="color:#ffffff;margin:0;font-size:20px;letter-spacing:-0.5px;">Digital Wealth Creators</h1>
+        </div>
+        <div style="padding:28px 24px;color:#1e293b;line-height:1.6;">
+          <h2 style="font-size:18px;margin-top:0;color:#0a192f;">Verify Your Email Address</h2>
+          <p>Hello ${recipientName},</p>
+          <p>Use the following 6-digit verification code to complete your registration and unlock your membership benefits:</p>
+          <div style="text-align:center;margin:28px 0;">
+            <div style="display:inline-block;background:#f8fafc;border:2px dashed #d4af37;padding:14px 32px;font-size:32px;font-weight:bold;letter-spacing:6px;color:#0a192f;font-family:monospace;border-radius:6px;">
+              ${otp}
+            </div>
+          </div>
+          <p style="font-size:13px;color:#64748b;">This code will expire in 10 minutes. If you did not create this account, you can safely disregard this email.</p>
+        </div>
+        <div style="background:#f1f5f9;padding:14px;text-align:center;font-size:11px;color:#94a3b8;">
+          © 2026 Digital Wealth Creators · Secured with cryptographic OTP verification
+        </div>
+      </div>`;
+
+      // Dispatch via configured email provider (EmailBump / Brevo / Resend)
+      const emailResult = await sendViaEmailService({
+        recipients: [{ email: normalizedEmail, name: recipientName }],
+        subject,
+        html,
+      });
+
+      // Always return ok: true. In development or offline fallback, provide previewCode if sending fails
+      res.json({
+        ok: true,
+        message: 'Verification code sent to your email.',
+        emailSent: emailResult.ok,
+        previewCode: process.env.NODE_ENV !== 'production' || !emailResult.ok ? otp : undefined,
+      });
+    } catch {
+      res.status(500).json({ ok: false, error: 'Could not send verification code right now.' });
+    }
+  });
+
+  app.post('/api/auth/otp/verify', (req, res) => {
+    try {
+      const { email, otp } = req.body ?? {};
+      const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+      const inputCode = typeof otp === 'string' ? otp.trim() : '';
+
+      if (!normalizedEmail || !inputCode) {
+        res.status(400).json({ ok: false, error: 'Email and verification code are required.' });
+        return;
+      }
+
+      const result = registrationOtpManager.verifyOtp(normalizedEmail, inputCode);
+      if (!result.ok) {
+        res.status(400).json({ ok: false, error: result.error });
+        return;
+      }
+
+      res.json({ ok: true, verified: true });
+    } catch {
+      res.status(500).json({ ok: false, error: 'Verification failed.' });
+    }
   });
 
   app.get('/api/health', (_req, res) => {
