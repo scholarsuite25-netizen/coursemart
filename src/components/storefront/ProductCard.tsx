@@ -20,7 +20,13 @@ export function ProductCard({ product }: ProductCardProps) {
     wishlist,
     toggleWishlist,
     isOwnedByCurrentUser,
+    activeMembershipPlan,
   } = useStore();
+
+  const isPaidMember = activeMembershipPlan?.id === 'paid';
+  const effectivePrice = product.isPremium && isPaidMember
+    ? Math.round(product.price * 0.5)
+    : product.price;
 
   const accent = getAccentTheme(appearance.accentTheme);
   const inCart = cart.some((c) => c.productId === product.id);
@@ -44,7 +50,7 @@ export function ProductCard({ product }: ProductCardProps) {
         />
         {product.isPremium && (
           <span className="absolute top-2 left-2 z-10 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-amber-500 text-white rounded shadow-sm">
-            Premium Resource
+            {isPaidMember ? 'Premium · 50% Member Pass' : 'Premium · 50% for Paid Members'}
           </span>
         )}
       </button>
@@ -82,13 +88,29 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Bottom Price & Primary Action Row */}
         <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-base font-extrabold text-slate-900">
-              {formatNaira(product.price)}
-            </span>
-            {discountPct > 0 && (
-              <span className="text-xs text-slate-400 line-through">
-                {formatNaira(product.originalPrice)}
+          <div>
+            <div className="flex items-baseline gap-2 tabular-nums">
+              <span className="text-base font-extrabold text-slate-900">
+                {formatNaira(effectivePrice)}
+              </span>
+              {product.isPremium && isPaidMember ? (
+                <span className="text-xs text-slate-400 line-through">
+                  {formatNaira(product.price)}
+                </span>
+              ) : discountPct > 0 ? (
+                <span className="text-xs text-slate-400 line-through">
+                  {formatNaira(product.originalPrice)}
+                </span>
+              ) : null}
+            </div>
+            {product.isPremium && !isPaidMember && (
+              <p className="text-[10px] text-amber-700 font-semibold mt-0.5">
+                Paid members pay 50% ({formatNaira(Math.round(product.price * 0.5))})
+              </p>
+            )}
+            {product.isPremium && isPaidMember && (
+              <span className="inline-block text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded mt-0.5">
+                50% Member Rate
               </span>
             )}
           </div>

@@ -34,7 +34,7 @@ export function MembershipPage() {
     showToast,
   } = useStore();
 
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [billingCycle, setBillingCycle] = useState<'annual' | 'masterclass'>('annual');
   const [checkoutPlan, setCheckoutPlan] = useState<MembershipPlan | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paystack');
   const [paystackOption, setPaystackOption] = useState<PaystackPaymentOptionId>('all');
@@ -71,7 +71,11 @@ export function MembershipPage() {
     let payRef = transferRef;
     let paystackVerified = false;
     const chargeAmount =
-      billingCycle === 'annual' ? checkoutPlan.annualPrice : checkoutPlan.monthlyPrice;
+      checkoutPlan.id === 'free'
+        ? 0
+        : billingCycle === 'masterclass'
+        ? (checkoutPlan.masterclassPrice ?? 25000)
+        : checkoutPlan.annualPrice;
 
     if ((paymentMethod === 'paystack' || paymentMethod === 'card') && currentUser) {
       setProcessingPaystack(true);
@@ -157,23 +161,12 @@ export function MembershipPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-            {/* Monthly / Annual Segmented Switch */}
+            {/* Standard ₦10k vs Master Class ₦25k Segmented Switch */}
             <div
               role="group"
-              aria-label="Billing cycle"
+              aria-label="Membership options"
               className="inline-flex items-center p-1 bg-[#112240] border border-[#263d66] rounded-lg"
             >
-              <button
-                type="button"
-                onClick={() => setBillingCycle('monthly')}
-                className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-                  billingCycle === 'monthly'
-                    ? 'bg-[#d4af37] text-[#0a192f]'
-                    : 'text-slate-200 hover:text-white'
-                }`}
-              >
-                Monthly Billing
-              </button>
               <button
                 type="button"
                 onClick={() => setBillingCycle('annual')}
@@ -183,7 +176,18 @@ export function MembershipPage() {
                     : 'text-slate-200 hover:text-white'
                 }`}
               >
-                Annual Billing (Save 20%)
+                Standard 1-Year Pass (₦10,000 / yr)
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingCycle('masterclass')}
+                className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  billingCycle === 'masterclass'
+                    ? 'bg-[#d4af37] text-[#0a192f]'
+                    : 'text-slate-200 hover:text-white'
+                }`}
+              >
+                Master Class 1-Year Pass (₦25,000 / yr · Includes Online Training)
               </button>
             </div>
 
@@ -245,11 +249,11 @@ export function MembershipPage() {
           {membershipPlans.map((plan) => {
             const isCurrent = activeUserMembership?.planId === plan.id && activeUserMembership.status === 'active';
             const displayPrice =
-              billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
-            const monthlyEquivalent =
-              billingCycle === 'annual'
-                ? Math.round((plan.annualPrice / 12) * 100) / 100
-                : plan.monthlyPrice;
+              plan.id === 'free'
+                ? 0
+                : billingCycle === 'masterclass'
+                ? (plan.masterclassPrice ?? 25000)
+                : plan.annualPrice;
             const unlockedCount = includedProductsCountByTier(plan.id);
 
             return (
@@ -292,13 +296,36 @@ export function MembershipPage() {
                         {formatNaira(displayPrice)}
                       </span>
                       <span className={`text-xs ${plan.featured ? 'text-slate-300' : 'text-slate-500'}`}>
-                        / {billingCycle === 'annual' ? 'year' : 'month'}
+                        {plan.id === 'free' ? 'forever' : '/ year'}
                       </span>
                     </div>
-                    <p className={`text-xs mt-1 tabular-nums ${plan.featured ? 'text-[#f5c451]' : 'text-slate-500'}`}>
-                      {formatNaira(monthlyEquivalent)}/mo effective · Unlocks {unlockedCount} catalog items ·{' '}
-                      {plan.storeDiscountPercent}% store discount
-                    </p>
+
+                    {plan.id === 'paid' && (
+                      <div className="mt-2.5 space-y-1.5">
+                        {billingCycle === 'masterclass' ? (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-400 text-slate-950 shadow-sm">
+                            <Check className="w-3.5 h-3.5 text-slate-950" />
+                            <span>1-Year Access WITH Master Class Online Training Included</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700">
+                            <span>1-Year Access (without masterclass training)</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-[#f5c451] tabular-nums pt-1">
+                          {billingCycle === 'masterclass'
+                            ? '₦25,000 for one year access to all resources and master class online training'
+                            : '₦10,000 for one year access to all resources without masterclass training'}
+                          {' · '}50% discount on premium products
+                        </p>
+                      </div>
+                    )}
+
+                    {plan.id === 'free' && (
+                      <p className="text-xs mt-1 text-slate-500">
+                        Always 100% Free · Direct access to all free-toggled catalog items & preview lessons
+                      </p>
+                    )}
                   </div>
 
                   <ul className="space-y-2.5 text-sm pt-1">
@@ -426,13 +453,17 @@ export function MembershipPage() {
                 <div>
                   <p className="text-sm font-bold text-slate-900">{checkoutPlan.name}</p>
                   <p className="text-xs text-slate-500">
-                    {billingCycle === 'annual' ? 'Annual Plan' : 'Monthly Plan'} ·{' '}
-                    {checkoutPlan.storeDiscountPercent}% Store Discount
+                    {billingCycle === 'masterclass'
+                      ? '1-Year Master Class Pass (Includes Online Training)'
+                      : '1-Year Standard Pass (without masterclass training)'} ·{' '}
+                    50% Off Premium Products
                   </p>
                 </div>
                 <span className="font-display text-xl font-extrabold text-[#0a192f] tabular-nums">
                   {formatNaira(
-                    billingCycle === 'annual' ? checkoutPlan.annualPrice : checkoutPlan.monthlyPrice
+                    billingCycle === 'masterclass'
+                      ? (checkoutPlan.masterclassPrice ?? 25000)
+                      : checkoutPlan.annualPrice
                   )}
                 </span>
               </div>
@@ -488,7 +519,11 @@ export function MembershipPage() {
                   />
                   <a
                     href={buildWhatsAppUrl(
-                      `Hello ${TINTOL_PAYMENT_DETAILS.accountName}, I am activating the ${checkoutPlan.name} (${billingCycle}) membership via GTB transfer.`
+                      `Hello ${TINTOL_PAYMENT_DETAILS.accountName}, I am activating the ${checkoutPlan.name} (${
+                        billingCycle === 'masterclass'
+                          ? '₦25,000 1-Year Master Class Pass with Online Training'
+                          : '₦10,000 1-Year Standard Pass without masterclass training'
+                      }) membership via GTB transfer.`
                     )}
                     target="_blank"
                     rel="noopener noreferrer"

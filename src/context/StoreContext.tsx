@@ -55,6 +55,7 @@ import {
   attributeAffiliateReferral,
   calculateAffiliateCommission,
   calculateAffiliateLedgerSummary,
+  calculateCourseProgressPercent,
   calculateExtendedCartTotals,
   extractReferralCodeFromSearch,
   generateCertificateCode,
@@ -173,7 +174,7 @@ export interface StoreContextValue {
     answersByQuestionId: Record<string, number>
   ) => ModuleQuizResult | null;
   issueCourseCertificate: (productId: string) => string | null;
-  addLectureQuestion: (productId: string, lectureId: string, question: string) => void;
+  addLectureQuestion: (productId: string, lectureId: string, question: string) => string | null;
   answerLectureQuestion: (productId: string, questionId: string, answer: string) => void;
   getCourseProgress: (productId: string) => CourseProgress | undefined;
   activateLicenseDomain: (licenseId: string, domain: string) => { ok: boolean; error?: string };
@@ -190,7 +191,7 @@ export interface StoreContextValue {
   enrollViaMembership: (product: Product) => void;
   subscribeMembership: (
     planId: MembershipTierId,
-    billingCycle: 'monthly' | 'annual',
+    billingCycle: 'monthly' | 'annual' | 'masterclass' | 'onetime' | 'lifetime',
     options?: {
       paymentMethod?: PaymentMethod;
       paymentReference?: string;
@@ -2118,6 +2119,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const issueCourseCertificate = useCallback(
     (productId: string) => {
       if (!currentUser) return null;
+      const product = products.find((p) => p.id === productId);
+      if (!product || product.type !== 'course') return null;
+
+      const progress = progressList.find(
+        (p) => p.userId === currentUser.id && p.productId === productId
+      );
+      if (!progress) return null;
+
+      // Certificates are an achievement credential: they may only be issued
+      // after every lecture in the curriculum has been completed.
+      const completionPercent = calculateCourseProgressPercent(
+        product,
+        progress.completedLectureIds
+      );
+      if (completionPercent < 100) {
+        showToast(
+          `Complete 100% of this course to unlock your certificate (currently ${completionPercent}%).`
+        );
+        return null;
+      }
+
       const certCode = generateCertificateCode(currentUser.id, productId);
       setProgressList((prev) =>
         prev.map((p) =>
@@ -2128,24 +2150,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       );
       return certCode;
     },
-    [currentUser]
+    [currentUser, products, progressList, showToast]
   );
 
   const addLectureQuestion = useCallback(
     (productId: string, lectureId: string, question: string) => {
-      if (!currentUser || !question.trim()) return;
+      if (!currentUser || !question.trim()) return null;
+      const newQ = {
+        id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        lectureId,
+        userName: currentUser.name,
+        question: question.trim(),
+        createdAt: new Date().toISOString(),
+      };
       setProgressList((prev) => {
         const existing = prev.find(
           (p) => p.userId === currentUser.id && p.productId === productId
         );
         const now = new Date().toISOString();
-        const newQ = {
-          id: `q-${Date.now()}`,
-          lectureId,
-          userName: currentUser.name,
-          question: question.trim(),
-          createdAt: now,
-        };
         if (!existing) {
           return [
             ...prev,
@@ -2167,6 +2189,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         );
       });
       showToast('Question posted to course Q&A');
+      return newQ.id;
     },
     [currentUser, showToast]
   );
@@ -2196,7 +2219,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const subscribeMembership = useCallback(
     (
       planId: MembershipTierId,
-      billingCycle: 'monthly' | 'annual',
+      billingCycle: 'monthly' | 'annual' | 'masterclass' | 'onetime' | 'lifetime',
       options?: { paymentMethod?: PaymentMethod; paymentReference?: string; paystackVerified?: boolean }
     ) => {
       if (!currentUser) {
@@ -2211,8 +2234,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         isFreePlan || options?.paystackVerified === true ? 'active' : 'pending';
       const now = new Date();
       const renewDate = new Date(now);
-      if (billingCycle === 'annual') {
+      if (billingCycle === 'annual' || billingCycle === 'masterclass') {
         renewDate.setFullYear(renewDate.getFullYear() + 1);
+      } else if (billingCycle === 'onetime' || billingCycle === 'lifetime') {
+        renewDate.setFullYear(renewDate.getFullYear() + 99);
       } else {
         renewDate.setMonth(renewDate.getMonth() + 1);
       }

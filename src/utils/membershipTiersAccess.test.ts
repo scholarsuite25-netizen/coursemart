@@ -110,11 +110,14 @@ describe('Milestone 1: Free & Paid Membership Tiers, Access Control, 50% Discoun
 
       const freePlan = plans.find((p) => p.id === 'free')!;
       assert.equal(freePlan.monthlyPrice, 0);
+      assert.equal(freePlan.annualPrice, 0);
       assert.equal(freePlan.storeDiscountPercent, 0);
 
       const paidPlan = plans.find((p) => p.id === 'paid')!;
-      assert.ok(paidPlan.monthlyPrice > 0);
-      assert.equal(paidPlan.storeDiscountPercent, 50);
+      assert.equal(paidPlan.annualPrice, 10000); // ₦10,000/yr without masterclass training
+      assert.equal(paidPlan.masterclassPrice, 25000); // ₦25,000/yr with master class online training
+      assert.equal(paidPlan.storeDiscountPercent, 50); // 50% discount on premium products
+      assert.equal(paidPlan.includesMasterclassTraining, true);
     });
   });
 

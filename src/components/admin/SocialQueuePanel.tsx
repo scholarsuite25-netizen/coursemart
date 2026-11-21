@@ -5,6 +5,8 @@ import {
   Copy,
   ExternalLink,
   MessageCircle,
+  RefreshCw,
+  Send,
   Sparkles,
   Trash2,
 } from 'lucide-react';
@@ -51,8 +53,9 @@ export function SocialQueuePanel() {
 
   const [sourceType, setSourceType] = useState<'blog' | 'product' | 'event'>('blog');
   const [selectedSourceId, setSelectedSourceId] = useState<string>(blogPosts[0]?.id || '');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'scheduled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'scheduled' | 'posted'>('all');
   const [generating, setGenerating] = useState(false);
+  const [dispatching, setDispatching] = useState(false);
 
   const sourceOptions =
     sourceType === 'blog'
@@ -181,6 +184,64 @@ export function SocialQueuePanel() {
     setGenerating(false);
   };
 
+  const handleDispatchDue = async () => {
+    if (dispatching) return;
+    setDispatching(true);
+    try {
+      const resp = await fetch('/api/automation/social-dispatch', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const json = (await resp.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+        due?: number;
+        dispatched?: number;
+        failed?: number;
+        skipped?: number;
+        reason?: string;
+      } | null;
+
+      if (!resp.ok || !json?.ok) {
+        showToast(json?.error || 'Social dispatch failed');
+        return;
+      }
+
+      // Reflect server-side status changes (scheduled -> posted) in the UI.
+      try {
+        const draftsResp = await fetch('/api/store/social_drafts', {
+          credentials: 'same-origin',
+        });
+        if (draftsResp.ok) {
+          const draftsJson = (await draftsResp.json()) as { value?: unknown };
+          const serverDrafts = Array.isArray(draftsJson.value)
+            ? (draftsJson.value as SocialPostDraft[])
+            : [];
+          for (const serverDraft of serverDrafts) {
+            const localDraft = socialDrafts.find((d) => d.id === serverDraft.id);
+            if (localDraft && localDraft.status !== serverDraft.status) {
+              updateSocialDraft(serverDraft);
+            }
+          }
+        }
+      } catch {
+        // Status refresh is best-effort; dispatch already succeeded.
+      }
+
+      if ((json.dispatched ?? 0) > 0) {
+        showToast(`Dispatched ${json.dispatched} scheduled post(s)`);
+      } else if ((json.due ?? 0) === 0) {
+        showToast('No scheduled posts are due yet');
+      } else {
+        showToast(json.reason || 'Scheduled posts remain queued');
+      }
+    } catch {
+      showToast('Network error dispatching social posts');
+    } finally {
+      setDispatching(false);
+    }
+  };
+
   const visibleDrafts = socialDrafts.filter((d) =>
     statusFilter === 'all' ? true : d.status === statusFilter
   );
@@ -198,7 +259,27 @@ export function SocialQueuePanel() {
             sharing — protecting your accounts & WhatsApp number.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={handleDispatchDue}
+          disabled={dispatching}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-sm disabled:opacity-60 cursor-pointer"
+        >
+          {dispatching ? (
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Send className="w-3.5 h-3.5" />
+          )}
+          <span>{dispatching ? 'Dispatching…' : 'Dispatch Due Posts'}</span>
+        </button>
       </div>
+
+      <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-sm px-3 py-2">
+        Due scheduled posts are dispatched by the daily maintenance cron through
+        <code className="mx-1 font-mono text-slate-700">SOCIAL_DISPATCH_WEBHOOK_URL</code>.
+        Without that webhook configured, approved posts stay scheduled here for manual copy/paste —
+        nothing is auto-blasted to your accounts or WhatsApp groups.
+      </p>
 
       {/* Draft Generator Bar */}
       <section className="bg-white border border-[#c3c4c7] p-5 rounded-sm space-y-3">
@@ -259,7 +340,7 @@ export function SocialQueuePanel() {
 
       {/* Filter Tabs */}
       <div className="flex items-center gap-2">
-        {(['all', 'draft', 'scheduled'] as const).map((st) => (
+        {(['all', 'draft', 'scheduled', 'posted'] as const).map((st) => (
           <button
             key={st}
             type="button"
@@ -301,11 +382,15 @@ export function SocialQueuePanel() {
                     className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-sm inline-flex items-center gap-1 ${
                       draft.status === 'scheduled'
                         ? 'bg-emerald-100 text-emerald-800'
+                        : draft.status === 'posted'
+                        ? 'bg-sky-100 text-sky-800'
                         : 'bg-amber-100 text-amber-800'
                     }`}
                   >
                     {draft.status === 'scheduled' ? (
                       <Clock className="w-3 h-3" />
+                    ) : draft.status === 'posted' ? (
+                      <CheckCircle2 className="w-3 h-3" />
                     ) : null}
                     {draft.status}
                   </span>

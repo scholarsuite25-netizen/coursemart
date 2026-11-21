@@ -13,6 +13,7 @@ import type {
   BlogPost,
   BlogCategory,
   BlogSection,
+  Coupon,
   Order,
   Product,
   SocialPostDraft,
@@ -379,7 +380,7 @@ export function buildEnquiryResponse(
   if (/\b(certificate|certificates|accreditation|cm-cert)\b/i.test(cleanQ)) {
     return {
       answer:
-        'Certificates of completion are automatically generated with a verifiable CM-CERT code once you achieve at least 70% on all course quizzes.',
+        'Certificates of completion are automatically generated with a verifiable CM-CERT code once you complete 100% of the course lectures across all modules.',
       matchedTopics: ['certificates', 'accreditation'],
       confidence: 0.92,
       suggestedForumThreadSlug: 'how-to-verify-and-share-certificates',
@@ -449,6 +450,7 @@ export function runEnquiryAgent(
 export interface DynamicSiteUpdateOptions {
   salesThreshold?: number; // default: 5
   minRatingThreshold?: number; // default: 4.5
+  minOrderSales?: number; // default: 1 — a product needs at least one completed-order sale
   upcomingEventTitle?: string;
   upcomingEventDate?: string;
 }
@@ -486,6 +488,7 @@ export function evaluateDynamicSiteUpdates(
 
   const threshold = options?.salesThreshold ?? 5;
   const minRating = options?.minRatingThreshold ?? 4.5;
+  const minOrderSales = options?.minOrderSales ?? 1;
   const salesCountByProduct: Record<string, number> = {};
 
   let completedOrdersCount = 0;
@@ -502,8 +505,16 @@ export function evaluateDynamicSiteUpdates(
 
   const bestsellerIds: string[] = [];
   const updatedProducts = safeProducts.map((p) => {
-    const totalSales = (salesCountByProduct[p.id] || 0) + (p.studentsCount || 0);
-    const isBestseller = totalSales >= threshold && (p.rating || 0) >= minRating;
+    const orderSales = salesCountByProduct[p.id] || 0;
+    // Enrolment counts are a useful popularity signal, but they must never
+    // promote a product that has not actually sold through the store. Without
+    // the completed-order floor, seeded/cumulative enrolment numbers turn the
+    // entire catalogue into "bestsellers".
+    const totalSales = orderSales + (p.studentsCount || 0);
+    const isBestseller =
+      orderSales >= minOrderSales &&
+      totalSales >= threshold &&
+      (p.rating || 0) >= minRating;
     if (isBestseller) {
       bestsellerIds.push(p.id);
     }
@@ -551,6 +562,26 @@ export function evaluateBestsellersAndBanners(
     updatedProducts: result.updatedProducts,
     bestsellerIds: result.bestsellerIds,
     announcement: result.announcement,
+  };
+}
+
+/**
+ * Coupon advertised by the bestseller automation. It is inserted into the
+ * coupon store only when bestsellers exist, so the announcement never points
+ * at an unredeemable code.
+ */
+export function buildBestsellerCoupon(now: Date = new Date()): Coupon {
+  const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  return {
+    id: 'coupon-bestseller10',
+    code: 'BESTSELLER10',
+    discountType: 'percent',
+    value: 10,
+    minSpend: 0,
+    active: true,
+    usageCount: 0,
+    maxUses: 500,
+    expiresAt,
   };
 }
 

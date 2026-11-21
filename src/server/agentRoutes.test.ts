@@ -257,11 +257,12 @@ test('POST /api/agents/site-update evaluates bestsellers and announcements', asy
 
 test('POST /api/agents/security-scan audits logs and creates incident reports', async () => {
   const now = Date.now();
+  const testUserId = `suspicious-${now}`;
   const logs = [
-    { userId: 'suspicious-1', ipAddress: '10.0.0.1', timestamp: now - 1000 },
-    { userId: 'suspicious-1', ipAddress: '10.0.0.2', timestamp: now - 2000 },
-    { userId: 'suspicious-1', ipAddress: '10.0.0.3', timestamp: now - 3000 },
-    { userId: 'suspicious-1', ipAddress: '10.0.0.4', timestamp: now - 4000 },
+    { userId: testUserId, ipAddress: '10.0.0.1', timestamp: now - 1000 },
+    { userId: testUserId, ipAddress: '10.0.0.2', timestamp: now - 2000 },
+    { userId: testUserId, ipAddress: '10.0.0.3', timestamp: now - 3000 },
+    { userId: testUserId, ipAddress: '10.0.0.4', timestamp: now - 4000 },
     { userId: 'normal-user', ipAddress: '192.168.1.1', timestamp: now - 2000 },
   ];
 
@@ -289,10 +290,95 @@ test('POST /api/agents/security-scan audits logs and creates incident reports', 
   assert.equal(res.status, 200);
   const data = await res.json();
   assert.equal(data.ok, true);
-  assert.deepEqual(data.flaggedUserIds, ['suspicious-1']);
+  assert.deepEqual(data.flaggedUserIds, [testUserId]);
   assert.equal(data.anomalies.length, 1);
   assert.equal(data.anomalies[0].distinctIps, 4);
   assert.equal(data.incidentsCreated, 1);
+});
+
+test('GET /api/cron/daily-maintenance is authorized and runs every automation task', async () => {
+  const unauth = await fetch(`${baseUrl}/api/cron/daily-maintenance?dryRun=1`);
+  assert.equal(unauth.status, 401);
+
+  const res = await fetch(`${baseUrl}/api/cron/daily-maintenance?dryRun=1`, {
+    headers: { 'x-admin-test': 'true' },
+  });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.ok, true);
+  assert.equal(data.dryRun, true);
+
+  for (const task of [
+    'blogPublisher',
+    'siteUpdater',
+    'securityScan',
+    'otpPrune',
+    'downloadLogPrune',
+    'socialDispatch',
+  ]) {
+    assert.ok(task in data.tasks, `Expected cron task "${task}" in response`);
+  }
+  assert.equal(typeof data.tasks.otpPrune.pruned, 'number');
+  assert.equal(typeof data.tasks.securityScan.scannedCount, 'number');
+});
+
+test('automation logs persist through the admin API and social dispatch supports dry runs', async () => {
+  const unauthLogs = await fetch(`${baseUrl}/api/automation/logs`);
+  assert.equal(unauthLogs.status, 401);
+
+  const invalid = await fetch(`${baseUrl}/api/automation/logs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-test': 'true' },
+    body: JSON.stringify({
+      agent: 'not-a-real-agent',
+      status: 'success',
+      title: 'Invalid entry',
+      details: 'Should be rejected',
+    }),
+  });
+  assert.equal(invalid.status, 400);
+
+  const write = await fetch(`${baseUrl}/api/automation/logs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-test': 'true' },
+    body: JSON.stringify({
+      agent: 'maintenance',
+      status: 'info',
+      title: 'Automation API test entry',
+      details: 'Persisted by the server-side automation log store.',
+    }),
+  });
+  assert.equal(write.status, 200);
+  const writeData = await write.json();
+  assert.equal(writeData.ok, true);
+  assert.equal(writeData.log.agent, 'maintenance');
+  assert.ok(writeData.log.id);
+
+  const list = await fetch(`${baseUrl}/api/automation/logs`, {
+    headers: { 'x-admin-test': 'true' },
+  });
+  assert.equal(list.status, 200);
+  const listData = await list.json();
+  assert.ok(
+    listData.logs.some((log: { id: string }) => log.id === writeData.log.id),
+    'Written log should be returned by the persistent log endpoint'
+  );
+
+  const unauthDispatch = await fetch(`${baseUrl}/api/automation/social-dispatch`, {
+    method: 'POST',
+  });
+  assert.equal(unauthDispatch.status, 401);
+
+  const dryDispatch = await fetch(`${baseUrl}/api/automation/social-dispatch?dryRun=1`, {
+    method: 'POST',
+    headers: { 'x-admin-test': 'true' },
+  });
+  assert.equal(dryDispatch.status, 200);
+  const dryData = await dryDispatch.json();
+  assert.equal(dryData.ok, true);
+  assert.equal(dryData.dryRun, true);
+  assert.equal(typeof dryData.due, 'number');
+  assert.equal(dryData.dispatched, 0);
 });
 
 test('POST /api/agents/* routes gracefully handle null/malformed payloads and reject substring collisions', async () => {

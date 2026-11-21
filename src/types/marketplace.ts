@@ -496,7 +496,11 @@ export interface MembershipPlan {
   audienceLabel: string;
   tagline: string;
   monthlyPrice: number;
-  annualPrice: number;
+  annualPrice: number; // ₦10,000 for a year
+  masterclassPrice?: number; // ₦25,000 for one year access to all resources and master class online training
+  oneTimePrice?: number; // Compatibility alias
+  includesOnlineTraining?: boolean;
+  includesMasterclassTraining?: boolean;
   storeDiscountPercent: number;
   courseAccessLabel: string;
   digitalAccessLabel: string;
@@ -505,11 +509,18 @@ export interface MembershipPlan {
   perks: string[];
 }
 
+export type MembershipBillingCycle =
+  | 'annual'
+  | 'masterclass'
+  | 'onetime'
+  | 'monthly'
+  | 'lifetime';
+
 export interface UserMembership {
   id: string;
   userId: string;
   planId: MembershipTierId;
-  billingCycle: 'monthly' | 'annual';
+  billingCycle: MembershipBillingCycle;
   status: 'active' | 'pending' | 'cancelled';
   paymentMethod?: PaymentMethod;
   paymentReference?: string;

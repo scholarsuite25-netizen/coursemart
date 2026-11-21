@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Bot,
   Play,
@@ -13,15 +13,29 @@ import {
   runBlogPublisherAgent,
   evaluateBestsellersAndBanners,
   detectResourceSharingAnomalies,
+  buildBestsellerCoupon,
 } from '../../utils/agentAutomation';
 
 export interface AutomationLogEntry {
   id: string;
-  agent: 'blog-publisher' | 'site-update' | 'security-scan' | 'enquiry';
+  agent: 'blog-publisher' | 'site-update' | 'security-scan' | 'enquiry' | 'maintenance';
   status: 'success' | 'warning' | 'info';
   title: string;
   details: string;
   timestamp: string;
+}
+
+const AGENT_LABELS: Record<AutomationLogEntry['agent'], string> = {
+  'blog-publisher': 'Blog Publisher',
+  'site-update': 'Site Update',
+  'security-scan': 'Security Scan',
+  enquiry: 'Enquiry Agent',
+  maintenance: 'Daily Maintenance',
+};
+
+function formatLogTimestamp(value: string): string {
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString();
 }
 
 export function AutomationAgentsPanel() {
@@ -29,33 +43,68 @@ export function AutomationAgentsPanel() {
     blogPosts,
     products,
     orders,
+    coupons,
     appearance,
     updateAppearance,
     upsertBlogPost,
     upsertProduct,
+    upsertCoupon,
     showToast,
   } = useStore();
 
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
-  const [logs, setLogs] = useState<AutomationLogEntry[]>([
-    {
-      id: 'log-init-1',
-      agent: 'security-scan',
-      status: 'info',
-      title: 'Baseline Security Scan Complete',
-      details: 'Evaluated 42 download streams across 18 active student accounts. Zero anomalies detected.',
-      timestamp: new Date(Date.now() - 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  const [logs, setLogs] = useState<AutomationLogEntry[]>([]);
+  const [logsLoading, setLogsLoading] = useState(true);
+
+  const loadLogs = useCallback(async () => {
+    try {
+      const resp = await fetch('/api/automation/logs', { credentials: 'same-origin' });
+      if (resp.ok) {
+        const json = (await resp.json()) as { logs?: AutomationLogEntry[] };
+        setLogs(Array.isArray(json.logs) ? json.logs : []);
+      }
+    } catch {
+      // Keep whatever is already displayed if the server is unreachable.
+    } finally {
+      setLogsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLogs();
+  }, [loadLogs]);
+
+  const persistLog = useCallback(
+    async (input: Omit<AutomationLogEntry, 'id' | 'timestamp'>) => {
+      try {
+        const resp = await fetch('/api/automation/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(input),
+        });
+        if (resp.ok) {
+          const json = (await resp.json()) as { log?: AutomationLogEntry };
+          if (json.log) {
+            setLogs((prev) => [json.log as AutomationLogEntry, ...prev].slice(0, 500));
+            return;
+          }
+        }
+      } catch {
+        // Fall through to an in-memory entry so the operator still sees the run.
+      }
+      setLogs((prev) => [
+        {
+          ...input,
+          id: `log-local-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
     },
-    {
-      id: 'log-init-2',
-      agent: 'site-update',
-      status: 'success',
-      title: 'Dynamic Catalog Evaluated',
-      details: 'Tagged bestseller badges based on order threshold and refreshed announcement coupon BESTSELLER10.',
-      timestamp: new Date(Date.now() - 7200000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    },
-  ]);
+    []
+  );
 
   const scheduledBlogsCount = blogPosts.filter((b) => b.status === 'scheduled').length;
   const bestsellerCount = products.filter((p) => p.bestseller).length;
@@ -64,19 +113,15 @@ export function AutomationAgentsPanel() {
   const handleRunBlogPublisher = async () => {
     setRunningAgent('blog-publisher');
     try {
-      const now = Date.now();
-      const res = runBlogPublisherAgent(blogPosts, now);
+      const res = runBlogPublisherAgent(blogPosts, Date.now());
       res.updatedPosts.forEach((p) => upsertBlogPost(p));
 
-      const newLog: AutomationLogEntry = {
-        id: `log-${Date.now()}`,
+      await persistLog({
         agent: 'blog-publisher',
         status: 'success',
         title: 'Blog Publisher Agent Executed',
-        details: `Published ${res.publishedCount} scheduled blog post(s) past release timestamp.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setLogs((prev) => [newLog, ...prev]);
+        details: `Published ${res.publishedCount} scheduled blog post(s) past their release timestamp.`,
+      });
       showToast(`Blog Publisher Agent: Published ${res.publishedCount} post(s)`);
     } catch {
       showToast('Failed to run Blog Publisher agent');
@@ -92,24 +137,34 @@ export function AutomationAgentsPanel() {
       const res = evaluateBestsellersAndBanners(products, orders, { salesThreshold: 5 });
       res.updatedProducts.forEach((p) => upsertProduct(p));
 
-      if (res.announcement) {
-        updateAppearance({
-          ...appearance,
-          announcementEnabled: true,
-          announcementText: res.announcement.text,
-          announcementCoupon: res.announcement.couponCode || appearance.announcementCoupon,
-        });
+      const hasBestsellers = res.bestsellerIds.length > 0;
+      const needsCoupon =
+        hasBestsellers &&
+        Boolean(res.announcement.couponCode) &&
+        !coupons.some((coupon) => coupon.code === 'BESTSELLER10');
+      if (needsCoupon) {
+        upsertCoupon(buildBestsellerCoupon());
       }
 
-      const newLog: AutomationLogEntry = {
-        id: `log-${Date.now()}`,
+      updateAppearance({
+        ...appearance,
+        announcementEnabled: hasBestsellers,
+        announcementText: hasBestsellers
+          ? res.announcement.text
+          : appearance.announcementText,
+        announcementCoupon: hasBestsellers
+          ? res.announcement.couponCode || appearance.announcementCoupon
+          : appearance.announcementCoupon,
+      });
+
+      await persistLog({
         agent: 'site-update',
         status: 'success',
         title: 'Dynamic Site Updates Evaluated',
-        details: `Updated ${res.bestsellerIds.length} bestseller badge(s) and synced storefront announcement bar.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setLogs((prev) => [newLog, ...prev]);
+        details: `Updated ${res.bestsellerIds.length} bestseller badge(s) from completed-order sales and synced the storefront announcement bar.${
+          needsCoupon ? ' Activated BESTSELLER10.' : ''
+        }`,
+      });
       showToast(`Site Updates: ${res.bestsellerIds.length} bestsellers identified`);
     } catch {
       showToast('Failed to evaluate site updates');
@@ -118,34 +173,102 @@ export function AutomationAgentsPanel() {
     }
   };
 
-  // 3. Manual Trigger: Security Scan
+  // 3. Manual Trigger: Security Scan (real download telemetry)
   const handleRunSecurityScan = async () => {
     setRunningAgent('security-scan');
     try {
-      const now = Date.now();
-      const sampleLogs = [
-        { userId: 'usr-student-88', ipAddress: '102.89.22.1', timestamp: now - 5000 },
-        { userId: 'usr-student-88', ipAddress: '102.89.22.4', timestamp: now - 4000 },
-        { userId: 'usr-student-88', ipAddress: '105.112.33.2', timestamp: now - 3000 },
-        { userId: 'usr-student-88', ipAddress: '197.210.88.9', timestamp: now - 2000 },
-      ];
-      const res = detectResourceSharingAnomalies(sampleLogs, 60);
+      let scannedCount = 0;
+      let flaggedUserIds: string[] = [];
+      let anomalyCount = 0;
+      let incidentsCreated = 0;
+      let source: 'store' | 'request' | 'offline' = 'store';
 
-      const hasAnomalies = res.anomalies.length > 0;
-      const newLog: AutomationLogEntry = {
-        id: `log-${Date.now()}`,
+      try {
+        const resp = await fetch('/api/agents/security-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ windowMinutes: 60 }),
+        });
+        if (resp.ok) {
+          const json = (await resp.json()) as {
+            scannedCount?: number;
+            flaggedUserIds?: string[];
+            anomalies?: Array<{ reason: string }>;
+            incidentsCreated?: number;
+            logsSource?: 'store' | 'request';
+          };
+          scannedCount = json.scannedCount ?? 0;
+          flaggedUserIds = json.flaggedUserIds ?? [];
+          anomalyCount = json.anomalies?.length ?? 0;
+          incidentsCreated = json.incidentsCreated ?? 0;
+          source = json.logsSource ?? 'store';
+        } else {
+          throw new Error(`Security scan failed (${resp.status})`);
+        }
+      } catch {
+        // Offline/dev fallback: scan the stored telemetry directly if it is
+        // available. Never substitute fabricated sample download logs.
+        source = 'offline';
+        const logsResp = await fetch('/api/agents/download-logs?limit=500', {
+          credentials: 'same-origin',
+        });
+        if (!logsResp.ok) {
+          throw new Error('Download telemetry is unavailable');
+        }
+        const json = (await logsResp.json()) as {
+          logs?: Array<{ userId: string; ipAddress: string; timestamp: number }>;
+        };
+        const storedLogs = Array.isArray(json.logs) ? json.logs : [];
+        const result = detectResourceSharingAnomalies(storedLogs, 60);
+        scannedCount = storedLogs.length;
+        flaggedUserIds = result.flaggedUserIds;
+        anomalyCount = result.anomalies.length;
+      }
+
+      const hasAnomalies = anomalyCount > 0;
+      await persistLog({
         agent: 'security-scan',
         status: hasAnomalies ? 'warning' : 'success',
-        title: hasAnomalies ? `Security Anomaly Flagged (${res.anomalies.length})` : 'Security Scan: All Clear',
+        title: hasAnomalies
+          ? `Security Anomaly Flagged (${anomalyCount})`
+          : 'Security Scan: All Clear',
         details: hasAnomalies
-          ? `Flagged ${res.flaggedUserIds.join(', ')}: ${res.anomalies.map((a) => a.reason).join('; ')}`
-          : 'Zero unauthorized download bursts or multi-IP dispersion detected across active tokens.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setLogs((prev) => [newLog, ...prev]);
-      showToast(hasAnomalies ? 'Security scan flagged anomalies' : 'Security scan complete: No anomalies');
+          ? `Flagged ${flaggedUserIds.join(', ')} from ${scannedCount} stored download event(s). ${incidentsCreated} new incident(s) recorded.${
+              source === 'offline' ? ' (offline fallback)' : ''
+            }`
+          : `Scanned ${scannedCount} stored download event(s). Zero unauthorized download bursts or multi-IP dispersion detected.${
+              source === 'offline' ? ' (offline fallback)' : ''
+            }`,
+      });
+      showToast(
+        hasAnomalies
+          ? `Security scan flagged ${anomalyCount} anomaly(ies)`
+          : 'Security scan complete: No anomalies'
+      );
     } catch {
       showToast('Failed to execute security scan');
+    } finally {
+      setRunningAgent(null);
+    }
+  };
+
+  // 4. Manual Trigger: full daily maintenance routine (same work as cron)
+  const handleRunDailyMaintenance = async () => {
+    setRunningAgent('maintenance');
+    try {
+      const resp = await fetch('/api/cron/daily-maintenance', {
+        credentials: 'same-origin',
+      });
+      if (!resp.ok) throw new Error(`Maintenance failed (${resp.status})`);
+      const json = (await resp.json()) as {
+        tasks?: Record<string, unknown>;
+      };
+      await loadLogs();
+      const taskCount = json.tasks ? Object.keys(json.tasks).length : 0;
+      showToast(`Daily maintenance completed (${taskCount} task groups)`);
+    } catch {
+      showToast('Failed to run daily maintenance');
     } finally {
       setRunningAgent(null);
     }
@@ -166,8 +289,21 @@ export function AutomationAgentsPanel() {
             Trigger on-demand operational agents, review background publication pipelines, and inspect security access logs.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRunDailyMaintenance}
+            disabled={runningAgent === 'maintenance'}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-[#0a192f] text-xs font-semibold rounded-full border border-slate-300 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+          >
+            {runningAgent === 'maintenance' ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Play className="w-3.5 h-3.5" />
+            )}
+            <span>Run Daily Maintenance</span>
+          </button>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 bg-emerald-50">
             <CheckCircle2 className="w-3.5 h-3.5" />
             Agents System Active
           </span>
@@ -273,7 +409,7 @@ export function AutomationAgentsPanel() {
         <div className="px-5 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-base font-bold text-slate-900">Automated Agent Event & Incident Log</h2>
-            <p className="text-xs text-slate-500">Real-time audit log of automated and manual agent executions</p>
+            <p className="text-xs text-slate-500">Persistent audit log of automated and manual agent executions</p>
           </div>
           <div className="flex items-center gap-2">
             <select
@@ -285,12 +421,16 @@ export function AutomationAgentsPanel() {
               <option value="blog-publisher">Blog Publisher</option>
               <option value="site-update">Dynamic Site Update</option>
               <option value="security-scan">Security Safeguards</option>
+              <option value="enquiry">Enquiry Agent</option>
+              <option value="maintenance">Daily Maintenance</option>
             </select>
           </div>
         </div>
 
         <div className="divide-y divide-slate-100">
-          {filteredLogs.length === 0 ? (
+          {logsLoading ? (
+            <div className="p-8 text-center text-xs text-slate-500">Loading agent logs…</div>
+          ) : filteredLogs.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-500">No agent logs recorded yet.</div>
           ) : (
             filteredLogs.map((log) => (
@@ -306,10 +446,12 @@ export function AutomationAgentsPanel() {
                           : 'bg-blue-100 text-blue-800'
                       }`}
                     >
-                      {log.agent}
+                      {AGENT_LABELS[log.agent] || log.agent}
                     </span>
                     <span className="font-bold text-xs text-slate-900">{log.title}</span>
-                    <span className="text-[11px] text-slate-400 tabular-nums">{log.timestamp}</span>
+                    <span className="text-[11px] text-slate-400 tabular-nums">
+                      {formatLogTimestamp(log.timestamp)}
+                    </span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">{log.details}</p>
                 </div>

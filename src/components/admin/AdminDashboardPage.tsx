@@ -1916,33 +1916,16 @@ export function AdminDashboardPage() {
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div>
                           <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Monthly ($)
+                            Standard 1-Year (₦)
                           </label>
                           <input
                             type="number"
-                            min={1}
-                            value={draft.monthlyPrice}
-                            onChange={(e) =>
-                              setPlanDrafts((prev) => ({
-                                ...prev,
-                                [plan.id]: { ...draft, monthlyPrice: Number(e.target.value) || 1 },
-                              }))
-                            }
-                            className="w-full h-8 px-2 border border-[#8c8f94] rounded-sm text-xs tabular-nums"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Annual ($)
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
+                            min={0}
                             value={draft.annualPrice}
                             onChange={(e) =>
                               setPlanDrafts((prev) => ({
                                 ...prev,
-                                [plan.id]: { ...draft, annualPrice: Number(e.target.value) || 1 },
+                                [plan.id]: { ...draft, annualPrice: Number(e.target.value) || 0 },
                               }))
                             }
                             className="w-full h-8 px-2 border border-[#8c8f94] rounded-sm text-xs tabular-nums"
@@ -1950,7 +1933,24 @@ export function AdminDashboardPage() {
                         </div>
                         <div>
                           <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                            Discount (%)
+                            Master Class 1-Year (₦)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={draft.masterclassPrice ?? (draft.id === 'paid' ? 25000 : 0)}
+                            onChange={(e) =>
+                              setPlanDrafts((prev) => ({
+                                ...prev,
+                                [plan.id]: { ...draft, masterclassPrice: Number(e.target.value) || 0 },
+                              }))
+                            }
+                            className="w-full h-8 px-2 border border-[#8c8f94] rounded-sm text-xs tabular-nums"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Premium Discount (%)
                           </label>
                           <input
                             type="number"

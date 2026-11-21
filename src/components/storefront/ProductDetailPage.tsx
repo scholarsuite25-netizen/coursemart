@@ -182,6 +182,11 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
     ? roundCurrency(product.originalPrice + activeVariant.priceDelta)
     : product.originalPrice;
 
+  const isPaidMember = activeMembershipPlan?.id === 'paid';
+  const effectiveDisplayPrice = product.isPremium && isPaidMember
+    ? Math.round(displayPrice * 0.5)
+    : displayPrice;
+
   const discountPct = getDiscountPercent(displayPrice, displayOriginal);
   const galleryList =
     product.galleryImages && product.galleryImages.length > 0
@@ -286,7 +291,7 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
               {product.isPremium && (
                 <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-400 text-slate-900 rounded inline-flex items-center gap-1 shadow-sm">
                   <Crown className="w-3.5 h-3.5 fill-slate-900" />
-                  <span>Premium Resource · Included with Membership</span>
+                  <span>Premium Resource · 50% Off for Paid Members</span>
                 </span>
               )}
               {product.bestseller && (
@@ -1027,19 +1032,62 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
                 )}
 
               {/* Price Display */}
-              <div className="flex items-baseline gap-2.5 tabular-nums">
-                <span className="font-display text-3xl font-extrabold text-slate-900">
-                  {formatNaira(displayPrice)}
-                </span>
-                {discountPct > 0 && (
-                  <>
-                    <span className="text-base text-slate-400 line-through">
-                      {formatNaira(displayOriginal)}
-                    </span>
-                    <span className="text-sm font-bold text-emerald-700">
-                      {discountPct}% off
-                    </span>
-                  </>
+              <div className="space-y-1">
+                <div className="flex items-baseline gap-2.5 tabular-nums">
+                  <span className="font-display text-3xl font-extrabold text-slate-900">
+                    {formatNaira(effectiveDisplayPrice)}
+                  </span>
+                  {product.isPremium && isPaidMember ? (
+                    <>
+                      <span className="text-base text-slate-400 line-through">
+                        {formatNaira(displayPrice)}
+                      </span>
+                      <span className="text-sm font-bold text-emerald-700">
+                        50% Member Discount
+                      </span>
+                    </>
+                  ) : discountPct > 0 ? (
+                    <>
+                      <span className="text-base text-slate-400 line-through">
+                        {formatNaira(displayOriginal)}
+                      </span>
+                      <span className="text-sm font-bold text-emerald-700">
+                        {discountPct}% off
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+
+                {product.isPremium && !isPaidMember && (
+                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1 mt-2">
+                    <p className="font-bold flex items-center gap-1.5 text-amber-950">
+                      <Crown className="w-4 h-4 text-amber-600" />
+                      <span>Paid Member Benefit: 50% Off</span>
+                    </p>
+                    <p className="text-[11px] leading-relaxed">
+                      All paid members access this Premium Resource on 50% payment ({formatNaira(Math.round(displayPrice * 0.5))}). Users without a paid plan pay the full rate ({formatNaira(displayPrice)}).
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/membership')}
+                      className="text-[#0a192f] font-bold underline hover:text-[#d4af37] cursor-pointer inline-block pt-0.5"
+                    >
+                      Get Paid Membership (from ₦10,000/yr) →
+                    </button>
+                  </div>
+                )}
+
+                {product.isPremium && isPaidMember && (
+                  <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <p className="font-bold">50% Member Benefit Applied</p>
+                        <p className="text-[11px] text-emerald-700">As an active Paid Member, you pay 50% at checkout.</p>
+                      </div>
+                    </div>
+                    <span className="font-extrabold text-xs px-2 py-0.5 bg-emerald-600 text-white rounded">50% OFF</span>
+                  </div>
                 )}
               </div>
 

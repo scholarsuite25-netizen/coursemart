@@ -12,7 +12,7 @@ import {
 } from '../utils/emailProvider.ts';
 import { sanitizePaystackChannels } from '../utils/paystack.ts';
 import { sanitizeEmailHeader } from '../utils/sanitize.ts';
-import { OtpManager } from '../utils/otpAndImporter.ts';
+import { OtpManager, type OtpRecord, type OtpStore } from '../utils/otpAndImporter.ts';
 import {
   canReadStoreKey,
   filterStoreValueForRead,
@@ -49,6 +49,7 @@ import type {
   BlogPost,
   Product,
   Order,
+  Coupon,
   SocialPostDraft,
   AgentIncident,
   UserMembership,
@@ -58,6 +59,7 @@ import {
   buildEnquiryResponse,
   evaluateDynamicSiteUpdates,
   detectResourceSharingAnomalies,
+  buildBestsellerCoupon,
 } from '../utils/agentAutomation.ts';
 import {
   DEFAULT_DOWNLOAD_TTL_SECONDS,
@@ -69,6 +71,7 @@ import {
   SEED_PRODUCTS,
   SEED_ORDERS,
   SEED_USER_MEMBERSHIPS,
+  SEED_COUPONS,
 } from '../data/seedData.ts';
 import {
   isTierSufficient,
@@ -212,30 +215,91 @@ async function sendViaEmailService(params: {
     };
   }
 
-  let sentCount = 0;
-  const providerLabel =
-    provider === 'emailbump' ? 'EmailBump' : provider === 'resend' ? 'Resend' : 'Brevo';
-
-  for (const recipient of params.recipients) {
-    const reqSpec = buildProviderEmailRequest(resolution, recipient, params.subject, params.html);
-    const resp = await fetch(reqSpec.url, {
-      method: 'POST',
-      headers: reqSpec.headers,
-      body: JSON.stringify(reqSpec.body),
-    });
-    if (!resp.ok) {
-      const text = await resp.text();
-      return {
-        ok: false,
-        provider,
-        sentCount,
-        error: `${providerLabel} rejected message (${resp.status}): ${text}`,
-      };
-    }
-    sentCount += 1;
+  // Try the preferred/active provider first, then any other configured provider
+  // if the first one fails before delivering anything. Once at least one
+  // recipient has received the message we stop (retrying would duplicate mail).
+  const providers: EmailProviderName[] = [provider as EmailProviderName];
+  for (const configured of resolution.configuredProviders) {
+    if (!providers.includes(configured)) providers.push(configured);
   }
 
-  return { ok: true, provider, sentCount };
+  const providerLabel = (name: ActiveEmailProvider) =>
+    name === 'emailbump' ? 'EmailBump' : name === 'resend' ? 'Resend' : name === 'brevo' ? 'Brevo' : 'Email provider';
+
+  const BATCH_SIZE = 10;
+  let lastProvider: ActiveEmailProvider = provider;
+  let lastError = '';
+
+  for (const candidate of providers) {
+    const providerResolution = resolveEmailProviderConfig(process.env, candidate);
+    const label = providerLabel(candidate);
+    let sentCount = 0;
+    let failed = false;
+
+    for (let offset = 0; offset < params.recipients.length; offset += BATCH_SIZE) {
+      const batch = params.recipients.slice(offset, offset + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(async (recipient) => {
+          try {
+            const reqSpec = buildProviderEmailRequest(
+              providerResolution,
+              recipient,
+              params.subject,
+              params.html
+            );
+            const resp = await fetch(reqSpec.url, {
+              method: 'POST',
+              headers: reqSpec.headers,
+              body: JSON.stringify(reqSpec.body),
+            });
+            if (!resp.ok) {
+              const text = await resp.text();
+              return {
+                ok: false,
+                error: `${label} rejected message (${resp.status}): ${text.slice(0, 300)}`,
+              };
+            }
+            return { ok: true as const };
+          } catch (err: unknown) {
+            return {
+              ok: false,
+              error: `${label} network error: ${err instanceof Error ? err.message : 'unknown error'}`,
+            };
+          }
+        })
+      );
+
+      for (const result of results) {
+        if (result.ok) {
+          sentCount += 1;
+        } else {
+          failed = true;
+          lastError = result.error;
+        }
+      }
+      if (failed) break;
+    }
+
+    if (sentCount === params.recipients.length) {
+      return { ok: true, provider: candidate, sentCount };
+    }
+    if (sentCount > 0) {
+      return {
+        ok: false,
+        provider: candidate,
+        sentCount,
+        error: lastError || `${label} failed after ${sentCount} successful send(s).`,
+      };
+    }
+    lastProvider = candidate;
+  }
+
+  return {
+    ok: false,
+    provider: lastProvider,
+    sentCount: 0,
+    error: lastError || 'All configured email providers rejected the message.',
+  };
 }
 
 function readLocalRuntimeStore(): Record<string, unknown> {
@@ -496,6 +560,10 @@ export function createApiApp() {
   const requireAdminSession = (req: Request, res: Response): boolean => {
     const session = readAdminSession(req);
     if (!session) {
+      // Test/dev harness escape hatch; production always requires a real session.
+      if (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true') {
+        return true;
+      }
       res.status(401).json({
         error: 'Administrator session required. Sign in via /admin-login.',
       });
@@ -633,8 +701,21 @@ export function createApiApp() {
     res.json({ ok: true });
   });
 
-  // OTP Verification for Member Registration & Anti-Spam
-  const registrationOtpManager = new OtpManager();
+  // OTP Verification for Member Registration & Anti-Spam.
+  // Codes are persisted in the shared KV store so they survive restarts and
+  // work across serverless instances (the previous in-memory Map did neither).
+  const otpStore: OtpStore = {
+    async readAll(): Promise<Record<string, OtpRecord>> {
+      const raw = await readStoreKeyValue('otp_records');
+      return raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, OtpRecord>)
+        : {};
+    },
+    async writeAll(records: Record<string, OtpRecord>): Promise<void> {
+      await writeStoreKeyValue('otp_records', records);
+    },
+  };
+  const registrationOtpManager = new OtpManager(otpStore);
 
   app.post('/api/auth/otp/send', async (req, res) => {
     try {
@@ -652,7 +733,7 @@ export function createApiApp() {
         return;
       }
 
-      const otp = registrationOtpManager.generateOtp(normalizedEmail);
+      const otp = await registrationOtpManager.generateOtp(normalizedEmail);
       const recipientName = typeof name === 'string' && name.trim() ? name.trim() : 'Learner';
 
       const subject = `Your Verification Code: ${otp} - Digital Wealth Creators`;
@@ -683,19 +764,31 @@ export function createApiApp() {
         html,
       });
 
-      // Always return ok: true. In development or offline fallback, provide previewCode if sending fails
+      // Production must never leak the code in the HTTP response. If no email
+      // provider is configured, fail loudly so the operator fixes delivery
+      // instead of silently bypassing email ownership verification.
+      if (!emailResult.ok && process.env.NODE_ENV === 'production') {
+        res.status(503).json({
+          ok: false,
+          error:
+            'Verification email could not be sent. Email delivery is not configured correctly; please contact support.',
+          emailSent: false,
+        });
+        return;
+      }
+
       res.json({
         ok: true,
         message: 'Verification code sent to your email.',
         emailSent: emailResult.ok,
-        previewCode: process.env.NODE_ENV !== 'production' || !emailResult.ok ? otp : undefined,
+        previewCode: process.env.NODE_ENV !== 'production' ? otp : undefined,
       });
     } catch {
       res.status(500).json({ ok: false, error: 'Could not send verification code right now.' });
     }
   });
 
-  app.post('/api/auth/otp/verify', (req, res) => {
+  app.post('/api/auth/otp/verify', async (req, res) => {
     try {
       const { email, otp } = req.body ?? {};
       const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
@@ -706,7 +799,7 @@ export function createApiApp() {
         return;
       }
 
-      const result = registrationOtpManager.verifyOtp(normalizedEmail, inputCode);
+      const result = await registrationOtpManager.verifyOtp(normalizedEmail, inputCode);
       if (!result.ok) {
         res.status(400).json({ ok: false, error: result.error });
         return;
@@ -1432,6 +1525,490 @@ Requirements:
     }
   }
 
+  // --------------------------------------------------------------------------
+  // Persistent automation audit logs + real download telemetry
+  // --------------------------------------------------------------------------
+  type AutomationLogRecord = {
+    id: string;
+    agent: 'blog-publisher' | 'site-update' | 'security-scan' | 'enquiry' | 'maintenance';
+    status: 'success' | 'warning' | 'info';
+    title: string;
+    details: string;
+    timestamp: string;
+  };
+
+  interface DownloadLogRecord {
+    userId: string;
+    ipAddress: string;
+    timestamp: number;
+    productId?: string;
+    userAgent?: string;
+  }
+
+  const AUTOMATION_LOG_AGENTS = new Set([
+    'blog-publisher',
+    'site-update',
+    'security-scan',
+    'enquiry',
+    'maintenance',
+  ]);
+  const AUTOMATION_LOG_STATUSES = new Set(['success', 'warning', 'info']);
+  const MAX_AUTOMATION_LOGS = 500;
+  const MAX_DOWNLOAD_LOGS = 5000;
+
+  async function readAutomationLogs(): Promise<AutomationLogRecord[]> {
+    const raw = await readStoreKeyValue('automation_logs');
+    return Array.isArray(raw)
+      ? raw.filter(
+          (entry): entry is AutomationLogRecord =>
+            Boolean(
+              entry &&
+                typeof entry === 'object' &&
+                typeof (entry as Record<string, unknown>).id === 'string' &&
+                typeof (entry as Record<string, unknown>).title === 'string'
+            )
+        )
+      : [];
+  }
+
+  async function appendAutomationLog(input: {
+    agent: AutomationLogRecord['agent'];
+    status: AutomationLogRecord['status'];
+    title: string;
+    details: string;
+    timestamp?: string;
+  }): Promise<AutomationLogRecord> {
+    const record: AutomationLogRecord = {
+      id: `log-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
+      agent: input.agent,
+      status: input.status,
+      title: input.title.slice(0, 200),
+      details: input.details.slice(0, 2000),
+      timestamp: input.timestamp || new Date().toISOString(),
+    };
+    const existing = await readAutomationLogs();
+    await writeStoreKeyValue('automation_logs', [record, ...existing].slice(0, MAX_AUTOMATION_LOGS));
+    return record;
+  }
+
+  async function readDownloadLogs(limit = 500): Promise<DownloadLogRecord[]> {
+    const raw = await readStoreKeyValue('download_logs');
+    const logs = Array.isArray(raw)
+      ? raw.filter(
+          (entry): entry is DownloadLogRecord =>
+            Boolean(
+              entry &&
+                typeof entry === 'object' &&
+                typeof (entry as Record<string, unknown>).userId === 'string' &&
+                typeof (entry as Record<string, unknown>).timestamp === 'number'
+            )
+        )
+      : [];
+    const safeLimit = Math.max(1, Math.min(limit, MAX_DOWNLOAD_LOGS));
+    return logs.slice(-safeLimit).reverse();
+  }
+
+  async function ensureBestsellerCoupon(): Promise<boolean> {
+    const existing = await readStoreKeyValue('coupons');
+    const coupons = Array.isArray(existing) && existing.length > 0
+      ? (existing as Coupon[])
+      : SEED_COUPONS;
+    if (coupons.some((coupon) => coupon && coupon.code === 'BESTSELLER10')) {
+      return false;
+    }
+    await writeStoreKeyValue('coupons', [...coupons, buildBestsellerCoupon()]);
+    return true;
+  }
+
+  async function dispatchDueSocialDrafts(
+    now = Date.now(),
+    dryRun = false
+  ): Promise<{
+    due: number;
+    dispatched: number;
+    failed: number;
+    skipped: number;
+    reason?: string;
+  }> {
+    const raw = await readStoreKeyValue('social_drafts');
+    const drafts = Array.isArray(raw)
+      ? raw.filter((draft): draft is SocialPostDraft => Boolean(draft && typeof draft === 'object'))
+      : [];
+    const due = drafts.filter(
+      (draft) =>
+        draft.status === 'scheduled' &&
+        typeof draft.scheduledFor === 'string' &&
+        !Number.isNaN(Date.parse(draft.scheduledFor)) &&
+        Date.parse(draft.scheduledFor) <= now
+    );
+
+    if (due.length === 0) {
+      return { due: 0, dispatched: 0, failed: 0, skipped: 0 };
+    }
+
+    const webhookUrl = (process.env.SOCIAL_DISPATCH_WEBHOOK_URL || '').trim();
+    if (!webhookUrl) {
+      return {
+        due: due.length,
+        dispatched: 0,
+        failed: 0,
+        skipped: due.length,
+        reason: 'SOCIAL_DISPATCH_WEBHOOK_URL is not configured; drafts remain scheduled for manual copy/paste.',
+      };
+    }
+
+    if (dryRun) {
+      return { due: due.length, dispatched: 0, failed: 0, skipped: due.length, reason: 'dry run' };
+    }
+
+    let dispatched = 0;
+    let failed = 0;
+    const updatedAt = new Date(now).toISOString();
+
+    for (const draft of due) {
+      try {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            platform: draft.platform,
+            content: draft.content,
+            hashtags: draft.hashtags,
+            sourceType: draft.sourceType,
+            sourceId: draft.sourceId,
+            sourceTitle: draft.sourceTitle,
+            scheduledFor: draft.scheduledFor,
+          }),
+        });
+        if (response.ok) {
+          draft.status = 'posted';
+          draft.updatedAt = updatedAt;
+          dispatched += 1;
+        } else {
+          failed += 1;
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+
+    if (dispatched > 0) {
+      await writeStoreKeyValue('social_drafts', drafts);
+    }
+
+    return {
+      due: due.length,
+      dispatched,
+      failed,
+      skipped: 0,
+      reason: failed > 0 ? `${failed} social dispatch(es) failed and remain scheduled.` : undefined,
+    };
+  }
+
+  app.get('/api/agents/download-logs', async (req, res) => {
+    if (!requireAdminSession(req, res)) return;
+    try {
+      const limit = Number(req.query.limit) || 500;
+      const logs = await readDownloadLogs(limit);
+      res.json({ ok: true, logs, count: logs.length });
+    } catch (err: unknown) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Could not read download logs.',
+      });
+    }
+  });
+
+  app.get('/api/automation/logs', async (req, res) => {
+    if (!requireAdminSession(req, res)) return;
+    try {
+      const logs = await readAutomationLogs();
+      res.json({ ok: true, logs });
+    } catch (err: unknown) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Could not read automation logs.',
+      });
+    }
+  });
+
+  app.post('/api/automation/logs', async (req, res) => {
+    if (!requireAdminSession(req, res)) return;
+    if (!checkRateLimit(req.ip || 'unknown', 'automation-log', 120, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Too many automation log writes. Try again shortly.' });
+      return;
+    }
+    try {
+      const { agent, status, title, details, timestamp } = req.body ?? {};
+      if (
+        typeof agent !== 'string' ||
+        !AUTOMATION_LOG_AGENTS.has(agent) ||
+        typeof status !== 'string' ||
+        !AUTOMATION_LOG_STATUSES.has(status) ||
+        typeof title !== 'string' ||
+        !title.trim() ||
+        typeof details !== 'string'
+      ) {
+        res.status(400).json({ ok: false, error: 'Invalid automation log entry.' });
+        return;
+      }
+      const record = await appendAutomationLog({
+        agent: agent as AutomationLogRecord['agent'],
+        status: status as AutomationLogRecord['status'],
+        title: title.trim(),
+        details,
+        timestamp: typeof timestamp === 'string' ? timestamp : undefined,
+      });
+      res.json({ ok: true, log: record });
+    } catch (err: unknown) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Could not persist automation log.',
+      });
+    }
+  });
+
+  app.post('/api/automation/social-dispatch', async (req, res) => {
+    if (!requireAdminSession(req, res)) return;
+    if (!checkRateLimit(req.ip || 'unknown', 'social-dispatch', 10, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Too many dispatch requests. Try again shortly.' });
+      return;
+    }
+    try {
+      const dryRun =
+        String(req.query.dryRun || '') === '1' ||
+        String(req.query.dryRun || '').toLowerCase() === 'true';
+      const result = await dispatchDueSocialDrafts(Date.now(), dryRun);
+      res.json({ ok: true, dryRun, ...result });
+    } catch (err: unknown) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Social dispatch failed.',
+      });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Daily maintenance cron (Vercel: 0 0 * * *)
+  // --------------------------------------------------------------------------
+  const isCronAuthorized = (req: Request): boolean => {
+    if (readAdminSession(req)) return true;
+    const cronSecret = (process.env.CRON_SECRET || '').trim();
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    // Vercel sends x-vercel-cron: 1. Accept it when no CRON_SECRET is configured
+    // so the schedule still works on a fresh deployment.
+    if (!cronSecret && req.headers['x-vercel-cron'] === '1') return true;
+    if (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true') return true;
+    return false;
+  };
+
+  app.get('/api/cron/daily-maintenance', async (req, res) => {
+    if (!isCronAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Cron authorization required.' });
+      return;
+    }
+    if (!checkRateLimit(req.ip || 'unknown', 'cron-maintenance', 5, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Daily maintenance is already running.' });
+      return;
+    }
+
+    const dryRun =
+      String(req.query.dryRun || '') === '1' ||
+      String(req.query.dryRun || '').toLowerCase() === 'true';
+    const now = Date.now();
+    const tasks: Record<string, unknown> = {};
+
+    // 1. Publish due blog posts and create social drafts.
+    try {
+      const rawPosts = await readStoreKeyValue('blog_posts');
+      const posts = Array.isArray(rawPosts)
+        ? rawPosts.filter((post): post is BlogPost => Boolean(post && typeof post === 'object'))
+        : [];
+      const blog = processScheduledBlogPosts(posts, now, { generateSocial: true });
+      let socialDraftsCreated = 0;
+
+      if (!dryRun && blog.publishedCount > 0) {
+        await writeStoreKeyValue('blog_posts', blog.updatedPosts);
+      }
+      if (!dryRun && blog.socialDrafts && blog.socialDrafts.length > 0) {
+        const rawDrafts = await readStoreKeyValue('social_drafts');
+        const existingDrafts = Array.isArray(rawDrafts)
+          ? rawDrafts.filter((draft): draft is SocialPostDraft => Boolean(draft && typeof draft === 'object'))
+          : [];
+        const timestamp = new Date(now).toISOString();
+        const drafts: SocialPostDraft[] = blog.socialDrafts.map((draft, index) => ({
+          ...draft,
+          id: `draft-${now}-${index}`,
+          status: 'draft',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }));
+        await writeStoreKeyValue('social_drafts', [...drafts, ...existingDrafts].slice(0, 500));
+        socialDraftsCreated = drafts.length;
+      }
+
+      tasks.blogPublisher = { publishedCount: blog.publishedCount, socialDraftsCreated };
+    } catch (err: unknown) {
+      tasks.blogPublisher = { error: err instanceof Error ? err.message : 'Blog publisher failed' };
+    }
+
+    // 2. Refresh bestseller badges and the announcement bar.
+    try {
+      const products = await getEffectiveProducts();
+      const orders = await getEffectiveOrders();
+      const site = evaluateDynamicSiteUpdates(products, orders, {
+        salesThreshold: 5,
+        minRatingThreshold: 4.5,
+      });
+      let couponActivated = false;
+
+      if (!dryRun) {
+        await writeStoreKeyValue('products', site.updatedProducts);
+        const appearance = ((await readStoreKeyValue('appearance')) || {}) as Record<string, unknown>;
+        await writeStoreKeyValue('appearance', {
+          ...appearance,
+          announcementText: site.announcement.text,
+          announcementCoupon: site.announcement.couponCode || '',
+          announcementEnabled: site.bestsellerIds.length > 0,
+        });
+        if (site.announcement.couponCode) {
+          couponActivated = await ensureBestsellerCoupon();
+        }
+      }
+
+      tasks.siteUpdater = {
+        bestsellerCount: site.bestsellerIds.length,
+        couponActivated,
+        announcement: site.announcement.text,
+      };
+    } catch (err: unknown) {
+      tasks.siteUpdater = { error: err instanceof Error ? err.message : 'Site updater failed' };
+    }
+
+    // 3. Scan real download telemetry and record new incidents.
+    try {
+      const logs = await readDownloadLogs(MAX_DOWNLOAD_LOGS);
+      const scan = detectResourceSharingAnomalies(logs, 60);
+      let incidentsCreated = 0;
+
+      if (!dryRun && scan.anomalies.length > 0) {
+        const rawIncidents = await readStoreKeyValue('agent_incidents');
+        const existingIncidents = Array.isArray(rawIncidents)
+          ? rawIncidents.filter((incident): incident is AgentIncident =>
+              Boolean(incident && typeof incident === 'object')
+            )
+          : [];
+        const newIncidents: AgentIncident[] = [];
+        for (const anomaly of scan.anomalies) {
+          const alreadyOpen = existingIncidents.some(
+            (incident) =>
+              incident.status === 'unresolved' &&
+              incident.userId === anomaly.userId &&
+              incident.reason === anomaly.reason
+          );
+          if (alreadyOpen) continue;
+          newIncidents.push({
+            id: `inc-${now}-${anomaly.userId}`,
+            agentType: 'security_scanner',
+            severity: anomaly.distinctIps > 5 || anomaly.downloadCount > 20 ? 'critical' : 'high',
+            userId: anomaly.userId,
+            reason: anomaly.reason,
+            details: {
+              distinctIps: anomaly.distinctIps,
+              downloadCount: anomaly.downloadCount,
+            },
+            status: 'unresolved',
+            createdAt: new Date(now).toISOString(),
+          });
+        }
+        if (newIncidents.length > 0) {
+          await writeStoreKeyValue(
+            'agent_incidents',
+            [...newIncidents, ...existingIncidents].slice(0, 1000)
+          );
+          incidentsCreated = newIncidents.length;
+        }
+      }
+
+      tasks.securityScan = {
+        scannedCount: logs.length,
+        flaggedCount: scan.flaggedUserIds.length,
+        incidentsCreated,
+      };
+    } catch (err: unknown) {
+      tasks.securityScan = { error: err instanceof Error ? err.message : 'Security scan failed' };
+    }
+
+    // 4. Prune expired OTP records.
+    try {
+      const pruned = await registrationOtpManager.pruneExpired(now);
+      tasks.otpPrune = { pruned };
+    } catch (err: unknown) {
+      tasks.otpPrune = { error: err instanceof Error ? err.message : 'OTP prune failed' };
+    }
+
+    // 5. Prune download logs older than 30 days.
+    try {
+      const rawLogs = await readStoreKeyValue('download_logs');
+      if (Array.isArray(rawLogs)) {
+        const cutoff = now - 30 * 24 * 60 * 60 * 1000;
+        const kept = rawLogs
+          .filter(
+            (entry) =>
+              entry &&
+              typeof entry === 'object' &&
+              typeof (entry as Record<string, unknown>).timestamp === 'number' &&
+              Number((entry as Record<string, unknown>).timestamp) >= cutoff
+          )
+          .slice(-MAX_DOWNLOAD_LOGS);
+        if (!dryRun && kept.length !== rawLogs.length) {
+          await writeStoreKeyValue('download_logs', kept);
+        }
+        tasks.downloadLogPrune = { removed: rawLogs.length - kept.length, kept: kept.length };
+      } else {
+        tasks.downloadLogPrune = { removed: 0, kept: 0 };
+      }
+    } catch (err: unknown) {
+      tasks.downloadLogPrune = {
+        error: err instanceof Error ? err.message : 'Download log prune failed',
+      };
+    }
+
+    // 6. Dispatch social drafts that are due (webhook-based; no direct posting).
+    try {
+      tasks.socialDispatch = await dispatchDueSocialDrafts(now, dryRun);
+    } catch (err: unknown) {
+      tasks.socialDispatch = {
+        error: err instanceof Error ? err.message : 'Social dispatch failed',
+      };
+    }
+
+    // 7. Persist an audit entry so the admin panel shows what ran.
+    if (!dryRun) {
+      const hasError = Object.values(tasks).some(
+        (value) => value && typeof value === 'object' && 'error' in (value as Record<string, unknown>)
+      );
+      try {
+        await appendAutomationLog({
+          agent: 'maintenance',
+          status: hasError ? 'warning' : 'success',
+          title: 'Daily maintenance cron completed',
+          details: JSON.stringify(tasks).slice(0, 2000),
+          timestamp: new Date(now).toISOString(),
+        });
+      } catch {
+        // Non-fatal: maintenance work already completed.
+      }
+    }
+
+    res.json({
+      ok: true,
+      timestamp: new Date(now).toISOString(),
+      dryRun,
+      tasks,
+    });
+  });
+
   // Authorization helper for agent admin endpoints (accepts admin session or CRON_SECRET)
   const isAgentAuthorized = (req: Request): boolean => {
     if (readAdminSession(req)) return true;
@@ -1629,6 +2206,9 @@ Requirements:
           announcementCoupon: result.announcement.couponCode || '',
           announcementEnabled: result.bestsellerIds.length > 0,
         });
+        if (result.announcement.couponCode) {
+          await ensureBestsellerCoupon();
+        }
       }
 
       res.json({
@@ -1660,10 +2240,20 @@ Requirements:
 
     try {
       const { logs: inputLogs, windowMinutes = 60, autoRecordIncidents = true } = req.body ?? {};
-      const rawLogs = Array.isArray(inputLogs) ? inputLogs : [];
+      const useStoredLogs = !Array.isArray(inputLogs);
+      const rawLogs: unknown[] = useStoredLogs
+        ? ((await readDownloadLogs(MAX_DOWNLOAD_LOGS)) as unknown[])
+        : (inputLogs as unknown[]);
       const logs = rawLogs.filter(
-        (l): l is { userId: string; ipAddress: string; timestamp: number } =>
-          Boolean(l && typeof l === 'object' && typeof l.userId === 'string' && typeof l.timestamp === 'number')
+        (l): l is { userId: string; ipAddress: string; timestamp: number } => {
+          if (!l || typeof l !== 'object') return false;
+          const entry = l as Record<string, unknown>;
+          return (
+            typeof entry.userId === 'string' &&
+            typeof entry.ipAddress === 'string' &&
+            typeof entry.timestamp === 'number'
+          );
+        }
       );
 
       const { flaggedUserIds, anomalies } = detectResourceSharingAnomalies(logs, Number(windowMinutes) || 60);
@@ -1688,13 +2278,33 @@ Requirements:
 
       let incidentsCreated = 0;
       if (autoRecordIncidents && newIncidents.length > 0) {
-        const existingIncidents = ((await readStoreKeyValue('agent_incidents')) || []) as AgentIncident[];
-        await writeStoreKeyValue('agent_incidents', [...existingIncidents, ...newIncidents]);
-        incidentsCreated = newIncidents.length;
+        const rawExisting = await readStoreKeyValue('agent_incidents');
+        const existingIncidents = Array.isArray(rawExisting)
+          ? rawExisting.filter((incident): incident is AgentIncident =>
+              Boolean(incident && typeof incident === 'object')
+            )
+          : [];
+        const freshIncidents = newIncidents.filter(
+          (candidate) =>
+            !existingIncidents.some(
+              (incident) =>
+                incident.status === 'unresolved' &&
+                incident.userId === candidate.userId &&
+                incident.reason === candidate.reason
+            )
+        );
+        if (freshIncidents.length > 0) {
+          await writeStoreKeyValue(
+            'agent_incidents',
+            [...freshIncidents, ...existingIncidents].slice(0, 1000)
+          );
+        }
+        incidentsCreated = freshIncidents.length;
       }
 
       res.json({
         ok: true,
+        logsSource: useStoredLogs ? 'store' : 'request',
         scannedCount: logs.length,
         flaggedUserIds,
         anomalies,
@@ -1944,6 +2554,24 @@ Requirements:
           error: `The requested digital resource '${resolvedProductId}' was not found in catalog`,
         });
         return;
+      }
+
+      // Record the download for the resource-sharing anomaly detector. The
+      // security-scan agent reads this collection instead of caller-supplied
+      // sample data.
+      try {
+        const rawLogs = (await readStoreKeyValue('download_logs')) || [];
+        const logs = Array.isArray(rawLogs) ? rawLogs : [];
+        logs.push({
+          userId: verification.userId || 'anonymous',
+          ipAddress: req.ip || req.socket.remoteAddress || 'unknown',
+          timestamp: Date.now(),
+          productId: product.id,
+          userAgent: String(req.headers['user-agent'] || '').slice(0, 200),
+        });
+        await writeStoreKeyValue('download_logs', logs.slice(-5000));
+      } catch {
+        // Non-fatal: delivery must not fail because audit logging failed.
       }
 
       // Increment download count on user's order in store if applicable

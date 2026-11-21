@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto';
+
 export interface ParsedWhatsAppContact {
   raw: string;
   name?: string;
@@ -89,7 +91,9 @@ export function parseWhatsAppRawText(text: string): ParsedWhatsAppContact[] {
 }
 
 /**
- * In-memory OTP storage helper
+ * OTP storage contract. The server uses a KV-backed implementation so codes
+ * survive restarts and are visible across serverless instances; tests use the
+ * in-memory implementation.
  */
 export interface OtpRecord {
   code: string;
@@ -98,22 +102,45 @@ export interface OtpRecord {
   attempts: number;
 }
 
+export interface OtpStore {
+  readAll(): Promise<Record<string, OtpRecord>>;
+  writeAll(records: Record<string, OtpRecord>): Promise<void>;
+}
+
+export class MemoryOtpStore implements OtpStore {
+  private records: Record<string, OtpRecord> = {};
+
+  async readAll(): Promise<Record<string, OtpRecord>> {
+    return { ...this.records };
+  }
+
+  async writeAll(records: Record<string, OtpRecord>): Promise<void> {
+    this.records = { ...records };
+  }
+}
+
 export class OtpManager {
-  private store = new Map<string, OtpRecord>();
+  private store: OtpStore;
+
+  constructor(store: OtpStore = new MemoryOtpStore()) {
+    this.store = store;
+  }
 
   /**
-   * Generates a 6-digit numeric OTP valid for given TTL (default 10 minutes)
+   * Generates a cryptographically random 6-digit numeric OTP valid for the
+   * given TTL (default 10 minutes) and persists it through the configured store.
    */
-  generateOtp(email: string, ttlMs = 10 * 60 * 1000): string {
+  async generateOtp(email: string, ttlMs = 10 * 60 * 1000): Promise<string> {
     const normalized = email.trim().toLowerCase();
-    // 6-digit cryptographically random code
-    const digits = Math.floor(100000 + Math.random() * 900000).toString();
-    this.store.set(normalized, {
+    const digits = randomInt(100000, 1000000).toString();
+    const records = await this.store.readAll();
+    records[normalized] = {
       code: digits,
       email: normalized,
       expiresAt: Date.now() + ttlMs,
       attempts: 0,
-    });
+    };
+    await this.store.writeAll(records);
     return digits;
   }
 
@@ -121,36 +148,62 @@ export class OtpManager {
    * Verifies an OTP for given email.
    * Enforces max 5 attempts and expiry. Clears OTP on success.
    */
-  verifyOtp(email: string, inputCode: string): { ok: boolean; error?: string } {
+  async verifyOtp(email: string, inputCode: string): Promise<{ ok: boolean; error?: string }> {
     const normalized = email.trim().toLowerCase();
-    const record = this.store.get(normalized);
+    const records = await this.store.readAll();
+    const record = records[normalized];
 
     if (!record) {
       return { ok: false, error: 'No verification code found for this email. Request a new code.' };
     }
 
     if (Date.now() > record.expiresAt) {
-      this.store.delete(normalized);
+      delete records[normalized];
+      await this.store.writeAll(records);
       return { ok: false, error: 'Verification code has expired. Please request a new one.' };
     }
 
     if (record.attempts >= 5) {
-      this.store.delete(normalized);
+      delete records[normalized];
+      await this.store.writeAll(records);
       return { ok: false, error: 'Too many incorrect attempts. Please request a new code.' };
     }
 
     record.attempts += 1;
 
     if (record.code !== inputCode.trim()) {
+      await this.store.writeAll(records);
       return { ok: false, error: 'Incorrect verification code. Please check and try again.' };
     }
 
     // Success — delete so it cannot be reused
-    this.store.delete(normalized);
+    delete records[normalized];
+    await this.store.writeAll(records);
     return { ok: true };
   }
 
-  clearOtp(email: string): void {
-    this.store.delete(email.trim().toLowerCase());
+  async clearOtp(email: string): Promise<void> {
+    const normalized = email.trim().toLowerCase();
+    const records = await this.store.readAll();
+    if (normalized in records) {
+      delete records[normalized];
+      await this.store.writeAll(records);
+    }
+  }
+
+  /** Removes expired records (called by the daily maintenance cron). */
+  async pruneExpired(now = Date.now()): Promise<number> {
+    const records = await this.store.readAll();
+    let removed = 0;
+    for (const [email, record] of Object.entries(records)) {
+      if (!record || now > record.expiresAt) {
+        delete records[email];
+        removed += 1;
+      }
+    }
+    if (removed > 0) {
+      await this.store.writeAll(records);
+    }
+    return removed;
   }
 }

@@ -271,8 +271,18 @@ export const storageService = {
 
   getMembershipPlans: (): MembershipPlan[] => {
     const raw = readStorage(STORAGE_KEYS.MEMBERSHIP_PLANS, SEED_MEMBERSHIP_PLANS);
-    const hasLegacyPlans = Array.isArray(raw) && raw.some((p) => p && ['starter', 'pro', 'vip', 'enterprise'].includes(p.id as string));
-    if (hasLegacyPlans || !Array.isArray(raw) || raw.length === 0) {
+    const hasLegacyPlans =
+      Array.isArray(raw) &&
+      raw.some((p) => p && ['starter', 'pro', 'vip', 'enterprise'].includes(p.id as string));
+    const hasOutdatedPricing =
+      Array.isArray(raw) &&
+      raw.some(
+        (p) =>
+          p &&
+          p.id === 'paid' &&
+          (p.annualPrice !== 10000 || p.masterclassPrice !== 25000 || !p.includesMasterclassTraining)
+      );
+    if (hasLegacyPlans || hasOutdatedPricing || !Array.isArray(raw) || raw.length === 0) {
       writeStorage(STORAGE_KEYS.MEMBERSHIP_PLANS, SEED_MEMBERSHIP_PLANS);
       return SEED_MEMBERSHIP_PLANS;
     }

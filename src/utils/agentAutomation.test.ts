@@ -407,6 +407,73 @@ test('evaluateDynamicSiteUpdates and evaluateBestsellersAndBanners assign bestse
   assert.equal(aliasRes.announcement.couponCode, 'BESTSELLER10');
 });
 
+test('bestsellers require real completed-order sales even when enrolment counts are high', () => {
+  const makeProduct = (id: string, studentsCount: number): Product => ({
+    id,
+    title: `Course ${id}`,
+    slug: `course-${id}`,
+    subtitle: 'Sub',
+    originalPrice: 10000,
+    reviewCount: 50,
+    language: 'English',
+    featured: false,
+    learningOutcomes: [],
+    requirements: [],
+    formatLabel: 'Video Course',
+    instructorId: 'ins-1',
+    instructorName: 'Instructor',
+    instructorRole: 'Instructor',
+    instructorAvatar: 'https://example.com/avatar.png',
+    price: 10000,
+    rating: 5,
+    studentsCount,
+    status: 'published',
+    category: 'AI',
+    description: 'Desc',
+    thumbnail: 'https://example.com/img.png',
+    type: 'course',
+    level: 'All Levels',
+    updatedAt: '2026-01-01',
+  });
+
+  const makeOrder = (id: string, productId: string): Order => ({
+    id,
+    userId: 'usr-1',
+    customerEmail: 'u1@example.com',
+    customerName: 'User One',
+    items: [
+      { productId, productTitle: 'Course', productType: 'course', price: 10000 },
+    ],
+    subtotal: 10000,
+    discount: 0,
+    total: 10000,
+    status: 'completed',
+    paymentMethod: 'card',
+    createdAt: '2026-01-02',
+  });
+
+  const products = [
+    makeProduct('prod-one', 5000),
+    makeProduct('prod-two', 1200),
+    makeProduct('prod-three', 800),
+  ];
+
+  // High cumulative enrolment counts alone must never flag the catalogue.
+  const noOrders = evaluateDynamicSiteUpdates(products, [], { salesThreshold: 5 });
+  assert.deepEqual(noOrders.bestsellerIds, []);
+  assert.equal(noOrders.announcement.couponCode, undefined);
+
+  // A single completed-order sale is enough to qualify a product that also
+  // clears the popularity and rating thresholds.
+  const withSale = evaluateDynamicSiteUpdates(products, [makeOrder('ord-1', 'prod-two')], {
+    salesThreshold: 5,
+  });
+  assert.deepEqual(withSale.bestsellerIds, ['prod-two']);
+  assert.equal(withSale.announcement.couponCode, 'BESTSELLER10');
+  assert.equal(withSale.updatedProducts.find((p) => p.id === 'prod-two')?.bestseller, true);
+  assert.equal(withSale.updatedProducts.find((p) => p.id === 'prod-one')?.bestseller, false);
+});
+
 test('detectResourceSharingAnomalies audits download logs for multi-IP dispersion and bursts', () => {
   const realNow = Date.now();
   const realLogs = [

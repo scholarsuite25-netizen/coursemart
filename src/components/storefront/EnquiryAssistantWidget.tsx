@@ -41,7 +41,7 @@ export function EnquiryAssistantWidget() {
     }
   }, [messages, isOpen]);
 
-  const handleAsk = (query: string) => {
+  const handleAsk = async (query: string) => {
     const text = query.trim();
     if (!text) return;
 
@@ -56,19 +56,46 @@ export function EnquiryAssistantWidget() {
     setInputQuestion('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const res = runEnquiryAgent(text);
-      const botMsg: Message = {
-        id: `bot-${Date.now()}`,
-        sender: 'assistant',
-        text: res.answer,
-        matchedTopics: res.matchedTopics,
-        suggestedForumThreadSlug: res.suggestedForumThreadSlug,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    let response: {
+      answer: string;
+      matchedTopics?: string[];
+      suggestedForumThreadSlug?: string;
+    };
+
+    try {
+      const resp = await fetch('/api/agents/enquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: text }),
+      });
+      const json = (await resp.json().catch(() => null)) as {
+        answer?: string;
+        matchedTopics?: string[];
+        suggestedForumThreadSlug?: string;
+      } | null;
+      if (!resp.ok || !json || typeof json.answer !== 'string' || !json.answer.trim()) {
+        throw new Error('Enquiry API unavailable');
+      }
+      response = {
+        answer: json.answer,
+        matchedTopics: json.matchedTopics,
+        suggestedForumThreadSlug: json.suggestedForumThreadSlug,
       };
-      setMessages((prev) => [...prev, botMsg]);
-      setIsTyping(false);
-    }, 400);
+    } catch {
+      // Local deterministic knowledge base keeps the widget working offline.
+      response = runEnquiryAgent(text);
+    }
+
+    const botMsg: Message = {
+      id: `bot-${Date.now()}`,
+      sender: 'assistant',
+      text: response.answer,
+      matchedTopics: response.matchedTopics,
+      suggestedForumThreadSlug: response.suggestedForumThreadSlug,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages((prev) => [...prev, botMsg]);
+    setIsTyping(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

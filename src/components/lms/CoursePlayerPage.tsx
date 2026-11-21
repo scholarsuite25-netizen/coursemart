@@ -417,22 +417,68 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
     setQuestionDraft('');
   };
 
-  const handleRequestAiTutorAnswer = (questionId: string, questionText: string) => {
+  // Ask the server-side enquiry agent first (Gemini-backed when configured),
+  // then fall back to the deterministic local knowledge base on network errors.
+  const requestEnquiryAnswer = async (
+    questionText: string
+  ): Promise<{
+    answer: string;
+    matchedTopics?: string[];
+    suggestedForumThreadSlug?: string;
+  }> => {
+    const context = {
+      courseName: product.title,
+      lectureTitle: activeLecture?.title,
+    };
+
+    try {
+      const resp = await fetch('/api/agents/enquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: questionText, context }),
+      });
+      if (resp.ok) {
+        const json = (await resp.json()) as {
+          answer?: string;
+          matchedTopics?: string[];
+          suggestedForumThreadSlug?: string;
+        };
+        if (typeof json.answer === 'string' && json.answer.trim()) {
+          return {
+            answer: json.answer,
+            matchedTopics: json.matchedTopics,
+            suggestedForumThreadSlug: json.suggestedForumThreadSlug,
+          };
+        }
+      }
+    } catch {
+      // Fall through to the local agent below.
+    }
+
+    const fallback = runEnquiryAgent(questionText, context);
+    return {
+      answer: fallback.answer,
+      matchedTopics: fallback.matchedTopics,
+      suggestedForumThreadSlug: fallback.suggestedForumThreadSlug,
+    };
+  };
+
+  const handleRequestAiTutorAnswer = async (questionId: string, questionText: string) => {
     if (!activeLecture || loadingAiAnswerId) return;
     setLoadingAiAnswerId(questionId);
 
-    setTimeout(() => {
-      const res = runEnquiryAgent(questionText, {
-        courseName: product.title,
-        lectureTitle: activeLecture.title,
-      });
+    try {
+      const res = await requestEnquiryAnswer(questionText);
       answerLectureQuestion(product.id, questionId, `[AI Tutor]: ${res.answer}`);
-      setLoadingAiAnswerId(null);
       showToast('AI Tutor Answer generated');
-    }, 400);
+    } catch {
+      showToast('AI Tutor could not answer right now. Please try again.');
+    } finally {
+      setLoadingAiAnswerId(null);
+    }
   };
 
-  const handleAskAiTutorDirectly = (e: React.MouseEvent) => {
+  const handleAskAiTutorDirectly = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!activeLecture || !questionDraft.trim() || isSubmittingAi) return;
     setIsSubmittingAi(true);
@@ -440,21 +486,21 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
     const text = questionDraft.trim();
     setQuestionDraft('');
 
-    addLectureQuestion(product.id, activeLecture.id, text);
-
-    setTimeout(() => {
-      const res = runEnquiryAgent(text, {
-        courseName: product.title,
-        lectureTitle: activeLecture.title,
-      });
-      const updatedProgress = getCourseProgress(product.id);
-      const latestQ = updatedProgress?.questions?.[0];
-      if (latestQ) {
-        answerLectureQuestion(product.id, latestQ.id, `[AI Tutor]: ${res.answer}`);
-      }
+    const questionId = addLectureQuestion(product.id, activeLecture.id, text);
+    if (!questionId) {
       setIsSubmittingAi(false);
+      return;
+    }
+
+    try {
+      const res = await requestEnquiryAnswer(text);
+      answerLectureQuestion(product.id, questionId, `[AI Tutor]: ${res.answer}`);
       showToast('Question posted with instant AI Tutor answer!');
-    }, 400);
+    } catch {
+      showToast('Question posted. The AI Tutor is temporarily unavailable.');
+    } finally {
+      setIsSubmittingAi(false);
+    }
   };
 
   const handleDownloadResource = async (fileName: string) => {
@@ -500,7 +546,15 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
   };
 
   const handleDownloadCertificate = () => {
-    const certCode = progress?.certificateCode || issueCourseCertificate(product.id) || 'CM-CERT-VERIFIED';
+    if (progressPct !== 100) {
+      showToast('Complete 100% of the course lectures to download your certificate.');
+      return;
+    }
+    const certCode = progress?.certificateCode || issueCourseCertificate(product.id);
+    if (!certCode) {
+      showToast('Certificate is not available yet. Complete all lectures and try again.');
+      return;
+    }
     const certHtml = `<!doctype html><html><head><title>Certificate - ${product.title}</title></head><body style="font-family:sans-serif;padding:48px;text-align:center;border:8px solid #0a192f;max-width:800px;margin:40px auto;"><h1>Verified Certificate of Completion</h1><p>Verification ID: <strong>${certCode}</strong></p><p>This certifies that</p><h2>${currentUser?.name}</h2><p>has successfully completed all curriculum modules of</p><h3>${product.title}</h3><p>Instructor: ${product.instructorName}</p><p>Issued: ${new Date().toISOString().slice(0, 10)}</p></body></html>`;
     const blob = new Blob([certHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
