@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import type { CourseLecture } from '../../types/marketplace';
 import { lectureAudio } from '../../utils/audioNarrator';
 import { formatCanvasWatermark, generateWatermarkOverlayConfig } from '../../utils/contentProtection';
+import { resolveMediaSource } from '../../utils/mediaResolver';
 
 interface LectureVideoCanvasPlayerProps {
   lecture: CourseLecture & { moduleTitle: string };
@@ -339,11 +340,27 @@ export function LectureVideoCanvasPlayer({
     resolvedWatermarkText,
   ]);
 
-  if (lecture.videoUrl) {
+  const resolvedMedia = useMemo(() => resolveMediaSource(lecture.videoUrl), [lecture.videoUrl]);
+
+  if (resolvedMedia.isIframe && resolvedMedia.embedUrl) {
+    return (
+      <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
+        <iframe
+          src={resolvedMedia.embedUrl}
+          title={`Lecture video stream for ${lecture.title}`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="w-full h-full border-0"
+        />
+      </div>
+    );
+  }
+
+  if (resolvedMedia.provider === 'direct' && resolvedMedia.directUrl) {
     return (
       <video
         ref={videoRef}
-        src={lecture.videoUrl}
+        src={resolvedMedia.directUrl}
         controls
         playsInline
         muted={isMuted}

@@ -30,6 +30,7 @@ import type { Order, Product } from '../../types/marketplace';
 import { getCourseProgressSummary } from '../../utils/commerce';
 import { formatNaira } from '../../utils/currency';
 import { escapeHtml } from '../../utils/sanitize';
+import { resolveDownloadUrl } from '../../utils/mediaResolver';
 import { formatProductTypeLabel, getAccentTheme } from '../../utils/theme';
 import {
   TINTOL_PAYMENT_DETAILS,
@@ -263,6 +264,19 @@ export function LibraryPage() {
       if (!check.ok) return;
     }
 
+    const targetUrl =
+      prod.downloadUrl ||
+      prod.ebookData?.downloadUrl ||
+      prod.digitalResourceMeta?.downloadUrl ||
+      prod.softwareData?.downloadUrl;
+
+    if (targetUrl) {
+      const directUrl = resolveDownloadUrl(targetUrl);
+      window.open(directUrl, '_blank', 'noopener,noreferrer');
+      showToast(`Initiating direct download for "${prod.title}"...`);
+      return;
+    }
+
     if (prod.ebookData) {
       const chaptersText = prod.ebookData.chapters
         .map(
@@ -300,6 +314,15 @@ export function LibraryPage() {
       const check = recordProductDownload(matchedOrder.id, prod.id);
       if (!check.ok) return;
     }
+
+    const targetUrl = prod.downloadUrl || prod.softwareData?.downloadUrl;
+    if (targetUrl) {
+      const directUrl = resolveDownloadUrl(targetUrl);
+      window.open(directUrl, '_blank', 'noopener,noreferrer');
+      showToast(`Initiating software download for "${prod.title}"...`);
+      return;
+    }
+
     const manifest = {
       package: prod.slug,
       version: prod.softwareData?.version ?? '1.0.0',

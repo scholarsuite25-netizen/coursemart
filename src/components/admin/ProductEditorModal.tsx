@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Download, ExternalLink, Plus, Trash2, Video, X } from 'lucide-react';
 import {
   INSTRUCTOR_AVATAR,
   TEMPLATES_TOOLKIT_COVER,
 } from '../../data/seedData';
 import type {
+  CourseLecture,
   CourseModule,
   DifficultyLevel,
   DigitalProductVariant,
@@ -16,6 +17,7 @@ import type {
   ProductType,
 } from '../../types/marketplace';
 import { ALL_PRODUCT_TOPICS, DIGITAL_SUBMENU_ITEMS } from '../../utils/catalogAndBlogs';
+import { getProviderLabel, resolveDownloadUrl, resolveMediaUrl } from '../../utils/mediaResolver';
 
 interface ProductEditorModalProps {
   initialProduct: Product | null;
@@ -76,6 +78,13 @@ export function ProductEditorModal({
   const [resourceAssetsText, setResourceAssetsText] = useState(
     initialProduct?.digitalResourceMeta?.includedAssets.join('\n') ??
       'Structured template files\nStep-by-step quickstart README'
+  );
+  const [downloadUrl, setDownloadUrl] = useState(
+    initialProduct?.downloadUrl ??
+      initialProduct?.digitalResourceMeta?.downloadUrl ??
+      initialProduct?.ebookData?.downloadUrl ??
+      initialProduct?.softwareData?.downloadUrl ??
+      ''
   );
 
   // Course modules
@@ -160,6 +169,36 @@ export function ProductEditorModal({
                   keyTakeaways: ['Practical takeaway'],
                 },
               ],
+            }
+          : m
+      )
+    );
+  };
+
+  const handleDeleteLecture = (moduleIdx: number, lectureIdx: number) => {
+    setModules((prev) =>
+      prev.map((m, i) =>
+        i === moduleIdx
+          ? {
+              ...m,
+              lectures: m.lectures.filter((_, j) => j !== lectureIdx),
+            }
+          : m
+      )
+    );
+  };
+
+  const handleUpdateLecture = (
+    moduleIdx: number,
+    lectureIdx: number,
+    patch: Partial<CourseLecture>
+  ) => {
+    setModules((prev) =>
+      prev.map((m, i) =>
+        i === moduleIdx
+          ? {
+              ...m,
+              lectures: m.lectures.map((l, j) => (j === lectureIdx ? { ...l, ...patch } : l)),
             }
           : m
       )
@@ -293,6 +332,7 @@ export function ProductEditorModal({
       bestseller: initialProduct?.bestseller ?? false,
       copyProtectionEnabled,
       formatLabel,
+      downloadUrl: downloadUrl.trim() || undefined,
       includedInMembershipTier: includedInMembershipTier || undefined,
       variants: type === 'ebook' && variants.length > 0 ? variants : undefined,
       bundleProductIds: initialProduct?.bundleProductIds,
@@ -323,6 +363,7 @@ export function ProductEditorModal({
               formats: ['PDF', 'EPUB', 'MOBI'],
               isbn: initialProduct?.ebookData?.isbn ?? '978-1-958204-99-5',
               fileSize: initialProduct?.ebookData?.fileSize ?? '14.2 MB',
+              downloadUrl: downloadUrl.trim() || undefined,
               chapters,
             }
           : undefined,
@@ -330,6 +371,7 @@ export function ProductEditorModal({
         type === 'ebook' && resolvedDigitalSub !== 'ebook'
           ? {
               deliverableFormat: resourceFormat.trim() || 'ZIP + Markdown',
+              downloadUrl: downloadUrl.trim() || undefined,
               itemsCountLabel:
                 initialProduct?.digitalResourceMeta?.itemsCountLabel ??
                 `${resourceAssetsText.split('\n').filter((s) => s.trim()).length || 4} Included Assets`,
@@ -344,6 +386,7 @@ export function ProductEditorModal({
         type === 'software'
           ? {
               version: swVersion || '1.0.0',
+              downloadUrl: downloadUrl.trim() || undefined,
               platforms: swPlatforms
                 .split(',')
                 .map((s) => s.trim())
@@ -674,54 +717,101 @@ export function ProductEditorModal({
                     )}
                   </div>
 
-                  <div className="space-y-1.5 pl-3">
-                    {mod.lectures.map((lec, lIdx) => (
-                      <div key={lec.id} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={lec.title}
-                          onChange={(e) =>
-                            setModules((prev) =>
-                              prev.map((m, i) =>
-                                i === mIdx
-                                  ? {
-                                      ...m,
-                                      lectures: m.lectures.map((l, j) =>
-                                        j === lIdx ? { ...l, title: e.target.value } : l
-                                      ),
-                                    }
-                                  : m
-                              )
-                            )
-                          }
-                          aria-label={`Lecture ${lIdx + 1} title`}
-                          className="flex-1 h-8 px-2.5 text-xs border border-slate-200 rounded"
-                        />
-                        <input
-                          type="number"
-                          value={lec.durationMinutes}
-                          onChange={(e) =>
-                            setModules((prev) =>
-                              prev.map((m, i) =>
-                                i === mIdx
-                                  ? {
-                                      ...m,
-                                      lectures: m.lectures.map((l, j) =>
-                                        j === lIdx
-                                          ? { ...l, durationMinutes: Number(e.target.value) || 5 }
-                                          : l
-                                      ),
-                                    }
-                                  : m
-                              )
-                            )
-                          }
-                          aria-label="Lecture minutes"
-                          className="w-16 h-8 px-2 text-xs tabular-nums border border-slate-200 rounded"
-                        />
-                        <span className="text-[11px] text-slate-500">min</span>
-                      </div>
-                    ))}
+                  <div className="space-y-2 pl-2">
+                    {mod.lectures.map((lec, lIdx) => {
+                      const media = lec.videoUrl ? resolveMediaUrl(lec.videoUrl) : null;
+                      return (
+                        <div
+                          key={lec.id}
+                          className="p-2.5 bg-slate-50 border border-slate-200 rounded-md space-y-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-slate-500 w-5 shrink-0">
+                              #{lIdx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={lec.title}
+                              placeholder="Lecture title..."
+                              onChange={(e) =>
+                                handleUpdateLecture(mIdx, lIdx, { title: e.target.value })
+                              }
+                              aria-label={`Lecture ${lIdx + 1} title`}
+                              className="flex-1 h-8 px-2.5 text-xs bg-white border border-slate-200 rounded"
+                            />
+                            <input
+                              type="number"
+                              value={lec.durationMinutes}
+                              onChange={(e) =>
+                                handleUpdateLecture(mIdx, lIdx, {
+                                  durationMinutes: Number(e.target.value) || 5,
+                                })
+                              }
+                              aria-label="Lecture minutes"
+                              className="w-14 h-8 px-2 text-xs bg-white tabular-nums border border-slate-200 rounded"
+                            />
+                            <span className="text-[11px] text-slate-500 shrink-0">min</span>
+                            <label className="flex items-center gap-1 text-[11px] text-slate-600 cursor-pointer shrink-0 ml-1">
+                              <input
+                                type="checkbox"
+                                checked={lec.isPreview}
+                                onChange={(e) =>
+                                  handleUpdateLecture(mIdx, lIdx, { isPreview: e.target.checked })
+                                }
+                                className="w-3.5 h-3.5 rounded border-slate-300 text-[#5624d0]"
+                              />
+                              Preview
+                            </label>
+                            {mod.lectures.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLecture(mIdx, lIdx)}
+                                aria-label="Delete lecture"
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer shrink-0"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Video Stream URL Input with Auto-Detection Badge */}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-200/60">
+                            <div className="flex-1 flex items-center gap-1.5">
+                              <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <input
+                                type="url"
+                                value={lec.videoUrl ?? ''}
+                                placeholder="Paste YouTube Unlisted, Google Drive, Vimeo, or MP4 link..."
+                                onChange={(e) =>
+                                  handleUpdateLecture(mIdx, lIdx, { videoUrl: e.target.value })
+                                }
+                                className="flex-1 h-7 px-2 text-[11px] bg-white border border-slate-200 rounded focus:border-[#5624d0] focus:ring-1 focus:ring-[#5624d0]"
+                              />
+                            </div>
+                            {media && lec.videoUrl ? (
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded shrink-0 ${
+                                  media.provider === 'youtube'
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    : media.provider === 'google-drive'
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    : media.provider === 'vimeo'
+                                    ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                }`}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                {getProviderLabel(media.provider)}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 shrink-0 italic">
+                                Canvas Narrator & Watermark Active
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Optional Graded Module Quiz */}
@@ -1013,6 +1103,57 @@ export function ProductEditorModal({
               </div>
             </div>
           )}
+
+          {/* Deliverable Direct Download / Google Drive Link */}
+          <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Download className="w-4 h-4 text-[#2271b1]" />
+                <h3 className="font-display text-sm font-bold text-slate-900">
+                  Deliverable File Download (Google Drive / Direct URL)
+                </h3>
+              </div>
+              {downloadUrl && (
+                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                  Active Direct Deliverable
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-600">
+              Paste your Google Drive share link, S3/CDN link, or direct file URL. Google Drive links are automatically converted into a 1-click instant direct download link for customers upon purchase.
+            </p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="url"
+                value={downloadUrl}
+                placeholder="https://drive.google.com/file/d/... or https://..."
+                onChange={(e) => setDownloadUrl(e.target.value)}
+                onBlur={(e) => {
+                  const resolved = resolveDownloadUrl(e.target.value);
+                  if (resolved !== e.target.value) {
+                    setDownloadUrl(resolved);
+                  }
+                }}
+                className="flex-1 h-9 px-3 text-xs bg-white border border-slate-300 rounded focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
+              />
+              {downloadUrl && (
+                <a
+                  href={resolveDownloadUrl(downloadUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-9 px-3 text-xs font-bold bg-white text-slate-700 border border-slate-300 rounded hover:bg-slate-100 inline-flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Test Download
+                </a>
+              )}
+            </div>
+            {downloadUrl && downloadUrl.includes('drive.google.com') && (
+              <p className="text-[11px] text-emerald-600 font-medium">
+                Google Drive link auto-optimized for 1-click direct download.
+              </p>
+            )}
+          </div>
 
           {error && (
             <p className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 p-3 rounded">

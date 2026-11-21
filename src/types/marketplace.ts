@@ -102,6 +102,7 @@ export interface CourseLecture {
   chapters?: LectureChapterMarker[];
   transcript?: string;
   videoUrl?: string;
+  downloadUrl?: string;
 }
 
 export interface CourseModule {
@@ -197,12 +198,14 @@ export interface Product {
   includedInMembershipTier?: MembershipTierId;
   bundleProductIds?: string[];
   downloadLimit?: number;
+  downloadUrl?: string;
   variants?: DigitalProductVariant[];
   digitalResourceMeta?: {
     deliverableFormat: string;
     itemsCountLabel: string;
     compatibility: string;
     includedAssets: string[];
+    downloadUrl?: string;
     sku?: string;
     version?: string;
     changelog?: SoftwareReleaseNote[];
@@ -218,12 +221,14 @@ export interface Product {
     formats: string[];
     isbn: string;
     fileSize: string;
+    downloadUrl?: string;
     chapters: EbookChapter[];
   };
   softwareData?: {
     version: string;
     platforms: string[];
     fileSize: string;
+    downloadUrl?: string;
     licenseTiers: SoftwareLicenseTier[];
     releases: SoftwareReleaseNote[];
   };
