@@ -161,7 +161,8 @@ export interface ProductReview {
   createdAt: string;
 }
 
-export type MembershipTierId = 'starter' | 'pro' | 'vip';
+export type MembershipTierId = 'free' | 'paid';
+export type LegacyMembershipTierId = 'starter' | 'pro' | 'vip' | 'enterprise';
 
 export interface Product {
   id: string;
@@ -243,6 +244,7 @@ export interface CartItem {
   variantName?: string;
   sku?: string;
   unitPrice: number;
+  isPremium?: boolean;
 }
 
 export interface Coupon {

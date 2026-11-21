@@ -62,6 +62,7 @@ import {
   gradeModuleQuiz,
   isTierSufficient,
   isUnlockedByMembership as checkUnlockedByMembership,
+  migrateLegacyTier,
   roundCurrency,
   toggleModuleLecturesCompletion,
 } from '../utils/commerce';
@@ -974,17 +975,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const activeUserMembership = useMemo(() => {
     if (!currentUser) return null;
-    return (
-      userMemberships.find(
-        (m) => m.userId === currentUser.id && m.status === 'active'
-      ) ?? null
+    const found = userMemberships.find(
+      (m) => m.userId === currentUser.id && m.status === 'active'
     );
+    if (!found) return null;
+    return {
+      ...found,
+      planId: migrateLegacyTier(found.planId),
+    };
   }, [currentUser, userMemberships]);
 
   const activeMembershipPlan = useMemo(() => {
-    if (!activeUserMembership) return null;
-    return membershipPlans.find((p) => p.id === activeUserMembership.planId) ?? null;
-  }, [activeUserMembership, membershipPlans]);
+    if (activeUserMembership) {
+      return membershipPlans.find((p) => p.id === activeUserMembership.planId) ?? null;
+    }
+    if (currentUser) {
+      return membershipPlans.find((p) => p.id === 'free') ?? null;
+    }
+    return null;
+  }, [currentUser, activeUserMembership, membershipPlans]);
 
   const isUnlockedByMembership = useCallback(
     (product: Product) => {
@@ -1391,13 +1400,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (exists) {
           return prev.map((item) =>
             item.productId === product.id
-              ? { ...item, tierId, tierName, seats, variantId, variantName, sku, unitPrice }
+              ? { ...item, tierId, tierName, seats, variantId, variantName, sku, unitPrice, isPremium: Boolean(product.isPremium) }
               : item
           );
         }
         return [
           ...prev,
-          { productId: product.id, tierId, tierName, seats, variantId, variantName, sku, unitPrice },
+          { productId: product.id, tierId, tierName, seats, variantId, variantName, sku, unitPrice, isPremium: Boolean(product.isPremium) },
         ];
       });
       setIsCartOpen(true);
@@ -1418,6 +1427,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               productId: p.id,
               variantName: 'Bundle Edition (15% Off)',
               unitPrice: discounted,
+              isPremium: Boolean(p.isPremium),
             });
           }
         }
@@ -1486,14 +1496,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const userMem = userMemberships.find(
         (m) => m.userId === activeUser.id && m.status === 'active'
       );
-      const memPlan = userMem ? membershipPlans.find((p) => p.id === userMem.planId) : null;
-      const memberDiscountPct = memPlan?.storeDiscountPercent ?? 0;
+      const userTier: MembershipTierId = userMem ? migrateLegacyTier(userMem.planId) : 'free';
+
+      const enrichedCart = cart.map((item) => {
+        const prod = products.find((p) => p.id === item.productId);
+        return {
+          ...item,
+          isPremium: item.isPremium ?? prod?.isPremium ?? false,
+        };
+      });
 
       const totals = calculateExtendedCartTotals(
-        cart,
+        enrichedCart,
         coupons,
         appliedCouponCode,
-        memberDiscountPct,
+        userTier,
         0
       );
       const orderId = `ORD-${Math.floor(1050 + Math.random() * 8900)}`;
@@ -2189,8 +2206,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!plan) return { ok: false, error: 'Membership plan not found.' };
 
       const paymentMethod = options?.paymentMethod ?? 'card';
+      const isFreePlan = planId === 'free' || plan.monthlyPrice === 0;
       const status: UserMembership['status'] =
-        options?.paystackVerified === true ? 'active' : 'pending';
+        isFreePlan || options?.paystackVerified === true ? 'active' : 'pending';
       const now = new Date();
       const renewDate = new Date(now);
       if (billingCycle === 'annual') {

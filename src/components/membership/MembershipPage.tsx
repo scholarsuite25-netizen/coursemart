@@ -129,13 +129,13 @@ export function MembershipPage() {
   };
 
   const includedProductsCountByTier = (tier: MembershipPlan['id']) => {
-    const rank = { starter: 1, pro: 2, vip: 3 };
-    return products.filter(
-      (p) =>
-        p.status === 'published' &&
-        p.includedInMembershipTier &&
-        rank[tier] >= rank[p.includedInMembershipTier]
-    ).length;
+    return products.filter((p) => {
+      if (p.status !== 'published') return false;
+      if (tier === 'free') {
+        return p.price === 0 || p.includedInMembershipTier === 'free';
+      }
+      return p.includedInMembershipTier === 'paid' || (p.price > 0 && !p.isPremium);
+    }).length;
   };
 
   return (

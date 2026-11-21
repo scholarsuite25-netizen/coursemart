@@ -1,11 +1,40 @@
 import type {
   CartItem,
   Coupon,
+  MembershipTierId,
   Product,
   ProductFilterState,
   UserMembership,
 } from '../types/marketplace';
 import { formatNaira } from './currency.ts';
+
+/**
+ * Idempotent legacy membership tier migration function.
+ * Normalizes legacy tiers ('pro', 'vip', 'enterprise', 'starter') to 'paid'.
+ * Unassigned or unknown tiers default to 'free'.
+ */
+export function migrateLegacyTier(tier: MembershipTierId | string | null | undefined): 'free' | 'paid' {
+  if (!tier) return 'free';
+  const normalized = tier.toString().trim().toLowerCase();
+  if (['paid', 'pro', 'vip', 'enterprise', 'starter'].includes(normalized)) {
+    return 'paid';
+  }
+  return 'free';
+}
+
+/**
+ * Idempotently migrates an array of UserMembership records to canonical 'free' | 'paid' tiers.
+ */
+export function migrateUserMemberships(memberships: UserMembership[]): UserMembership[] {
+  if (!Array.isArray(memberships)) return [];
+  return memberships.map((m) => {
+    if (!m) return m;
+    return {
+      ...m,
+      planId: migrateLegacyTier(m.planId),
+    };
+  });
+}
 
 export interface CartTotals {
   subtotal: number;
@@ -361,7 +390,7 @@ export function calculateExtendedCartTotals(
   items: CartItem[],
   coupons: Coupon[],
   couponCodeInput: string,
-  membershipDiscountPercent: number = 0,
+  membershipDiscountOrTier: number | string = 0,
   taxRate: number = 0,
   nowDate: Date = new Date()
 ): ExtendedCartTotals {
@@ -374,9 +403,38 @@ export function calculateExtendedCartTotals(
       grandTotal: 0,
     };
   }
+
   const afterCoupon = base.total;
-  const clampedMemberPct = Math.max(0, Math.min(80, membershipDiscountPercent));
-  const membershipDiscount = roundCurrency(afterCoupon * (clampedMemberPct / 100));
+  let membershipDiscount = 0;
+
+  const isTierString = typeof membershipDiscountOrTier === 'string';
+  const normalizedTier = isTierString ? migrateLegacyTier(membershipDiscountOrTier) : null;
+  const isPaidTier = normalizedTier === 'paid';
+  const hasPremiumFlagInCart = items.some((item) => item.isPremium !== undefined);
+
+  if (isTierString || (hasPremiumFlagInCart && membershipDiscountOrTier === 50)) {
+    // Tier-based discount:
+    // Paid members receive a 50% discount on premium products (isPremium === true).
+    // Free members pay full price (0% discount).
+    if (isPaidTier || membershipDiscountOrTier === 50) {
+      const couponRatio = base.subtotal > 0 ? (base.subtotal - base.discount) / base.subtotal : 1;
+      for (const item of items) {
+        if (item.isPremium === true) {
+          const itemNetPrice = Math.max(0, item.unitPrice * couponRatio);
+          const itemDiscount = roundCurrency(itemNetPrice * 0.5);
+          membershipDiscount += itemDiscount;
+        }
+      }
+      membershipDiscount = roundCurrency(Math.min(afterCoupon, membershipDiscount));
+    } else {
+      membershipDiscount = 0;
+    }
+  } else if (typeof membershipDiscountOrTier === 'number') {
+    // Backward compatibility: scalar discount percent applied across the whole cart
+    const clampedMemberPct = Math.max(0, Math.min(80, membershipDiscountOrTier));
+    membershipDiscount = roundCurrency(afterCoupon * (clampedMemberPct / 100));
+  }
+
   const taxableAmount = roundCurrency(Math.max(0, afterCoupon - membershipDiscount));
   const taxAmount = roundCurrency(taxableAmount * Math.max(0, taxRate));
   const grandTotal = roundCurrency(taxableAmount + taxAmount);
@@ -438,25 +496,54 @@ export function generateCertificateCode(userId: string, productId: string): stri
 }
 
 export function isTierSufficient(
-  userTier: 'starter' | 'pro' | 'vip' | null | undefined,
-  requiredTier: 'starter' | 'pro' | 'vip' | undefined
+  userTier: MembershipTierId | string | null | undefined,
+  requiredTier: MembershipTierId | string | undefined
 ): boolean {
   if (!userTier || !requiredTier) return false;
-  const rank: Record<'starter' | 'pro' | 'vip', number> = {
-    starter: 1,
-    pro: 2,
-    vip: 3,
+  const normalizedUser = migrateLegacyTier(userTier);
+  const normalizedReq = migrateLegacyTier(requiredTier);
+  const rank: Record<'free' | 'paid', number> = {
+    free: 1,
+    paid: 2,
   };
-  return rank[userTier] >= rank[requiredTier];
+  return rank[normalizedUser] >= rank[normalizedReq];
 }
 
 export function isUnlockedByMembership(
-  product: (Product | { isPremium?: boolean; includedInMembershipTier?: any }) | null | undefined,
+  product: (Product | { price?: number; isPremium?: boolean; includedInMembershipTier?: any }) | null | undefined,
   membership: (UserMembership | { status?: string; planId?: any }) | null | undefined
 ): boolean {
-  if (!product || !membership || membership.status !== 'active') return false;
-  if (product.isPremium === true) return true;
-  return isTierSufficient(membership.planId, product.includedInMembershipTier);
+  if (!product) return false;
+
+  // 1. Free items are accessible to everyone (Free and Paid members alike)
+  if (product.price === 0 || product.includedInMembershipTier === 'free') {
+    return true;
+  }
+
+  // 2. Active membership is required for paid items
+  if (!membership || membership.status !== 'active') {
+    return false;
+  }
+
+  // 3. Premium products require checkout purchase (Paid members get 50% discount at checkout, not free unlock)
+  if (product.isPremium === true) {
+    return false;
+  }
+
+  // 4. Paid tier members have access to all items marked as included in paid membership
+  const userTier = migrateLegacyTier(membership.planId);
+  if (userTier === 'paid') {
+    if (product.includedInMembershipTier === 'paid') {
+      return true;
+    }
+    if (product.includedInMembershipTier) {
+      return isTierSufficient(userTier, product.includedInMembershipTier);
+    }
+    return false;
+  }
+
+  // Free tier members only have access to items toggled as free
+  return false;
 }
 
 export const DEFAULT_AFFILIATE_COMMISSION_PERCENT = 20;

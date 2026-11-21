@@ -370,7 +370,7 @@ test('18. isPromptVaultAccessible: allows active membership; rejects null, cance
   const activeMembership: UserMembership = {
     id: 'm1',
     userId: 'u1',
-    planId: 'pro',
+    planId: 'paid',
     billingCycle: 'monthly',
     status: 'active',
     startedAt: '2026-01-01',
@@ -421,7 +421,7 @@ test('19. isPromptVaultAccessible: enforces authenticated user and active member
   const membership: UserMembership = {
     id: 'm-1',
     userId: 'u-1',
-    planId: 'pro',
+    planId: 'paid',
     billingCycle: 'annual',
     status: 'active',
     startedAt: '2026-01-01',

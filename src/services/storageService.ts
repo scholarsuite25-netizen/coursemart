@@ -53,6 +53,13 @@ import type {
 } from '../types/marketplace';
 import type { CalendarEngagement, FacilitatorBooking } from '../types/promoter';
 
+import {
+  migrateLegacyTier,
+  migrateUserMemberships,
+} from '../utils/commerce';
+
+export { migrateLegacyTier, migrateUserMemberships };
+
 const STORAGE_KEYS = {
   PRODUCTS: 'cm_db_products_ngn_v1',
   BLOGS: 'cm_db_blogs_v3',
@@ -210,7 +217,19 @@ export const SEED_FACILITATOR_BOOKINGS: FacilitatorBooking[] = [
 ];
 
 export const storageService = {
-  getProducts: (): Product[] => readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS),
+  getProducts: (): Product[] => {
+    const list = readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
+    if (!Array.isArray(list)) return [];
+    return list.map((p) => {
+      if (p && p.includedInMembershipTier && ['starter', 'pro', 'vip', 'enterprise'].includes(p.includedInMembershipTier as string)) {
+        return {
+          ...p,
+          includedInMembershipTier: migrateLegacyTier(p.includedInMembershipTier),
+        };
+      }
+      return p;
+    });
+  },
   saveProducts: (products: Product[]): void => writeStorage(STORAGE_KEYS.PRODUCTS, products),
 
   getBlogPosts: (): BlogPost[] => readStorage(STORAGE_KEYS.BLOGS, SEED_BLOG_POSTS),
@@ -250,15 +269,27 @@ export const storageService = {
   saveWhatsAppGroups: (groups: WhatsAppGroup[]): void =>
     writeStorage(STORAGE_KEYS.WHATSAPP_GROUPS, groups),
 
-  getMembershipPlans: (): MembershipPlan[] =>
-    readStorage(STORAGE_KEYS.MEMBERSHIP_PLANS, SEED_MEMBERSHIP_PLANS),
+  getMembershipPlans: (): MembershipPlan[] => {
+    const raw = readStorage(STORAGE_KEYS.MEMBERSHIP_PLANS, SEED_MEMBERSHIP_PLANS);
+    const hasLegacyPlans = Array.isArray(raw) && raw.some((p) => p && ['starter', 'pro', 'vip', 'enterprise'].includes(p.id as string));
+    if (hasLegacyPlans || !Array.isArray(raw) || raw.length === 0) {
+      writeStorage(STORAGE_KEYS.MEMBERSHIP_PLANS, SEED_MEMBERSHIP_PLANS);
+      return SEED_MEMBERSHIP_PLANS;
+    }
+    return raw;
+  },
   saveMembershipPlans: (plans: MembershipPlan[]): void =>
     writeStorage(STORAGE_KEYS.MEMBERSHIP_PLANS, plans),
 
-  getUserMemberships: (): UserMembership[] =>
-    readStorage(STORAGE_KEYS.USER_MEMBERSHIPS, SEED_USER_MEMBERSHIPS),
-  saveUserMemberships: (list: UserMembership[]): void =>
-    writeStorage(STORAGE_KEYS.USER_MEMBERSHIPS, list),
+  getUserMemberships: (): UserMembership[] => {
+    const raw = readStorage(STORAGE_KEYS.USER_MEMBERSHIPS, SEED_USER_MEMBERSHIPS);
+    const migrated = migrateUserMemberships(raw);
+    return migrated;
+  },
+  saveUserMemberships: (list: UserMembership[]): void => {
+    const migrated = migrateUserMemberships(list);
+    writeStorage(STORAGE_KEYS.USER_MEMBERSHIPS, migrated);
+  },
 
   getAffiliates: (): AffiliateProfile[] =>
     readStorage(STORAGE_KEYS.AFFILIATES, SEED_AFFILIATES),

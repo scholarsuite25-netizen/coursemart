@@ -45,6 +45,7 @@ export function CartDrawer() {
     setAppliedCouponCode,
     removeFromCart,
     currentUser,
+    activeUserMembership,
     activeMembershipPlan,
     activeReferralCode,
     quickLoginAsRole,
@@ -75,12 +76,22 @@ export function CartDrawer() {
 
   if (!isCartOpen) return null;
 
-  const memberDiscountPct = activeMembershipPlan?.storeDiscountPercent ?? 0;
+  const isPaidMember = activeUserMembership?.status === 'active' && activeUserMembership.planId === 'paid';
+  const userTier: 'free' | 'paid' = isPaidMember ? 'paid' : 'free';
+
+  const enrichedCart = cart.map((item) => {
+    const prod = products.find((p) => p.id === item.productId);
+    return {
+      ...item,
+      isPremium: item.isPremium ?? prod?.isPremium ?? false,
+    };
+  });
+
   const totals = calculateExtendedCartTotals(
-    cart,
+    enrichedCart,
     coupons,
     appliedCouponCode,
-    memberDiscountPct,
+    userTier,
     0
   );
 
@@ -523,14 +534,14 @@ export function CartDrawer() {
             {/* Footer Totals + Coupon + Order Note + Payment Method + Checkout */}
             {cart.length > 0 && (
               <div className="p-6 border-t border-slate-200 bg-slate-50 space-y-3.5 overflow-y-auto max-h-[64vh]">
-                {activeMembershipPlan && (
+                {isPaidMember && (
                   <div className="flex items-center justify-between text-xs bg-[#0a192f] text-[#f5c451] px-3 py-2 rounded-md">
                     <span className="inline-flex items-center gap-1.5 font-bold">
                       <Crown className="w-3.5 h-3.5" />
-                      {activeMembershipPlan.name} Store Perk Active
+                      Paid Member Perk Active
                     </span>
                     <span className="font-bold tabular-nums">
-                      -{activeMembershipPlan.storeDiscountPercent}% Auto-Applied
+                      -50% on Premium Products
                     </span>
                   </div>
                 )}
@@ -709,7 +720,7 @@ export function CartDrawer() {
                   )}
                   {totals.membershipDiscount > 0 && (
                     <div className="flex justify-between text-emerald-700 font-medium">
-                      <span>Membership Discount ({memberDiscountPct}%)</span>
+                      <span>Paid Member Discount (50% on Premium Products)</span>
                       <span>-{formatNaira(totals.membershipDiscount)}</span>
                     </div>
                   )}

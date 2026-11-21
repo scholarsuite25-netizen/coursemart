@@ -70,7 +70,13 @@ import {
   SEED_ORDERS,
   SEED_USER_MEMBERSHIPS,
 } from '../data/seedData.ts';
-import { isTierSufficient } from '../utils/commerce.ts';
+import {
+  isTierSufficient,
+  migrateLegacyTier,
+  migrateUserMemberships,
+} from '../utils/commerce.ts';
+
+export { migrateLegacyTier, migrateUserMemberships };
 
 const GEMINI_MODEL = (process.env.GEMINI_MODEL || 'gemini-4-hydrogen').trim();
 
@@ -1744,7 +1750,7 @@ Requirements:
         if (m && m.id) pool.set(m.id, m);
       }
     }
-    return Array.from(pool.values());
+    return migrateUserMemberships(Array.from(pool.values()));
   };
 
   /**
@@ -1799,7 +1805,7 @@ Requirements:
       if (adminSession) {
         isEntitled = true;
         entitlementReason = 'admin_privilege';
-      } else if (product.price === 0) {
+      } else if (product.price === 0 || product.includedInMembershipTier === 'free') {
         isEntitled = true;
         entitlementReason = 'free_product';
       } else {
@@ -1837,18 +1843,17 @@ Requirements:
           );
 
           if (activeMembership) {
-            if (product.isPremium === true) {
-              isEntitled = true;
-              entitlementReason = 'premium_membership';
-            } else if (activeMembership.planId === 'vip') {
-              isEntitled = true;
-              entitlementReason = 'vip_membership';
-            } else if (
-              product.includedInMembershipTier &&
-              isTierSufficient(activeMembership.planId, product.includedInMembershipTier)
-            ) {
-              isEntitled = true;
-              entitlementReason = 'sufficient_membership_tier';
+            const userTier = migrateLegacyTier(activeMembership.planId);
+            if (userTier === 'paid') {
+              if (product.isPremium === true) {
+                // Premium products are not automatically unlocked by membership;
+                // Paid members receive 50% checkout discount and must complete order.
+                isEntitled = false;
+              } else {
+                // Paid members have access to all items marked as paid
+                isEntitled = true;
+                entitlementReason = 'paid_membership';
+              }
             }
           }
         }

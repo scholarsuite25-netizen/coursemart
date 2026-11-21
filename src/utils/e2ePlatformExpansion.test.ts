@@ -977,7 +977,7 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const activeMember: UserMembership = {
         id: 'mem-1',
         userId: 'usr-1',
-        planId: 'pro',
+        planId: 'paid',
         billingCycle: 'monthly',
         status: 'active',
         startedAt: '',
@@ -995,7 +995,7 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const cancelledMember: UserMembership = {
         id: 'mem-2',
         userId: 'usr-2',
-        planId: 'starter',
+        planId: 'paid',
         billingCycle: 'monthly',
         status: 'cancelled',
         startedAt: '',
@@ -1081,19 +1081,19 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const premiumProduct = {
         id: 'prod-prem-1',
         isPremium: true,
-      } as Product & { isPremium: boolean };
+      } as unknown as Product & { isPremium: boolean };
 
       const activeMember: UserMembership = {
         id: 'mem-1',
         userId: 'usr-1',
-        planId: 'starter',
+        planId: 'paid',
         billingCycle: 'monthly',
         status: 'active',
         startedAt: '',
         renewsAt: '',
       };
 
-      // Even on 'starter', any active member instantly unlocks isPremium resources
+      // Active member unlocks isPremium resource in legacy mock
       assert.equal(isUnlockedByMembership(premiumProduct, activeMember), true);
     });
 
@@ -1101,13 +1101,13 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const standardCourse = {
         id: 'prod-course-std',
         isPremium: false,
-        includedInMembershipTier: 'vip',
-      } as Product & { isPremium: boolean };
+        includedInMembershipTier: 'paid',
+      } as unknown as Product & { isPremium: boolean };
 
       const starterMember: UserMembership = {
         id: 'mem-1',
         userId: 'usr-1',
-        planId: 'starter',
+        planId: 'free',
         billingCycle: 'monthly',
         status: 'active',
         startedAt: '',
@@ -1118,7 +1118,7 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const vipMember: UserMembership = {
         id: 'mem-2',
         userId: 'usr-2',
-        planId: 'vip',
+        planId: 'paid',
         billingCycle: 'monthly',
         status: 'active',
         startedAt: '',
@@ -1430,7 +1430,7 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const pendingMember: UserMembership = {
         id: 'mem-pend',
         userId: 'usr-p',
-        planId: 'vip',
+        planId: 'paid',
         billingCycle: 'annual',
         status: 'pending',
         startedAt: '',
@@ -1537,7 +1537,7 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const buyerMembership: UserMembership = {
         id: 'mem-alex',
         userId: buyer.id,
-        planId: 'starter',
+        planId: 'paid',
         billingCycle: 'monthly',
         status: 'active',
         startedAt: new Date().toISOString(),
@@ -1616,7 +1616,7 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const activeMember: UserMembership = {
         id: 'mem-val',
         userId: 'usr-val',
-        planId: 'pro',
+        planId: 'paid',
         billingCycle: 'annual',
         status: 'active',
         startedAt: '',
@@ -1691,7 +1691,7 @@ describe('CourseMart Platform Expansion (R1-R5) Test Suite', () => {
       const studentMembership: UserMembership = {
         id: 'mem-kene',
         userId: student.id,
-        planId: 'pro',
+        planId: 'paid',
         billingCycle: 'monthly',
         status: 'active',
         startedAt: new Date().toISOString(),

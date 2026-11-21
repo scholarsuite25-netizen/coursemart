@@ -174,7 +174,7 @@ export function AdminDashboardPage() {
 
   // Membership assignment & plan draft state
   const [assignUserId, setAssignUserId] = useState('');
-  const [assignPlanId, setAssignPlanId] = useState<MembershipTierId>('pro');
+  const [assignPlanId, setAssignPlanId] = useState<MembershipTierId>('paid');
   const [assignStatus, setAssignStatus] = useState<UserMembership['status']>('active');
   const [planDrafts, setPlanDrafts] = useState<Record<MembershipTierId, MembershipPlan>>(() =>
     membershipPlans.reduce(

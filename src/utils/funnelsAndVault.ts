@@ -13,7 +13,7 @@ import type {
   UserAccount,
   UserMembership,
 } from '../types/marketplace';
-import { roundCurrency } from './commerce.ts';
+import { roundCurrency, migrateLegacyTier } from './commerce.ts';
 import { resolveInitialOrderStatus } from './automation.ts';
 
 // ==========================================
@@ -351,6 +351,13 @@ export function isPromptVaultAccessible(
         reason: `Membership is currently ${membership.status}. Reactivate to access Prompt Vault.`,
       };
     }
+    const tier = migrateLegacyTier(membership.planId);
+    if (tier !== 'paid') {
+      return {
+        accessible: false,
+        reason: 'Paid membership required for full Prompt Vault access',
+      };
+    }
     return { accessible: true };
   }
 
@@ -363,6 +370,13 @@ export function isPromptVaultAccessible(
     return {
       accessible: false,
       reason: `Membership is currently ${membership.status}. Reactivate to access Prompt Vault.`,
+    };
+  }
+  const tier = migrateLegacyTier(membership.planId);
+  if (tier !== 'paid') {
+    return {
+      accessible: false,
+      reason: 'Paid membership required for full Prompt Vault access',
     };
   }
   return { accessible: true };

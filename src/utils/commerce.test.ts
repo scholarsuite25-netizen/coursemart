@@ -430,39 +430,47 @@ test('attributeReferralSale alias supports both numeric order total and order ob
   assert.equal(resSelf.attributed, false);
 });
 
-test('isUnlockedByMembership grants instant access to isPremium resources for any active member and checks tiers when isPremium is false', () => {
+test('isUnlockedByMembership enforces Free vs Paid tier access control and gates isPremium resources', () => {
   const premiumProduct = {
     id: 'prod-prem-1',
     isPremium: true,
-    includedInMembershipTier: 'vip' as const,
+    price: 65000,
+    includedInMembershipTier: 'paid' as const,
   };
-  const standardTierProduct = {
-    id: 'prod-pro-1',
+  const standardPaidProduct = {
+    id: 'prod-paid-1',
     isPremium: false,
-    includedInMembershipTier: 'pro' as const,
+    price: 45000,
+    includedInMembershipTier: 'paid' as const,
+  };
+  const freeProduct = {
+    id: 'prod-free-1',
+    isPremium: false,
+    price: 0,
+    includedInMembershipTier: 'free' as const,
   };
 
-  // 1. Any active member tier (starter, pro, vip) unlocks isPremium: true instantly
-  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'starter' }), true);
-  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'pro' }), true);
-  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'vip' }), true);
+  // 1. Premium products require checkout purchase (not unlocked for free by membership)
+  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'paid' }), false);
+  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'free' }), false);
 
-  // 2. Inactive, pending, cancelled, or missing membership rejects access even for premium
-  assert.equal(isUnlockedByMembership(premiumProduct, null), false);
-  assert.equal(isUnlockedByMembership(premiumProduct, undefined), false);
-  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'cancelled', planId: 'vip' }), false);
-  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'pending', planId: 'vip' }), false);
+  // 2. Standard paid products unlocked for Paid member, locked for Free member
+  assert.equal(isUnlockedByMembership(standardPaidProduct, { status: 'active', planId: 'paid' }), true);
+  assert.equal(isUnlockedByMembership(standardPaidProduct, { status: 'active', planId: 'free' }), false);
 
-  // 3. Fallback tier check when isPremium is false / undefined
-  // Starter cannot unlock pro tier product
-  assert.equal(isUnlockedByMembership(standardTierProduct, { status: 'active', planId: 'starter' }), false);
-  // Pro tier unlocks pro tier product
-  assert.equal(isUnlockedByMembership(standardTierProduct, { status: 'active', planId: 'pro' }), true);
-  // VIP tier unlocks pro tier product
-  assert.equal(isUnlockedByMembership(standardTierProduct, { status: 'active', planId: 'vip' }), true);
+  // 3. Free products unlocked for Free and Paid members alike, as well as null membership
+  assert.equal(isUnlockedByMembership(freeProduct, { status: 'active', planId: 'free' }), true);
+  assert.equal(isUnlockedByMembership(freeProduct, { status: 'active', planId: 'paid' }), true);
+  assert.equal(isUnlockedByMembership(freeProduct, null), true);
 
-  // 4. Null product handles safely
-  assert.equal(isUnlockedByMembership(null, { status: 'active', planId: 'vip' }), false);
+  // 4. Inactive, pending, cancelled, or missing membership rejects access to paid products
+  assert.equal(isUnlockedByMembership(standardPaidProduct, null), false);
+  assert.equal(isUnlockedByMembership(standardPaidProduct, undefined), false);
+  assert.equal(isUnlockedByMembership(standardPaidProduct, { status: 'cancelled', planId: 'paid' }), false);
+  assert.equal(isUnlockedByMembership(standardPaidProduct, { status: 'pending', planId: 'paid' }), false);
+
+  // 5. Null product handles safely
+  assert.equal(isUnlockedByMembership(null, { status: 'active', planId: 'paid' }), false);
 });
 
 test('extractReferralCodeFromSearch parses both ?ref= and ?aff= query parameters', () => {
@@ -530,14 +538,17 @@ test('isUnlockedByMembership returns false when product has isPremium: false and
   );
 });
 
-test('isUnlockedByMembership validates tier hierarchy when product is not premium', () => {
-  const starterProduct = { id: 'p-start', isPremium: false, includedInMembershipTier: 'starter' as const };
-  const vipProduct = { id: 'p-vip', isPremium: false, includedInMembershipTier: 'vip' as const };
+test('isUnlockedByMembership validates tier hierarchy for free vs paid products', () => {
+  const freeProduct = { id: 'p-free', isPremium: false, price: 0, includedInMembershipTier: 'free' as const };
+  const paidProduct = { id: 'p-paid', isPremium: false, price: 40000, includedInMembershipTier: 'paid' as const };
 
-  // Pro member can unlock Starter product (starter <= pro)
-  assert.equal(isUnlockedByMembership(starterProduct, { status: 'active', planId: 'pro' }), true);
-  // Pro member cannot unlock VIP product (pro < vip)
-  assert.equal(isUnlockedByMembership(vipProduct, { status: 'active', planId: 'pro' }), false);
+  // Paid member can unlock both free and paid products
+  assert.equal(isUnlockedByMembership(freeProduct, { status: 'active', planId: 'paid' }), true);
+  assert.equal(isUnlockedByMembership(paidProduct, { status: 'active', planId: 'paid' }), true);
+
+  // Free member can only unlock free product
+  assert.equal(isUnlockedByMembership(freeProduct, { status: 'active', planId: 'free' }), true);
+  assert.equal(isUnlockedByMembership(paidProduct, { status: 'active', planId: 'free' }), false);
 });
 
 test('extractReferralCodeFromSearch trims query string whitespace and handles raw search params without leading question mark', () => {

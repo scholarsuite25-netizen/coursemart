@@ -177,9 +177,11 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
     );
   }
 
+  const isFreeProduct = product.price === 0 || product.includedInMembershipTier === 'free';
   const hasAccess =
     currentUser &&
-    (isOwnedByCurrentUser(product.id) ||
+    (isFreeProduct ||
+      isOwnedByCurrentUser(product.id) ||
       currentUser.role === 'admin' ||
       currentUser.role === 'instructor');
 

@@ -42,9 +42,9 @@ test('generateCertificateCode produces deterministic verification format', () =>
 });
 
 test('membership tier hierarchy and extended cart discount stack accurately', () => {
-  assert.equal(isTierSufficient('vip', 'pro'), true);
-  assert.equal(isTierSufficient('starter', 'pro'), false);
-  assert.equal(isTierSufficient('pro', 'pro'), true);
+  assert.equal(isTierSufficient('paid', 'free'), true);
+  assert.equal(isTierSufficient('free', 'paid'), false);
+  assert.equal(isTierSufficient('paid', 'paid'), true);
 
   const items: CartItem[] = [{ productId: 'p1', unitPrice: 100 }];
   const coupons: Coupon[] = [

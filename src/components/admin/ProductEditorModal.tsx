@@ -17,6 +17,7 @@ import type {
   ProductType,
 } from '../../types/marketplace';
 import { ALL_PRODUCT_TOPICS, DIGITAL_SUBMENU_ITEMS } from '../../utils/catalogAndBlogs';
+import { migrateLegacyTier } from '../../utils/commerce';
 import { getProviderLabel, resolveDownloadUrl, resolveMediaUrl } from '../../utils/mediaResolver';
 
 interface ProductEditorModalProps {
@@ -60,7 +61,9 @@ export function ProductEditorModal({
     initialProduct?.copyProtectionEnabled ?? false
   );
   const [includedInMembershipTier, setIncludedInMembershipTier] = useState<MembershipTierId | ''>(
-    initialProduct?.includedInMembershipTier ?? ''
+    initialProduct?.includedInMembershipTier
+      ? migrateLegacyTier(initialProduct.includedInMembershipTier)
+      : ''
   );
   const [variants, setVariants] = useState<DigitalProductVariant[]>(
     initialProduct?.variants ?? []
@@ -601,9 +604,8 @@ export function ProductEditorModal({
                 className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md bg-white"
               >
                 <option value="">Not Included (One-Time Purchase)</option>
-                <option value="starter">Included in Starter Member & Higher</option>
-                <option value="pro">Included in Pro Builder & Higher</option>
-                <option value="vip">Included in VIP Executive Only</option>
+                <option value="free">Free for All Members (Free & Paid)</option>
+                <option value="paid">Included in Paid Membership</option>
               </select>
             </div>
           </div>
@@ -626,7 +628,7 @@ export function ProductEditorModal({
                 onChange={(e) => setIsPremium(e.target.checked)}
                 className="accent-[#2271b1]"
               />
-              <span>Designate as Premium Resource (Unlocked for All Active Members)</span>
+              <span>Designate as Premium Product (50% discount for Paid members, Full price for Free members)</span>
             </label>
 
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
