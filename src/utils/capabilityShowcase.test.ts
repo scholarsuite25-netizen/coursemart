@@ -657,16 +657,32 @@ export const PROMOTER_EXECUTIVE_PROFILE = {
   ],
   consultancyTracks: [
     {
-      title: 'Institutional Governance & Higher Education Registry Consultancy',
-      focus: 'NUC licensing, university accreditation, statutory organs, operational take-off across Bowen, Edwin Clark, Dominion, Atiba, and Chrisland Universities',
+      title: 'Management Consultancy',
+      focus: 'Corporate strategy, organizational diagnosis, administrative restructuring, operational efficiency, and policy frameworks',
     },
     {
-      title: 'Digital Infrastructure & Smart Library Consultancy',
-      focus: 'Campus-wide gigabit networks, e-libraries, CBT assessment centres, and LMS deployment (Scholar Suite & Tintol Business Services)',
+      title: 'Virtual Library Management Systems',
+      focus: 'Architecting and deploying multi-tenant academic virtual libraries (AVL), OPAC catalogues, digital repositories, and digital content delivery',
     },
     {
-      title: 'Human Capital & Executive Management Consultancy',
-      focus: 'Registry operations, governance advisory, executive talent search, and Nigerian Institute of Management (NIM) executive workshops',
+      title: 'ICT Consultancy for Higher Institutions',
+      focus: 'Campus-wide gigabit networking, fibre-optic & wireless infrastructure, CBT examination centres, and LMS deployment',
+    },
+    {
+      title: 'School Portal and Web Development',
+      focus: 'Custom institutional web platforms, automated admissions workflows, student records engines, and online result systems',
+    },
+    {
+      title: 'Scheduled Training and Development',
+      focus: 'Structured corporate masterclasses, workforce upskilling retreats, administrative registry training, and AI literacy workshops',
+    },
+    {
+      title: 'Business Setup and Management',
+      focus: 'Enterprise take-off advisory, statutory documentation, operational setup, commercialization models, and new venture growth',
+    },
+    {
+      title: 'Human Resources Management',
+      focus: 'Comprehensive manpower audits, executive search & talent recruitment, job evaluations, staff appraisal frameworks, and NIM/MILR standards',
     },
   ],
 };
@@ -1376,12 +1392,13 @@ describe('CourseMart Platform Capability Showcase (F1-F11) E2E Test Suite', () =
         assert.ok(PROMOTER_EXECUTIVE_PROFILE.academicTrackRecord.some((t) => t.includes('Abeokuta Polo Club')));
       });
 
-      it('T1-F7-05: promoter profile details 3 consultancy domains (Governance, Infrastructure, Human Capital)', () => {
+      it('T1-F7-05: promoter profile details specialized consultancy domains and executive mandate', () => {
         const tracks = PROMOTER_EXECUTIVE_PROFILE.consultancyTracks;
-        assert.equal(tracks.length, 3);
-        assert.ok(tracks.some((t) => t.title.includes('Institutional Governance')));
-        assert.ok(tracks.some((t) => t.title.includes('Digital Infrastructure')));
-        assert.ok(tracks.some((t) => t.title.includes('Human Capital')));
+        assert.ok(tracks.length >= 7);
+        assert.ok(tracks.some((t) => t.title.includes('Management Consultancy')));
+        assert.ok(tracks.some((t) => t.title.includes('Virtual Library')));
+        assert.ok(tracks.some((t) => t.title.includes('Human Resources')));
+        assert.ok(tracks.some((t) => t.title.includes('Scheduled Training')));
       });
     });
 
