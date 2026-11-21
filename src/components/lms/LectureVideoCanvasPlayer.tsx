@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CourseLecture } from '../../types/marketplace';
 import { lectureAudio } from '../../utils/audioNarrator';
+import { formatCanvasWatermark, generateWatermarkOverlayConfig } from '../../utils/contentProtection';
 
 interface LectureVideoCanvasPlayerProps {
   lecture: CourseLecture & { moduleTitle: string };
@@ -12,6 +13,9 @@ interface LectureVideoCanvasPlayerProps {
   volume?: number;
   isMuted?: boolean;
   voiceEnabled?: boolean;
+  watermarkText?: string;
+  watermarkUser?: { id?: string; email?: string; name?: string } | null;
+  copyProtectionEnabled?: boolean;
   onTogglePlay: () => void;
   onVideoEnded?: () => void;
 }
@@ -26,6 +30,9 @@ export function LectureVideoCanvasPlayer({
   volume = 0.8,
   isMuted = false,
   voiceEnabled = true,
+  watermarkText,
+  watermarkUser,
+  copyProtectionEnabled,
   onTogglePlay,
   onVideoEnded,
 }: LectureVideoCanvasPlayerProps) {
@@ -33,6 +40,12 @@ export function LectureVideoCanvasPlayer({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [streamReady, setStreamReady] = useState(false);
   const lastConceptIdxRef = useRef<number>(-1);
+
+  const resolvedWatermarkText =
+    watermarkText ||
+    (watermarkUser || copyProtectionEnabled
+      ? generateWatermarkOverlayConfig(watermarkUser ?? null).text
+      : undefined);
 
   // Sync playback rate & volume/mute to <video> element
   useEffect(() => {
@@ -286,6 +299,15 @@ export function LectureVideoCanvasPlayer({
         const caption = `[CC · ${voiceTag}] ${currentPoint}`.slice(0, 92);
         ctx.fillText(caption, 144, 618);
       }
+
+      // In-stream dynamic user watermark (baked directly into video canvas frames at 24fps)
+      if (resolvedWatermarkText) {
+        formatCanvasWatermark(ctx, w, h, resolvedWatermarkText, {
+          opacity: 0.16,
+          angle: -25,
+          driftOffset: phaseOffset,
+        });
+      }
     };
 
     let rafId = 0;
@@ -314,6 +336,7 @@ export function LectureVideoCanvasPlayer({
     volume,
     isMuted,
     voiceEnabled,
+    resolvedWatermarkText,
   ]);
 
   if (lecture.videoUrl) {

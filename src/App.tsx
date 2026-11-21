@@ -1,23 +1,83 @@
+import React, { Suspense, lazy } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
-import { AdminDashboardPage } from './components/admin/AdminDashboardPage';
-import { LoginPage } from './components/auth/LoginPage';
-import { BlogPostPage } from './components/blog/BlogPostPage';
-import { BlogsPage } from './components/blog/BlogsPage';
-import { AffiliatesPage } from './components/affiliates/AffiliatesPage';
-import { EventsPage } from './components/events/EventsPage';
-import { InstructorStudioPage } from './components/instructor/InstructorStudioPage';
-import { CoursePlayerPage } from './components/lms/CoursePlayerPage';
-import { LibraryPage } from './components/lms/LibraryPage';
-import { MembershipPage } from './components/membership/MembershipPage';
-import { ShowcasePage } from './components/showcase/ShowcasePage';
 import { AnnouncementBar } from './components/storefront/AnnouncementBar';
 import { CartDrawer } from './components/storefront/CartDrawer';
-import { CatalogLandingPage } from './components/storefront/CatalogLandingPage';
 import { Footer } from './components/storefront/Footer';
 import { Header } from './components/storefront/Header';
-import { ProductDetailPage } from './components/storefront/ProductDetailPage';
 import { StorefrontPage } from './components/storefront/StorefrontPage';
+import { EnquiryAssistantWidget } from './components/storefront/EnquiryAssistantWidget';
 import { parseAppRoute } from './utils/catalogAndBlogs';
+
+// Route-level code splitting: only the shell and the default landing page load
+// up front; every other page arrives as its own chunk on first navigation.
+const AdminDashboardPage = lazy(() =>
+  import('./components/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage }))
+);
+const LoginPage = lazy(() =>
+  import('./components/auth/LoginPage').then((m) => ({ default: m.LoginPage }))
+);
+const BlogPostPage = lazy(() =>
+  import('./components/blog/BlogPostPage').then((m) => ({ default: m.BlogPostPage }))
+);
+const BlogsPage = lazy(() =>
+  import('./components/blog/BlogsPage').then((m) => ({ default: m.BlogsPage }))
+);
+const AffiliatesPage = lazy(() =>
+  import('./components/affiliates/AffiliatesPage').then((m) => ({ default: m.AffiliatesPage }))
+);
+const EventsPage = lazy(() =>
+  import('./components/events/EventsPage').then((m) => ({ default: m.EventsPage }))
+);
+const InstructorStudioPage = lazy(() =>
+  import('./components/instructor/InstructorStudioPage').then((m) => ({
+    default: m.InstructorStudioPage,
+  }))
+);
+const CoursePlayerPage = lazy(() =>
+  import('./components/lms/CoursePlayerPage').then((m) => ({ default: m.CoursePlayerPage }))
+);
+const LibraryPage = lazy(() =>
+  import('./components/lms/LibraryPage').then((m) => ({ default: m.LibraryPage }))
+);
+const MembershipPage = lazy(() =>
+  import('./components/membership/MembershipPage').then((m) => ({ default: m.MembershipPage }))
+);
+const ShowcasePage = lazy(() =>
+  import('./components/showcase/ShowcasePage').then((m) => ({ default: m.ShowcasePage }))
+);
+const CatalogLandingPage = lazy(() =>
+  import('./components/storefront/CatalogLandingPage').then((m) => ({
+    default: m.CatalogLandingPage,
+  }))
+);
+const ProductDetailPage = lazy(() =>
+  import('./components/storefront/ProductDetailPage').then((m) => ({
+    default: m.ProductDetailPage,
+  }))
+);
+const CommunityPage = lazy(() =>
+  import('./components/community/CommunityPage').then((m) => ({ default: m.CommunityPage }))
+);
+const SalesFunnelPage = lazy(() =>
+  import('./components/funnel/SalesFunnelPage').then((m) => ({ default: m.SalesFunnelPage }))
+);
+const MemberPromptVaultPage = lazy(() =>
+  import('./components/vault/MemberPromptVaultPage').then((m) => ({
+    default: m.MemberPromptVaultPage,
+  }))
+);
+
+function PageFallback() {
+  return (
+    <div
+      className="min-h-[40vh] flex items-center justify-center"
+      role="status"
+      aria-label="Loading page"
+    >
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
+    </div>
+  );
+}
 
 function AppRouter() {
   const { route, toastMessage } = useStore();
@@ -26,7 +86,8 @@ function AppRouter() {
   const isStandaloneShell =
     parsed.page === 'admin' ||
     parsed.page === 'admin-login' ||
-    parsed.page === 'learn';
+    parsed.page === 'learn' ||
+    parsed.page === 'funnel';
 
   let content: React.ReactNode = <StorefrontPage />;
 
@@ -90,6 +151,21 @@ function AppRouter() {
     case 'blog-detail':
       content = <BlogPostPage key={parsed.slug} slug={parsed.slug} />;
       break;
+    case 'community':
+      content = (
+        <CommunityPage
+          initialView={parsed.subView}
+          initialChannelId={parsed.channelId}
+          initialThreadId={parsed.threadId}
+        />
+      );
+      break;
+    case 'funnel':
+      content = <SalesFunnelPage key={parsed.slug} slug={parsed.slug} />;
+      break;
+    case 'vault':
+      content = <MemberPromptVaultPage />;
+      break;
     case 'home':
     default:
       content = <StorefrontPage />;
@@ -105,9 +181,13 @@ function AppRouter() {
         </>
       )}
 
-      <div className="flex-1">{content}</div>
+      <div className="flex-1">
+        <Suspense fallback={<PageFallback />}>{content}</Suspense>
+      </div>
 
       {!isStandaloneShell && <Footer />}
+
+      {!isStandaloneShell && <EnquiryAssistantWidget />}
 
       <CartDrawer />
 

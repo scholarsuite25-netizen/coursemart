@@ -42,6 +42,11 @@ export function ProductCard({ product }: ProductCardProps) {
           type={product.type}
           className="w-full h-full transition-transform duration-300 group-hover:scale-[1.02]"
         />
+        {product.isPremium && (
+          <span className="absolute top-2 left-2 z-10 px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase bg-amber-500 text-white rounded shadow-sm">
+            Premium Resource
+          </span>
+        )}
       </button>
 
       {/* Card Body */}
@@ -116,7 +121,7 @@ export function ProductCard({ product }: ProductCardProps) {
                 }
                 className="px-3 py-1.5 text-xs font-semibold rounded-md border border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
-                {product.type === 'course' ? 'Open Player' : 'In Library'}
+                {product.type === 'course' ? 'Start Learning' : 'Access Now'}
               </button>
             ) : (
               <button

@@ -11,13 +11,16 @@ import {
   Download,
   ExternalLink,
   FileSpreadsheet,
+  Hash,
   Heart,
   KeyRound,
   Mail,
   MessageCircle,
+  MessageSquare,
   PlayCircle,
   RefreshCw,
   RotateCcw,
+  Sparkles,
   Trash2,
   Users,
   X,
@@ -34,6 +37,9 @@ import {
   buildWhatsAppUrl,
 } from '../../utils/whatsapp';
 import { ProductThumbnail } from '../common/ProductThumbnail';
+import { isCopyProtectionActive } from '../../utils/contentProtection';
+import { ContentProtectionWrapper } from './ContentProtectionWrapper';
+import { DynamicWatermarkOverlay } from './DynamicWatermarkOverlay';
 
 function triggerFileDownload(filename: string, content: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
@@ -63,6 +69,7 @@ export function LibraryPage() {
     deactivateLicenseDomain,
     regenerateLicenseKey,
     whatsappGroups,
+    communityChannels,
     joinWhatsAppGroup,
     activeUserMembership,
     activeMembershipPlan,
@@ -434,7 +441,7 @@ export function LibraryPage() {
                 },
                 {
                   id: 'communities',
-                  label: `WhatsApp Groups (${eligibleWhatsAppGroups.length})`,
+                  label: `Community & Cohorts`,
                 },
                 { id: 'wishlist', label: `Wishlist (${wishlistProducts.length})` },
                 { id: 'orders', label: `Orders & Invoices (${userOrders.length})` },
@@ -599,62 +606,134 @@ export function LibraryPage() {
           </section>
         )}
 
-        {/* WhatsApp Communities Tab */}
+        {/* Community & Cohorts Tab */}
         {activeTab === 'communities' && (
-          <section className="space-y-4">
+          <section className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-display text-xl font-extrabold text-slate-900">
-                  Your WhatsApp Learning & VIP Communities
+                  In-Platform Community & Course Cohorts
                 </h2>
                 <p className="text-sm text-slate-600">
-                  Join cohort discussions and release channels linked to your active products.
+                  Connect directly with instructors and peers in real-time chat channels and searchable technical forum boards — zero external WhatsApp switching.
                 </p>
               </div>
             </div>
 
-            {eligibleWhatsAppGroups.length === 0 ? (
-              <div className="border border-slate-200 rounded-xl p-10 text-center bg-slate-50">
-                <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="font-display text-base font-bold text-slate-900">
-                  No active WhatsApp groups unlocked yet
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {eligibleWhatsAppGroups.map((group) => (
-                  <div
-                    key={group.id}
-                    className="border border-slate-200 rounded-xl bg-white p-5 flex flex-col justify-between gap-4"
+            {/* In-Platform Hub Launcher Hero Card */}
+            <div className="bg-gradient-to-r from-[#0a192f] via-[#142a4d] to-[#0a192f] border border-[#d4af37]/40 rounded-2xl p-6 text-white shadow-lg">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div className="space-y-2 max-w-2xl">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#f5c451] text-slate-950">
+                    <Sparkles className="w-3.5 h-3.5" /> Official In-Platform Community
+                  </span>
+                  <h3 className="text-xl font-extrabold text-white">
+                    Live Chat Channels & Technical Discussion Boards
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Access dedicated course cohorts, ask questions directly to instructors, share code snippets, and collaborate with fellow builders right inside Coursemart.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/community')}
+                    className="px-5 py-2.5 bg-[#f5c451] hover:bg-[#d4af37] text-slate-950 text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <span className="text-[#0a192f] uppercase tracking-wider">
-                          {group.visibility === 'public' ? 'Public Community' : 'Enrolled Cohort'}
-                        </span>
-                        <span className="text-slate-500 tabular-nums">
-                          {group.membersCount}/{group.maxMembers} members
-                        </span>
-                      </div>
-                      <h3 className="font-display text-base font-bold text-slate-900">
-                        {group.name}
-                      </h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">{group.description}</p>
-                    </div>
-                    <a
-                      href={group.inviteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => joinWhatsAppGroup(group.id)}
-                      className="w-full py-2.5 px-4 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-md inline-flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Join WhatsApp Group</span>
-                    </a>
-                  </div>
-                ))}
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Launch Community Hub →</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate('/community/forums')}
+                    className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Browse Forum Topics</span>
+                  </button>
+                </div>
               </div>
-            )}
+
+              {/* Quick Cohort Shortcuts */}
+              <div className="mt-6 pt-5 border-t border-slate-700/80">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                  Your Available Cohort Channels
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {communityChannels.map((ch) => (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      onClick={() => navigate(`/community/channels/${ch.id}`)}
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#061224]/80 hover:bg-[#162a4d] border border-slate-700/60 transition-all text-left group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <span className="p-1.5 rounded-lg bg-amber-400/20 text-[#f5c451] group-hover:bg-[#f5c451] group-hover:text-slate-950 transition-colors">
+                          <Hash className="w-3.5 h-3.5" />
+                        </span>
+                        <div className="truncate">
+                          <p className="text-xs font-bold text-white group-hover:text-[#f5c451] transition-colors truncate">
+                            {ch.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate">{ch.description}</p>
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#f5c451] shrink-0 ml-2" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Legacy WhatsApp Groups Archive */}
+            <div className="pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-700">
+                  External WhatsApp Groups (Legacy Archive)
+                </h3>
+                <span className="text-xs text-slate-500">
+                  Maintained for backwards compatibility
+                </span>
+              </div>
+
+              {eligibleWhatsAppGroups.length === 0 ? (
+                <div className="border border-slate-200 rounded-xl p-8 text-center bg-slate-50">
+                  <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500">No legacy WhatsApp archives attached.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {eligibleWhatsAppGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="border border-slate-200 rounded-xl bg-white p-4 flex flex-col justify-between gap-3 shadow-sm"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                          <span className="uppercase tracking-wider text-slate-700">
+                            {group.visibility === 'public' ? 'Public' : 'Cohort'}
+                          </span>
+                          <span>{group.membersCount} members</span>
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900">{group.name}</h4>
+                        <p className="text-xs text-slate-500 line-clamp-2">{group.description}</p>
+                      </div>
+                      <a
+                        href={group.inviteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => joinWhatsAppGroup(group.id)}
+                        className="w-full py-2 px-3 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Open WhatsApp Group Archive</span>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </section>
         )}
 
@@ -1352,7 +1431,26 @@ export function LibraryPage() {
                   </button>
                 ))}
               </aside>
-              <div className="md:col-span-8 overflow-y-auto p-6 sm:p-10 space-y-4">
+              <ContentProtectionWrapper
+                enabled={Boolean(
+                  readerEbook &&
+                    isCopyProtectionActive(
+                      readerEbook.copyProtectionEnabled,
+                      appearance?.globalCopyProtection
+                    )
+                )}
+                className="relative md:col-span-8 overflow-y-auto p-6 sm:p-10 space-y-4"
+              >
+                <DynamicWatermarkOverlay
+                  user={currentUser}
+                  visible={Boolean(
+                    readerEbook &&
+                      isCopyProtectionActive(
+                        readerEbook.copyProtectionEnabled,
+                        appearance?.globalCopyProtection
+                      )
+                  )}
+                />
                 {(() => {
                   const activeChap =
                     readerEbook.ebookData.chapters[readerChapterIdx] ??
@@ -1386,7 +1484,7 @@ export function LibraryPage() {
                     </>
                   );
                 })()}
-              </div>
+              </ContentProtectionWrapper>
             </div>
           </div>
         </div>

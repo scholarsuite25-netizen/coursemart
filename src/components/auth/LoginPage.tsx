@@ -58,7 +58,7 @@ export function LoginPage({ mode }: LoginPageProps) {
     }
 
     if (tab === 'register') {
-      const res = registerUser(name, email, password, registerRole, newsletterOptIn);
+      const res = await registerUser(name, email, password, registerRole, newsletterOptIn);
       if (!res.ok) {
         setFormError(res.error ?? 'Could not create account.');
         return;
@@ -67,7 +67,7 @@ export function LoginPage({ mode }: LoginPageProps) {
       return;
     }
 
-    const res = loginWithCredentials(email, password);
+    const res = await loginWithCredentials(email, password);
     if (!res.ok || !res.user) {
       setFormError(res.error ?? 'Authentication failed.');
       return;

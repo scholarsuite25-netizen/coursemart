@@ -53,6 +53,10 @@ export function ProductEditorModal({
   const [level, setLevel] = useState<DifficultyLevel>(initialProduct?.level ?? 'Intermediate');
   const [status, setStatus] = useState<ProductStatus>(initialProduct?.status ?? 'published');
   const [featured, setFeatured] = useState(initialProduct?.featured ?? false);
+  const [isPremium, setIsPremium] = useState(initialProduct?.isPremium ?? false);
+  const [copyProtectionEnabled, setCopyProtectionEnabled] = useState(
+    initialProduct?.copyProtectionEnabled ?? false
+  );
   const [includedInMembershipTier, setIncludedInMembershipTier] = useState<MembershipTierId | ''>(
     initialProduct?.includedInMembershipTier ?? ''
   );
@@ -285,7 +289,9 @@ export function ProductEditorModal({
       updatedAt: new Date().toISOString().slice(0, 10),
       status,
       featured,
+      isPremium,
       bestseller: initialProduct?.bestseller ?? false,
+      copyProtectionEnabled,
       formatLabel,
       includedInMembershipTier: includedInMembershipTier || undefined,
       variants: type === 'ebook' && variants.length > 0 ? variants : undefined,
@@ -559,15 +565,37 @@ export function ProductEditorModal({
             </div>
           </div>
 
-          <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={featured}
-              onChange={(e) => setFeatured(e.target.checked)}
-              className="accent-[#2271b1]"
-            />
-            <span>Feature on Storefront Homepage</span>
-          </label>
+          <div className="flex flex-wrap items-center gap-6">
+            <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={featured}
+                onChange={(e) => setFeatured(e.target.checked)}
+                className="accent-[#2271b1]"
+              />
+              <span>Feature on Storefront Homepage</span>
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isPremium}
+                onChange={(e) => setIsPremium(e.target.checked)}
+                className="accent-[#2271b1]"
+              />
+              <span>Designate as Premium Resource (Unlocked for All Active Members)</span>
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={copyProtectionEnabled}
+                onChange={(e) => setCopyProtectionEnabled(e.target.checked)}
+                className="accent-[#2271b1]"
+              />
+              <span>Enable LMS Content & Anti-Copy Protection</span>
+            </label>
+          </div>
 
           <div>
             <label htmlFor="prod-desc" className="block text-xs font-bold text-slate-700 mb-1">

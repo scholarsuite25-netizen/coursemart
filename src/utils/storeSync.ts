@@ -53,10 +53,14 @@ export const PUBLIC_READ_KEYS = new Set([
   'membership_plans',
   'reviews',
   'event_registrations',
+  'community_channels',
+  'community_messages',
+  'forum_threads',
+  'forum_replies',
 ]);
 
 /** Keys only an admin session may read. */
-export const ADMIN_READ_KEYS = new Set(['social_drafts', 'email_campaigns']);
+export const ADMIN_READ_KEYS = new Set(['social_drafts', 'email_campaigns', 'agent_incidents']);
 
 /** Keys only an admin session may write. */
 export const ADMIN_WRITE_KEYS = new Set([
@@ -69,6 +73,8 @@ export const ADMIN_WRITE_KEYS = new Set([
   'social_drafts',
   'email_campaigns',
   'blog_posts',
+  'community_channels',
+  'agent_incidents',
 ]);
 
 /** Personal array keys: session-scoped, owner-filtered (admin sees/writes all). */
@@ -370,6 +376,308 @@ function mergeProducts(existing: unknown[], incoming: unknown[], ctx: WriteCtx):
   return err(403, 'Instructor or administrator session required to update products.');
 }
 
+function mergeCommunityMessages(
+  existing: unknown[],
+  incoming: unknown[],
+  ctx: WriteCtx
+): MergeResult {
+  if (!ctx.isAdmin && !ctx.selfUserId) {
+    return err(401, 'Sign-in session required to post messages.');
+  }
+
+  if (ctx.isAdmin) {
+    if (incoming.length > MAX_COLLECTION_ITEMS) {
+      return err(409, `Store key "community_messages" exceeds the ${MAX_COLLECTION_ITEMS} item cap.`);
+    }
+    const { value, added, rejected } = mergeById(existing as Array<{ id?: string }>, incoming as Array<{ id?: string }>);
+    return ok(value, added, 0, rejected);
+  }
+
+  const existingMap = new Map<string, Record<string, unknown>>();
+  for (const item of existing) {
+    if (item && typeof item === 'object') {
+      const rec = item as Record<string, unknown>;
+      if (typeof rec.id === 'string' && rec.id) {
+        existingMap.set(rec.id, rec);
+      }
+    }
+  }
+
+  let added = 0;
+  let rejected = 0;
+
+  for (const item of incoming) {
+    if (!item || typeof item !== 'object') {
+      rejected += 1;
+      continue;
+    }
+    const rec = { ...(item as Record<string, unknown>) };
+    const id = rec.id;
+    if (typeof id !== 'string' || !id) {
+      rejected += 1;
+      continue;
+    }
+
+    const prev = existingMap.get(id);
+    if (!prev) {
+      // New message: must belong to selfUserId
+      const hasUserId = typeof rec.userId === 'string' && rec.userId.length > 0;
+      const hasAuthorId = typeof rec.authorId === 'string' && rec.authorId.length > 0;
+      if (!hasUserId && !hasAuthorId) {
+        rejected += 1;
+        continue;
+      }
+      if (hasUserId && rec.userId !== ctx.selfUserId) {
+        rejected += 1;
+        continue;
+      }
+      if (hasAuthorId && rec.authorId !== ctx.selfUserId) {
+        rejected += 1;
+        continue;
+      }
+      if (!isNonEmptyString(rec.content)) {
+        rejected += 1;
+        continue;
+      }
+
+      const assignedRole = (ctx.role ?? 'customer') as unknown as string;
+      const sanitized: Record<string, unknown> = {
+        ...rec,
+        userId: ctx.selfUserId,
+        authorId: ctx.selfUserId,
+        userRole: assignedRole,
+        authorRole: assignedRole,
+        isPinned: false,
+        isModerated: false,
+        reactions: {},
+      };
+      existingMap.set(id, sanitized);
+      added += 1;
+    } else {
+      // Existing message
+      const prevUserId = prev.userId || prev.authorId;
+      if (prevUserId === ctx.selfUserId) {
+        // Author can update content
+        existingMap.set(id, {
+          ...prev,
+          content: isNonEmptyString(rec.content) ? rec.content : prev.content,
+          reactions: rec.reactions !== undefined ? rec.reactions : prev.reactions,
+          updatedAt: rec.updatedAt || new Date().toISOString(),
+        });
+      } else {
+        // Non-author can ONLY update reactions
+        existingMap.set(id, {
+          ...prev,
+          reactions: rec.reactions !== undefined ? rec.reactions : prev.reactions,
+        });
+      }
+    }
+  }
+
+  const value = Array.from(existingMap.values());
+  if (value.length > MAX_COLLECTION_ITEMS) {
+    return err(409, `Store key "community_messages" exceeds the ${MAX_COLLECTION_ITEMS} item cap.`);
+  }
+  return ok(value, added, 0, rejected);
+}
+
+function mergeForumThreads(
+  existing: unknown[],
+  incoming: unknown[],
+  ctx: WriteCtx
+): MergeResult {
+  if (!ctx.isAdmin && !ctx.selfUserId) {
+    return err(401, 'Sign-in session required to interact with forum threads.');
+  }
+
+  if (ctx.isAdmin) {
+    if (incoming.length > MAX_COLLECTION_ITEMS) {
+      return err(409, `Store key "forum_threads" exceeds the ${MAX_COLLECTION_ITEMS} item cap.`);
+    }
+    const { value, added, rejected } = mergeById(existing as Array<{ id?: string }>, incoming as Array<{ id?: string }>);
+    return ok(value, added, 0, rejected);
+  }
+
+  const existingMap = new Map<string, Record<string, unknown>>();
+  for (const item of existing) {
+    if (item && typeof item === 'object') {
+      const rec = item as Record<string, unknown>;
+      if (typeof rec.id === 'string' && rec.id) {
+        existingMap.set(rec.id, rec);
+      }
+    }
+  }
+
+  let added = 0;
+  let rejected = 0;
+
+  for (const item of incoming) {
+    if (!item || typeof item !== 'object') {
+      rejected += 1;
+      continue;
+    }
+    const rec = { ...(item as Record<string, unknown>) };
+    const id = rec.id;
+    if (typeof id !== 'string' || !id) {
+      rejected += 1;
+      continue;
+    }
+
+    const prev = existingMap.get(id);
+    if (!prev) {
+      // New thread: authorId must match selfUserId
+      if (rec.authorId !== ctx.selfUserId || !isNonEmptyString(rec.title)) {
+        rejected += 1;
+        continue;
+      }
+      const assignedRole = (ctx.role ?? 'customer') as unknown as string;
+      const sanitizedThread: Record<string, unknown> = {
+        ...rec,
+        authorId: ctx.selfUserId,
+        authorRole: assignedRole,
+        isPinned: false,
+        pinned: false,
+        isLocked: false,
+        isSolved: false,
+        solutionReplyId: undefined,
+        isModerated: false,
+      };
+      existingMap.set(id, sanitizedThread);
+      added += 1;
+    } else {
+      // Existing thread
+      if (prev.authorId === ctx.selfUserId) {
+        // Author can update thread unless locked
+        if (prev.isLocked) {
+          // Locked thread cannot be edited by author
+          existingMap.set(id, prev);
+        } else {
+          existingMap.set(id, {
+            ...prev,
+            title: isNonEmptyString(rec.title) ? rec.title : prev.title,
+            body: rec.body !== undefined ? rec.body : prev.body,
+            content: rec.content !== undefined ? rec.content : prev.content,
+            tags: Array.isArray(rec.tags) ? rec.tags : prev.tags,
+            upvotes: typeof rec.upvotes === 'number' ? rec.upvotes : prev.upvotes,
+            upvotedUserIds: Array.isArray(rec.upvotedUserIds) ? rec.upvotedUserIds : prev.upvotedUserIds,
+            replyCount: typeof rec.replyCount === 'number' ? rec.replyCount : prev.replyCount,
+            isSolved: rec.isSolved !== undefined ? rec.isSolved : prev.isSolved,
+            solutionReplyId: rec.solutionReplyId !== undefined ? rec.solutionReplyId : prev.solutionReplyId,
+            lastActivityAt: rec.lastActivityAt || prev.lastActivityAt,
+            updatedAt: rec.updatedAt || new Date().toISOString(),
+          });
+        }
+      } else {
+        // Non-author: can only update upvotes, replyCount, or solution
+        existingMap.set(id, {
+          ...prev,
+          upvotes: typeof rec.upvotes === 'number' ? rec.upvotes : prev.upvotes,
+          upvotedUserIds: Array.isArray(rec.upvotedUserIds) ? rec.upvotedUserIds : prev.upvotedUserIds,
+          replyCount: typeof rec.replyCount === 'number' ? rec.replyCount : prev.replyCount,
+          lastActivityAt: rec.lastActivityAt || prev.lastActivityAt,
+        });
+      }
+    }
+  }
+
+  const value = Array.from(existingMap.values());
+  if (value.length > MAX_COLLECTION_ITEMS) {
+    return err(409, `Store key "forum_threads" exceeds the ${MAX_COLLECTION_ITEMS} item cap.`);
+  }
+  return ok(value, added, 0, rejected);
+}
+
+function mergeForumReplies(
+  existing: unknown[],
+  incoming: unknown[],
+  ctx: WriteCtx
+): MergeResult {
+  if (!ctx.isAdmin && !ctx.selfUserId) {
+    return err(401, 'Sign-in session required to post replies.');
+  }
+
+  if (ctx.isAdmin) {
+    if (incoming.length > MAX_COLLECTION_ITEMS) {
+      return err(409, `Store key "forum_replies" exceeds the ${MAX_COLLECTION_ITEMS} item cap.`);
+    }
+    const { value, added, rejected } = mergeById(existing as Array<{ id?: string }>, incoming as Array<{ id?: string }>);
+    return ok(value, added, 0, rejected);
+  }
+
+  const existingMap = new Map<string, Record<string, unknown>>();
+  for (const item of existing) {
+    if (item && typeof item === 'object') {
+      const rec = item as Record<string, unknown>;
+      if (typeof rec.id === 'string' && rec.id) {
+        existingMap.set(rec.id, rec);
+      }
+    }
+  }
+
+  let added = 0;
+  let rejected = 0;
+
+  for (const item of incoming) {
+    if (!item || typeof item !== 'object') {
+      rejected += 1;
+      continue;
+    }
+    const rec = { ...(item as Record<string, unknown>) };
+    const id = rec.id;
+    if (typeof id !== 'string' || !id) {
+      rejected += 1;
+      continue;
+    }
+
+    const prev = existingMap.get(id);
+    if (!prev) {
+      // New reply
+      if (rec.authorId !== ctx.selfUserId || !isNonEmptyString(rec.threadId)) {
+        rejected += 1;
+        continue;
+      }
+      const assignedRole = (ctx.role ?? 'customer') as unknown as string;
+      const sanitizedReply: Record<string, unknown> = {
+        ...rec,
+        authorId: ctx.selfUserId,
+        authorRole: assignedRole,
+        isSolution: false,
+        isPinned: false,
+        isModerated: false,
+      };
+      existingMap.set(id, sanitizedReply);
+      added += 1;
+    } else {
+      // Existing reply
+      if (prev.authorId === ctx.selfUserId) {
+        existingMap.set(id, {
+          ...prev,
+          body: rec.body !== undefined ? rec.body : prev.body,
+          content: rec.content !== undefined ? rec.content : prev.content,
+          upvotes: typeof rec.upvotes === 'number' ? rec.upvotes : prev.upvotes,
+          upvotedUserIds: Array.isArray(rec.upvotedUserIds) ? rec.upvotedUserIds : prev.upvotedUserIds,
+          isSolution: prev.isSolution,
+          updatedAt: rec.updatedAt || new Date().toISOString(),
+        });
+      } else {
+        // Non-author: can only update upvotes and upvotedUserIds
+        existingMap.set(id, {
+          ...prev,
+          upvotes: typeof rec.upvotes === 'number' ? rec.upvotes : prev.upvotes,
+          upvotedUserIds: Array.isArray(rec.upvotedUserIds) ? rec.upvotedUserIds : prev.upvotedUserIds,
+          isSolution: prev.isSolution,
+        });
+      }
+    }
+  }
+
+  const value = Array.from(existingMap.values());
+  if (value.length > MAX_COLLECTION_ITEMS) {
+    return err(409, `Store key "forum_replies" exceeds the ${MAX_COLLECTION_ITEMS} item cap.`);
+  }
+  return ok(value, added, 0, rejected);
+}
+
 /**
  * Merge an incoming value for `key` against the stored value under `ctx`.
  * Returns the persisted value or a status/error the route should return.
@@ -382,6 +690,24 @@ export function mergeStoreValue(
 ): MergeResult {
   if (incoming === undefined || incoming === null) {
     return err(400, 'A "value" payload is required.');
+  }
+
+  if (key === 'community_messages') {
+    if (!Array.isArray(incoming)) return err(400, 'community_messages must be an array.');
+    const existingArr = Array.isArray(existing) ? existing : [];
+    return mergeCommunityMessages(existingArr, incoming, ctx);
+  }
+
+  if (key === 'forum_threads') {
+    if (!Array.isArray(incoming)) return err(400, 'forum_threads must be an array.');
+    const existingArr = Array.isArray(existing) ? existing : [];
+    return mergeForumThreads(existingArr, incoming, ctx);
+  }
+
+  if (key === 'forum_replies') {
+    if (!Array.isArray(incoming)) return err(400, 'forum_replies must be an array.');
+    const existingArr = Array.isArray(existing) ? existing : [];
+    return mergeForumReplies(existingArr, incoming, ctx);
   }
 
   if (key === 'event_registrations') {
@@ -440,6 +766,25 @@ export function mergeStoreValue(
   }
 
   return err(400, `Unsupported store key "${key}".`);
+}
+
+/**
+ * Permission-only read check (value-independent): may `ctx` read `key` at all?
+ * Mirrors filterStoreValueForRead's access classes, minus any shape checks on
+ * the stored value — so it answers correctly even when the key is absent.
+ */
+export function canReadStoreKey(key: string, ctx: ReadCtx): boolean {
+  if (PUBLIC_READ_KEYS.has(key)) return true;
+  if (ADMIN_READ_KEYS.has(key)) return ctx.isAdmin;
+  if (
+    key === 'users' ||
+    key === 'blog_bookmarks' ||
+    key === 'progress' ||
+    PERSONAL_ARRAY_KEYS.has(key)
+  ) {
+    return ctx.isAdmin || Boolean(ctx.selfUserId);
+  }
+  return false;
 }
 
 /**

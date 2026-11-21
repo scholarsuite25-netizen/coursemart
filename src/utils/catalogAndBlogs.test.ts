@@ -283,3 +283,41 @@ test('getMatchedProductsForBlog combines explicit relatedProductIds and category
 test('slugifyText builds clean URL slugs', () => {
   assert.equal(slugifyText('Vibe Coding: Apps & AI!'), 'vibe-coding-apps-ai');
 });
+
+test('parseAppRoute resolves community routes and subViews', () => {
+  const rootComm = parseAppRoute('/community');
+  assert.deepEqual(rootComm, { page: 'community', subView: undefined, channelId: undefined, threadId: undefined });
+
+  const chatComm = parseAppRoute('/community/chat');
+  assert.deepEqual(chatComm, { page: 'community', subView: 'chat' });
+
+  const chanComm = parseAppRoute('/community/channels/general');
+  assert.deepEqual(chanComm, { page: 'community', subView: 'chat', channelId: 'general' });
+
+  const forumsComm = parseAppRoute('/community/forums');
+  assert.deepEqual(forumsComm, { page: 'community', subView: 'forums' });
+
+  const threadComm = parseAppRoute('/community/threads/thread-123');
+  assert.deepEqual(threadComm, { page: 'community', subView: 'thread', threadId: 'thread-123' });
+
+  const queryComm = parseAppRoute('/community?tab=chat&channel=chan-1');
+  assert.deepEqual(queryComm, { page: 'community', subView: 'chat', channelId: 'chan-1', threadId: undefined });
+});
+
+test('parseAppRoute resolves sales funnel and member prompt vault routes', () => {
+  assert.deepEqual(parseAppRoute('/vault'), { page: 'vault' });
+  assert.deepEqual(parseAppRoute('/vault/'), { page: 'vault' });
+  assert.deepEqual(parseAppRoute('/funnel/ai-saas-accelerator'), {
+    page: 'funnel',
+    slug: 'ai-saas-accelerator',
+  });
+  assert.deepEqual(parseAppRoute('/funnel/fullstack-typescript-bundle?ref=DEVCHAMP20'), {
+    page: 'funnel',
+    slug: 'fullstack-typescript-bundle',
+  });
+  assert.deepEqual(parseAppRoute('/funnel'), {
+    page: 'funnel',
+    slug: 'ai-saas-accelerator',
+  });
+});
+

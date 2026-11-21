@@ -326,3 +326,366 @@ test('sanitizeEventRegistrations strips every contact field from each record', (
   assert.equal(rec.paymentStatus, 'free');
   assert.equal(rec.registeredAt, 'now');
 });
+
+test('community collections permit public read for anonymous visitors', () => {
+  const channels = [{ id: 'c-1', name: 'General' }];
+  const messages = [{ id: 'm-1', content: 'Hello' }];
+  const threads = [{ id: 't-1', title: 'Discussion' }];
+  const replies = [{ id: 'r-1', body: 'Reply' }];
+
+  assert.deepEqual(filterStoreValueForRead('community_channels', channels, anon), channels);
+  assert.deepEqual(filterStoreValueForRead('community_messages', messages, anon), messages);
+  assert.deepEqual(filterStoreValueForRead('forum_threads', threads, anon), threads);
+  assert.deepEqual(filterStoreValueForRead('forum_replies', replies, anon), replies);
+});
+
+test('community collections enforce authentication and RBAC for writes', () => {
+  // 1. Anonymous writes are rejected
+  const anonMsg = mergeStoreValue('community_messages', [], [{ id: 'm-1', content: 'Hello' }], anon);
+  assert.equal(anonMsg.ok, false);
+  if (!anonMsg.ok) assert.equal(anonMsg.status, 401);
+
+  const anonThread = mergeStoreValue('forum_threads', [], [{ id: 't-1', title: 'Test' }], anon);
+  assert.equal(anonThread.ok, false);
+  if (!anonThread.ok) assert.equal(anonThread.status, 401);
+
+  const anonReply = mergeStoreValue('forum_replies', [], [{ id: 'r-1', body: 'Test' }], anon);
+  assert.equal(anonReply.ok, false);
+  if (!anonReply.ok) assert.equal(anonReply.status, 401);
+
+  // 2. Channel writes require admin session
+  const studentChan = mergeStoreValue('community_channels', [], [{ id: 'c-new', name: 'Student Chan' }], student);
+  assert.equal(studentChan.ok, false);
+  if (!studentChan.ok) assert.equal(studentChan.status, 403);
+
+  const adminChan = mergeStoreValue('community_channels', [], [{ id: 'c-new', name: 'Official Chan' }], admin);
+  assert.equal(adminChan.ok, true);
+
+  // 3. User message forgery prevention: student cannot post under another user ID
+  const forgedMsg = mergeStoreValue(
+    'community_messages',
+    [],
+    [{ id: 'm-forge', userId: 'user-other', content: 'Impersonation' }],
+    student
+  );
+  assert.equal(forgedMsg.ok, true);
+  if (forgedMsg.ok) {
+    // Forged message was rejected, not added
+    assert.equal((forgedMsg.value as any[]).length, 0);
+  }
+
+  // 4. Legitimate student message succeeds
+  const legitMsg = mergeStoreValue(
+    'community_messages',
+    [],
+    [{ id: 'm-valid', userId: 'user-student-1', content: 'Legit message' }],
+    student
+  );
+  assert.equal(legitMsg.ok, true);
+  if (legitMsg.ok) {
+    assert.equal((legitMsg.value as any[]).length, 1);
+  }
+
+  // 5. Non-author cannot alter peer message content, but CAN toggle reactions
+  const existingMsgs = [
+    { id: 'm-1', userId: 'user-instructor-1', content: 'Important notice', reactions: {} },
+  ];
+  const tampered = mergeStoreValue(
+    'community_messages',
+    existingMsgs,
+    [{ id: 'm-1', userId: 'user-instructor-1', content: 'Hacked content', reactions: { '👍': ['user-student-1'] } }],
+    student
+  );
+  assert.equal(tampered.ok, true);
+  if (tampered.ok) {
+    const list = tampered.value as any[];
+    assert.equal(list[0].content, 'Important notice'); // preserved original
+    assert.deepEqual(list[0].reactions, { '👍': ['user-student-1'] }); // reaction allowed
+  }
+
+  // 6. Forum thread author can edit, non-author can upvote but cannot edit title/content
+  const existingThreads = [
+    { id: 't-1', authorId: 'user-student-1', title: 'Original Title', body: 'Original Body', upvotes: 0, upvotedUserIds: [] },
+  ];
+  // Student (author) updates title
+  const authorEdit = mergeStoreValue(
+    'forum_threads',
+    existingThreads,
+    [{ id: 't-1', authorId: 'user-student-1', title: 'Updated Title', body: 'Original Body' }],
+    student
+  );
+  assert.equal(authorEdit.ok, true);
+  if (authorEdit.ok) {
+    assert.equal((authorEdit.value as any[])[0].title, 'Updated Title');
+  }
+
+  // Instructor (non-author) upvotes but cannot change title
+  const peerUpvote = mergeStoreValue(
+    'forum_threads',
+    existingThreads,
+    [{ id: 't-1', authorId: 'user-student-1', title: 'Hacked by Peer', upvotes: 1, upvotedUserIds: ['user-instructor-1'] }],
+    instructor
+  );
+  assert.equal(peerUpvote.ok, true);
+  if (peerUpvote.ok) {
+    const list = peerUpvote.value as any[];
+    assert.equal(list[0].title, 'Original Title'); // title not changed by non-author
+    assert.equal(list[0].upvotes, 1); // upvote permitted
+  }
+
+  // 7. Admin can pin/lock/edit/delete any thread
+  const adminManage = mergeStoreValue(
+    'forum_threads',
+    existingThreads,
+    [{ id: 't-1', authorId: 'user-student-1', title: 'Admin Pinned', isPinned: true, isLocked: true }],
+    admin
+  );
+  assert.equal(adminManage.ok, true);
+  if (adminManage.ok) {
+    const list = adminManage.value as any[];
+    assert.equal(list[0].isPinned, true);
+    assert.equal(list[0].isLocked, true);
+  }
+});
+
+test('RBAC hardening: non-admin student cannot create a message with isPinned: true, isModerated: true, forged reactions, or spoofed role', () => {
+  const forged = mergeStoreValue(
+    'community_messages',
+    [],
+    [
+      {
+        id: 'm-forge-1',
+        userId: 'user-student-1',
+        content: 'I claim to be admin and pinned',
+        isPinned: true,
+        isModerated: true,
+        userRole: 'admin',
+        authorRole: 'admin',
+        reactions: { '🎉': ['user-admin-1', 'user-other-2'] },
+      },
+    ],
+    student
+  );
+
+  assert.equal(forged.ok, true);
+  if (forged.ok) {
+    const records = list(forged.value);
+    assert.equal(records.length, 1);
+    const msg = records[0];
+    assert.equal(msg.id, 'm-forge-1');
+    assert.equal(msg.userId, 'user-student-1');
+    assert.equal(msg.authorId, 'user-student-1');
+    assert.equal(msg.isPinned, false, 'isPinned must be forced to false for non-admin on insertion');
+    assert.equal(msg.isModerated, false, 'isModerated must be forced to false for non-admin on insertion');
+    assert.equal(msg.userRole, 'customer', 'userRole must be bound to ctx.role');
+    assert.equal(msg.authorRole, 'customer', 'authorRole must be bound to ctx.role');
+    assert.deepEqual(msg.reactions, {}, 'reactions must be initialized empty on new message insertion');
+  }
+});
+
+test('RBAC hardening: author ID and user ID mismatch on message insertion is sanitized or rejected', () => {
+  // Case A: rec.userId matches selfUserId, but rec.authorId points to another user (impersonation attempt) -> rejected
+  const mismatchAuthor = mergeStoreValue(
+    'community_messages',
+    [],
+    [{ id: 'm-mismatch-1', userId: 'user-student-1', authorId: 'user-admin-1', content: 'Spoofed authorId' }],
+    student
+  );
+  assert.equal(mismatchAuthor.ok, true);
+  if (mismatchAuthor.ok) {
+    assert.equal(list(mismatchAuthor.value).length, 0, 'Message with foreign authorId must be rejected');
+    assert.equal(mismatchAuthor.rejected, 1);
+  }
+
+  // Case B: rec.authorId matches selfUserId, but rec.userId points to another user -> rejected
+  const mismatchUser = mergeStoreValue(
+    'community_messages',
+    [],
+    [{ id: 'm-mismatch-2', userId: 'user-admin-1', authorId: 'user-student-1', content: 'Spoofed userId' }],
+    student
+  );
+  assert.equal(mismatchUser.ok, true);
+  if (mismatchUser.ok) {
+    assert.equal(list(mismatchUser.value).length, 0, 'Message with foreign userId must be rejected');
+    assert.equal(mismatchUser.rejected, 1);
+  }
+
+  // Case C: valid payload with matching userId and authorId -> accepted and authorId/userId synced
+  const validBoth = mergeStoreValue(
+    'community_messages',
+    [],
+    [{ id: 'm-valid-both', userId: 'user-student-1', authorId: 'user-student-1', content: 'Valid message' }],
+    student
+  );
+  assert.equal(validBoth.ok, true);
+  if (validBoth.ok) {
+    assert.equal(list(validBoth.value).length, 1);
+    assert.equal(list(validBoth.value)[0].userId, 'user-student-1');
+    assert.equal(list(validBoth.value)[0].authorId, 'user-student-1');
+  }
+
+  // Case D: valid payload providing only userId -> authorId is automatically set to selfUserId
+  const validUserIdOnly = mergeStoreValue(
+    'community_messages',
+    [],
+    [{ id: 'm-valid-useronly', userId: 'user-student-1', content: 'Valid message user only' }],
+    student
+  );
+  assert.equal(validUserIdOnly.ok, true);
+  if (validUserIdOnly.ok) {
+    assert.equal(list(validUserIdOnly.value).length, 1);
+    assert.equal(list(validUserIdOnly.value)[0].userId, 'user-student-1');
+    assert.equal(list(validUserIdOnly.value)[0].authorId, 'user-student-1');
+  }
+});
+
+test('RBAC hardening: non-admin student cannot create a forum thread with isPinned: true, isLocked: true, or isSolved: true', () => {
+  const forgedThread = mergeStoreValue(
+    'forum_threads',
+    [],
+    [
+      {
+        id: 't-forge-1',
+        authorId: 'user-student-1',
+        title: 'Hacked announcement thread',
+        body: 'Spam content',
+        isPinned: true,
+        pinned: true,
+        isLocked: true,
+        isSolved: true,
+        solutionReplyId: 'r-fake-solution',
+        authorRole: 'admin',
+      },
+    ],
+    student
+  );
+
+  assert.equal(forgedThread.ok, true);
+  if (forgedThread.ok) {
+    const records = list(forgedThread.value);
+    assert.equal(records.length, 1);
+    const thread = records[0];
+    assert.equal(thread.id, 't-forge-1');
+    assert.equal(thread.authorId, 'user-student-1');
+    assert.equal(thread.isPinned, false, 'Non-admin cannot create pinned thread');
+    assert.equal(thread.pinned, false, 'Non-admin cannot create pinned thread');
+    assert.equal(thread.isLocked, false, 'Non-admin cannot create pre-locked thread');
+    assert.equal(thread.isSolved, false, 'Non-admin cannot create pre-solved thread');
+    assert.equal(thread.solutionReplyId, undefined, 'Non-admin cannot attach solutionReplyId on insert');
+    assert.equal(thread.authorRole, 'customer', 'authorRole must match ctx.role');
+  }
+});
+
+test('RBAC hardening: non-admin student cannot create a reply with isSolution: true, isPinned: true, or isModerated: true', () => {
+  const forgedReply = mergeStoreValue(
+    'forum_replies',
+    [],
+    [
+      {
+        id: 'r-forge-1',
+        threadId: 't-1',
+        authorId: 'user-student-1',
+        body: 'Pre-solved accepted answer',
+        isSolution: true,
+        isPinned: true,
+        isModerated: true,
+        authorRole: 'admin',
+      },
+    ],
+    student
+  );
+
+  assert.equal(forgedReply.ok, true);
+  if (forgedReply.ok) {
+    const records = list(forgedReply.value);
+    assert.equal(records.length, 1);
+    const reply = records[0];
+    assert.equal(reply.id, 'r-forge-1');
+    assert.equal(reply.authorId, 'user-student-1');
+    assert.equal(reply.isSolution, false, 'Non-admin cannot insert reply with isSolution: true');
+    assert.equal(reply.isPinned, false, 'Non-admin cannot insert reply with isPinned: true');
+    assert.equal(reply.isModerated, false, 'Non-admin cannot insert reply with isModerated: true');
+    assert.equal(reply.authorRole, 'customer', 'authorRole must match ctx.role');
+  }
+});
+
+test('RBAC hardening: peer student cannot mark another students reply as isSolution: true', () => {
+  const existingReplies = [
+    {
+      id: 'r-peer-1',
+      threadId: 't-1',
+      authorId: 'user-student-2',
+      body: 'Peer constructive reply',
+      isSolution: false,
+      upvotes: 0,
+      upvotedUserIds: [],
+    },
+  ];
+
+  // Peer student attempts to mark peer's reply as verified solution while upvoting
+  const peerTamper = mergeStoreValue(
+    'forum_replies',
+    existingReplies,
+    [
+      {
+        id: 'r-peer-1',
+        isSolution: true,
+        upvotes: 1,
+        upvotedUserIds: ['user-student-1'],
+      },
+    ],
+    student
+  );
+
+  assert.equal(peerTamper.ok, true);
+  if (peerTamper.ok) {
+    const records = list(peerTamper.value);
+    assert.equal(records.length, 1);
+    const reply = records[0];
+    assert.equal(reply.id, 'r-peer-1');
+    assert.equal(reply.isSolution, false, 'Peer student must not be able to mark reply as solution');
+    assert.equal(reply.upvotes, 1, 'Legitimate upvote must still be applied');
+    assert.deepEqual(reply.upvotedUserIds, ['user-student-1']);
+  }
+
+  // Reply author also cannot mark their own reply as verified solution via store sync
+  const authorAttempt = mergeStoreValue(
+    'forum_replies',
+    existingReplies,
+    [
+      {
+        id: 'r-peer-1',
+        authorId: 'user-student-2',
+        body: 'Peer updated reply body',
+        isSolution: true,
+      },
+    ],
+    { isAdmin: false, role: 'customer', selfUserId: 'user-student-2' }
+  );
+
+  assert.equal(authorAttempt.ok, true);
+  if (authorAttempt.ok) {
+    const records = list(authorAttempt.value);
+    assert.equal(records[0].isSolution, false, 'Reply author cannot mark self reply as solution');
+    assert.equal(records[0].body, 'Peer updated reply body', 'Author body update is preserved');
+  }
+
+  // Admin CAN update isSolution
+  const adminSolution = mergeStoreValue(
+    'forum_replies',
+    existingReplies,
+    [
+      {
+        id: 'r-peer-1',
+        isSolution: true,
+      },
+    ],
+    admin
+  );
+
+  assert.equal(adminSolution.ok, true);
+  if (adminSolution.ok) {
+    const records = list(adminSolution.value);
+    assert.equal(records[0].isSolution, true, 'Admin can mark reply as verified solution');
+  }
+});

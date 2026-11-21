@@ -13,13 +13,16 @@ import {
   LogOut,
   Menu,
   MessageCircle,
+  MessageSquare,
   Package,
   Phone,
   PlayCircle,
   Search,
   Share2,
   ShoppingCart,
+  Sparkles,
   User,
+  Users,
   X,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -43,6 +46,7 @@ export function Header() {
     wishlist,
     setIsCartOpen,
     currentUser,
+    activeUserMembership,
     logout,
     navigate,
     route,
@@ -132,6 +136,8 @@ export function Header() {
   const isMembershipActive = route === '/membership';
   const isEventsActive = route === '/events';
   const isShowcaseActive = route === '/showcase';
+  const isCommunityActive = route === '/community' || route.startsWith('/community');
+  const isVaultActive = route === '/vault' || route.startsWith('/vault');
 
   return (
     <header className="sticky top-0 z-40 bg-[#0a192f] text-white border-b-2 border-[#d4af37] shadow-md">
@@ -194,6 +200,19 @@ export function Header() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => goToRoute('/vault')}
+                      className="w-full flex items-center justify-between px-2.5 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-md cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Sparkles className="w-4 h-4 text-[#5624d0] shrink-0" />
+                        <span>Member Prompt Vault</span>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-[#5624d0] px-1.5 py-0.5 rounded">
+                        AI VIP
+                      </span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => goToRoute('/affiliates')}
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-md cursor-pointer"
                     >
@@ -215,6 +234,14 @@ export function Header() {
                     >
                       <Globe className="w-4 h-4 text-[#0a192f] shrink-0" />
                       <span>Showcase</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToRoute('/community')}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-md cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4 text-[#0a192f] shrink-0" />
+                      <span>Community & Forums</span>
                     </button>
                   </div>
                 </div>
@@ -487,6 +514,16 @@ export function Header() {
               Showcase
             </button>
 
+            <button
+              type="button"
+              onClick={() => goToRoute('/community')}
+              className={`hover:text-[#f5c451] transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                isCommunityActive ? 'text-[#f5c451] font-bold' : ''
+              }`}
+            >
+              Community
+            </button>
+
             {currentUser && (
               <button
                 type="button"
@@ -604,12 +641,45 @@ export function Header() {
                     type="button"
                     onClick={() => {
                       setUserMenuOpen(false);
+                      navigate('/community');
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <MessageSquare className="w-4 h-4 text-[#0a192f]" />
+                    <span>Community & Chat</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
                       navigate('/membership');
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 cursor-pointer"
                   >
                     <Crown className="w-4 h-4 text-[#b4690e]" />
                     <span>Membership Pass</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      navigate('/vault');
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Sparkles className="w-4 h-4 text-[#5624d0]" />
+                      <span>Member Prompt Vault</span>
+                    </div>
+                    {activeUserMembership?.status === 'active' ? (
+                      <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                        VIP
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        AI
+                      </span>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -886,6 +956,22 @@ export function Header() {
 
             <button
               type="button"
+              onClick={() => goToRoute('/vault')}
+              className={`w-full px-3.5 py-3 text-sm font-semibold flex items-center justify-between hover:bg-[#142a4d] transition-colors cursor-pointer ${
+                isVaultActive ? 'text-[#f5c451]' : 'text-slate-100'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <Sparkles className="w-4 h-4 text-[#d4af37] shrink-0" />
+                <span>Member Prompt Vault</span>
+              </span>
+              <span className="text-[10px] font-bold text-[#f5c451] bg-[#162a4d] border border-[#d4af37]/40 px-2 py-0.5 rounded">
+                AI VIP
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => goToRoute('/showcase')}
               className={`w-full px-3.5 py-3 text-sm font-semibold flex items-center justify-between hover:bg-[#142a4d] transition-colors cursor-pointer ${
                 isShowcaseActive ? 'text-[#f5c451]' : 'text-slate-100'
@@ -896,6 +982,22 @@ export function Header() {
                 <span>Showcase</span>
               </span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => goToRoute('/community')}
+              className={`w-full px-3.5 py-3 text-sm font-semibold flex items-center justify-between hover:bg-[#142a4d] transition-colors cursor-pointer ${
+                isCommunityActive ? 'text-[#f5c451]' : 'text-slate-100'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <Users className="w-4 h-4 text-[#d4af37] shrink-0" />
+                <span>Community & Chat</span>
+              </span>
+              <span className="text-[10px] font-bold text-[#f5c451] bg-[#162a4d] border border-[#d4af37]/40 px-2 py-0.5 rounded">
+                Live
+              </span>
             </button>
 
             <button

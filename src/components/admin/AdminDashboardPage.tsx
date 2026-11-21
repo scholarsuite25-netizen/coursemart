@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
+  Bot,
   Calendar,
   CheckCircle2,
   Copy,
@@ -60,6 +61,9 @@ import { EmailBroadcastPanel } from './EmailBroadcastPanel';
 import { EventsManagerPanel } from './EventsManagerPanel';
 import { ProductEditorModal } from './ProductEditorModal';
 import { SocialQueuePanel } from './SocialQueuePanel';
+import { CommunityModerationPanel } from './CommunityModerationPanel';
+import { AutomationAgentsPanel } from './AutomationAgentsPanel';
+import { AffiliateManagementPanel } from './AffiliateManagementPanel';
 
 type AdminTab =
   | 'dashboard'
@@ -68,11 +72,13 @@ type AdminTab =
   | 'blogs'
   | 'email'
   | 'social'
+  | 'automation'
   | 'orders'
   | 'coupons'
   | 'membership'
   | 'affiliates'
   | 'showcase'
+  | 'community'
   | 'whatsapp'
   | 'users'
   | 'appearance';
@@ -384,11 +390,13 @@ export function AdminDashboardPage() {
     { id: 'blogs', label: 'Blogs & Comments', icon: FileText },
     { id: 'email', label: 'Email Broadcast', icon: Mail },
     { id: 'social', label: 'Social Queue', icon: Sparkles },
+    { id: 'automation', label: 'Automation Agents', icon: Bot },
     { id: 'orders', label: 'Orders & Licenses', icon: ShoppingBag },
     { id: 'coupons', label: 'Coupons', icon: Tag },
     { id: 'membership', label: 'Membership', icon: Crown },
     { id: 'affiliates', label: 'Affiliates', icon: Share2 },
     { id: 'showcase', label: 'Showcase', icon: Globe },
+    { id: 'community', label: 'Community', icon: MessageSquare },
     { id: 'whatsapp', label: 'WhatsApp Groups', icon: MessageCircle },
     { id: 'users', label: 'Users & Roles', icon: Users },
     { id: 'appearance', label: 'Appearance', icon: Paintbrush },
@@ -1250,6 +1258,12 @@ export function AdminDashboardPage() {
             </div>
           )}
 
+          {/* 4. AUTOMATION AGENTS PANEL */}
+          {activeTab === 'automation' && <AutomationAgentsPanel />}
+
+          {/* 4A. COMMUNITY MODERATION PANEL */}
+          {activeTab === 'community' && <CommunityModerationPanel />}
+
           {/* 4B. WHATSAPP GROUPS MANAGEMENT */}
           {activeTab === 'whatsapp' && (
             <div className="space-y-6">
@@ -2109,184 +2123,7 @@ export function AdminDashboardPage() {
 
           {/* 9. AFFILIATE PROGRAM MANAGEMENT */}
           {activeTab === 'affiliates' && (
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h1 className="font-display text-2xl font-bold text-[#1d2327]">
-                    Affiliate Partners, Conversions & Payouts
-                  </h1>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Adjust partner commission rates, approve referred checkout conversions, and settle withdrawal requests.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate('/affiliates')}
-                  className="px-3.5 py-2 text-xs font-bold text-[#1d2327] bg-white border border-[#8c8f94] hover:bg-slate-50 rounded-sm inline-flex items-center gap-1.5 cursor-pointer"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open Partner Portal</span>
-                </button>
-              </div>
-
-              <section className="bg-white border border-[#c3c4c7] rounded-sm overflow-x-auto">
-                <div className="px-4 py-3 border-b border-[#c3c4c7] font-display text-sm font-bold text-[#1d2327]">
-                  Registered Affiliates ({affiliates.length})
-                </div>
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
-                    <tr>
-                      <th className="px-4 py-2.5">Partner</th>
-                      <th className="px-4 py-2.5">Referral Code</th>
-                      <th className="px-4 py-2.5">Clicks</th>
-                      <th className="px-4 py-2.5">Payout Method</th>
-                      <th className="px-4 py-2.5">Commission Rate (%)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 tabular-nums">
-                    {affiliates.map((aff) => (
-                      <tr key={aff.id}>
-                        <td className="px-4 py-2.5">
-                          <p className="font-semibold text-slate-900">{aff.userName}</p>
-                          <p className="text-[11px] text-slate-500">{aff.userEmail}</p>
-                        </td>
-                        <td className="px-4 py-2.5 font-mono font-bold text-[#2271b1]">
-                          {aff.code}
-                        </td>
-                        <td className="px-4 py-2.5">{aff.clicks}</td>
-                        <td className="px-4 py-2.5 text-slate-600">
-                          <p className="font-semibold text-slate-800">{aff.payoutMethod}</p>
-                          <p className="text-[11px]">{aff.bankDetails}</p>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <input
-                            type="number"
-                            min={1}
-                            max={60}
-                            aria-label={`Commission rate for ${aff.userName}`}
-                            value={Math.round(aff.commissionRate * 100)}
-                            onChange={(e) => {
-                              const pct = Math.max(1, Math.min(60, Number(e.target.value) || 20));
-                              updateAffiliateCommissionRate(aff.id, pct / 100);
-                            }}
-                            className="w-20 h-8 px-2 border border-[#8c8f94] rounded-sm text-xs font-bold tabular-nums"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-
-              <section className="bg-white border border-[#c3c4c7] rounded-sm overflow-x-auto">
-                <div className="px-4 py-3 border-b border-[#c3c4c7] font-display text-sm font-bold text-[#1d2327]">
-                  Referral Conversions ({affiliateConversions.length})
-                </div>
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
-                    <tr>
-                      <th className="px-4 py-2.5">Order</th>
-                      <th className="px-4 py-2.5">Ref Code</th>
-                      <th className="px-4 py-2.5">Buyer</th>
-                      <th className="px-4 py-2.5 text-right">Order Total</th>
-                      <th className="px-4 py-2.5 text-right">Commission</th>
-                      <th className="px-4 py-2.5">Status</th>
-                      <th className="px-4 py-2.5 text-right">Control</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 tabular-nums">
-                    {affiliateConversions.map((conv) => (
-                      <tr key={conv.id}>
-                        <td className="px-4 py-2.5 font-mono font-bold text-[#2271b1]">{conv.orderId}</td>
-                        <td className="px-4 py-2.5 font-mono">{conv.affiliateCode}</td>
-                        <td className="px-4 py-2.5">{conv.buyerName}</td>
-                        <td className="px-4 py-2.5 text-right">{formatNaira(conv.orderTotal)}</td>
-                        <td className="px-4 py-2.5 text-right font-bold text-emerald-700">
-                          {formatNaira(conv.commissionAmount)}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-800 rounded-sm">
-                            {conv.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right space-x-1.5">
-                          <button
-                            type="button"
-                            onClick={() => updateAffiliateConversionStatus(conv.id, 'approved')}
-                            className="px-2 py-1 text-[11px] font-semibold text-emerald-700 border border-emerald-200 rounded-sm hover:bg-emerald-50 cursor-pointer"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateAffiliateConversionStatus(conv.id, 'paid')}
-                            className="px-2 py-1 text-[11px] font-semibold text-[#2271b1] border border-sky-200 rounded-sm hover:bg-sky-50 cursor-pointer"
-                          >
-                            Mark Paid
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateAffiliateConversionStatus(conv.id, 'declined')}
-                            className="px-2 py-1 text-[11px] font-semibold text-rose-700 border border-rose-200 rounded-sm hover:bg-rose-50 cursor-pointer"
-                          >
-                            Decline
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-
-              <section className="bg-white border border-[#c3c4c7] rounded-sm overflow-x-auto">
-                <div className="px-4 py-3 border-b border-[#c3c4c7] font-display text-sm font-bold text-[#1d2327]">
-                  Payout Requests ({affiliatePayouts.length})
-                </div>
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
-                    <tr>
-                      <th className="px-4 py-2.5">Partner</th>
-                      <th className="px-4 py-2.5">Code</th>
-                      <th className="px-4 py-2.5">Settlement Bank / GTB Details</th>
-                      <th className="px-4 py-2.5 text-right">Amount</th>
-                      <th className="px-4 py-2.5">Status</th>
-                      <th className="px-4 py-2.5 text-right">Control</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 tabular-nums">
-                    {affiliatePayouts.map((pay) => (
-                      <tr key={pay.id}>
-                        <td className="px-4 py-2.5 font-semibold text-slate-900">{pay.affiliateName}</td>
-                        <td className="px-4 py-2.5 font-mono">{pay.affiliateCode}</td>
-                        <td className="px-4 py-2.5 text-slate-600">{pay.bankDetails}</td>
-                        <td className="px-4 py-2.5 text-right font-bold">{formatNaira(pay.amount)}</td>
-                        <td className="px-4 py-2.5">
-                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-800 rounded-sm">
-                            {pay.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right space-x-1.5">
-                          <button
-                            type="button"
-                            onClick={() => updateAffiliatePayoutStatus(pay.id, 'paid')}
-                            className="px-2 py-1 text-[11px] font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-sm cursor-pointer"
-                          >
-                            Mark Paid
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => updateAffiliatePayoutStatus(pay.id, 'declined')}
-                            className="px-2 py-1 text-[11px] font-semibold text-rose-700 border border-rose-200 hover:bg-rose-50 rounded-sm cursor-pointer"
-                          >
-                            Decline
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-            </div>
+            <AffiliateManagementPanel />
           )}
 
           {/* 10. SHOWCASE SITES MANAGEMENT */}

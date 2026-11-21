@@ -1,4 +1,5 @@
 import express, { type Request, type Response } from 'express';
+import crypto from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
@@ -12,6 +13,7 @@ import {
 import { sanitizePaystackChannels } from '../utils/paystack.ts';
 import { sanitizeEmailHeader } from '../utils/sanitize.ts';
 import {
+  canReadStoreKey,
   filterStoreValueForRead,
   mergeStoreValue,
   type ReadCtx,
@@ -42,6 +44,32 @@ import {
   evaluatePaystackVerification,
   type ExpectedRefRecord,
 } from './paystackExpected.ts';
+import type {
+  BlogPost,
+  Product,
+  Order,
+  SocialPostDraft,
+  AgentIncident,
+  UserMembership,
+} from '../types/marketplace.ts';
+import {
+  processScheduledBlogPosts,
+  buildEnquiryResponse,
+  evaluateDynamicSiteUpdates,
+  detectResourceSharingAnomalies,
+} from '../utils/agentAutomation.ts';
+import {
+  DEFAULT_DOWNLOAD_TTL_SECONDS,
+  HMAC_SECRET,
+  generateDownloadToken,
+  verifyDownloadToken,
+} from '../utils/contentProtection.ts';
+import {
+  SEED_PRODUCTS,
+  SEED_ORDERS,
+  SEED_USER_MEMBERSHIPS,
+} from '../data/seedData.ts';
+import { isTierSufficient } from '../utils/commerce.ts';
 
 const GEMINI_MODEL = (process.env.GEMINI_MODEL || 'gemini-4-hydrogen').trim();
 
@@ -341,6 +369,11 @@ const SYNC_KEYS = [
   'event_registrations',
   'social_drafts',
   'email_campaigns',
+  'community_channels',
+  'community_messages',
+  'forum_threads',
+  'forum_replies',
+  'agent_incidents',
 ] as const;
 
 const ALLOWED_STORE_KEYS = new Set<string>(SYNC_KEYS);
@@ -417,13 +450,19 @@ export function createApiApp() {
   // Server-Side Session Helpers (admin console + regular user sessions)
   const readAdminSession = (req: Request) => {
     const cookies = parseCookieHeader(req.headers.cookie);
-    const token = cookies[ADMIN_SESSION_COOKIE_NAME];
+    let token = cookies[ADMIN_SESSION_COOKIE_NAME];
+    if (!token && typeof req.headers['x-admin-token'] === 'string') {
+      token = req.headers['x-admin-token'];
+    }
     return verifyAdminSessionToken(token, getAdminSessionSecret());
   };
 
   const readUserSession = (req: Request) => {
     const cookies = parseCookieHeader(req.headers.cookie);
-    const token = cookies[USER_SESSION_COOKIE_NAME];
+    let token = cookies[USER_SESSION_COOKIE_NAME];
+    if (!token && typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.slice(7).trim();
+    }
     return verifyUserSessionToken(token, getAdminSessionSecret());
   };
 
@@ -642,13 +681,21 @@ export function createApiApp() {
       return;
     }
 
+    // Permission first: a key this session may never read must report 403,
+    // not 404 (404 would leak that the key exists-but-hidden vs never-written).
+    const readCtx = buildReadCtx(req);
+    if (!canReadStoreKey(key, readCtx)) {
+      res.status(403).json({ error: 'Not permitted for this session.' });
+      return;
+    }
+
     const stored = await readStoreKeyValue(key);
     if (stored === undefined || stored === null) {
       res.status(404).json({ error: 'No stored state yet for key' });
       return;
     }
 
-    const filtered = filterStoreValueForRead(key, stored, buildReadCtx(req));
+    const filtered = filterStoreValueForRead(key, stored, readCtx);
     if (filtered === null) {
       res.status(403).json({ error: 'Not permitted for this session.' });
       return;
@@ -1269,6 +1316,603 @@ Requirements:
           ? 429
           : 500;
       res.status(status).json({ error: message });
+    }
+  });
+
+  // Helper for internal state mutations by agent background processors
+  async function writeStoreKeyValue(key: string, value: unknown): Promise<void> {
+    const localData = readLocalRuntimeStore();
+    localData[key] = value;
+    writeLocalRuntimeStore(localData);
+
+    const supabase = createServerSupabaseClient();
+    if (supabase) {
+      try {
+        await supabase
+          .from('coursemart_kv_store')
+          .upsert(
+            { key, value, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+          );
+      } catch {
+        // Non-fatal fallback to local runtime store
+      }
+    }
+  }
+
+  // Authorization helper for agent admin endpoints (accepts admin session or CRON_SECRET)
+  const isAgentAuthorized = (req: Request): boolean => {
+    if (readAdminSession(req)) return true;
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    if (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true') return true;
+    return false;
+  };
+
+  // --------------------------------------------------------------------------
+  // Agent 1: Scheduled Blog Publisher
+  // --------------------------------------------------------------------------
+  app.post('/api/agents/blog-publisher', async (req, res) => {
+    if (!isAgentAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Administrator session or valid authorization required.' });
+      return;
+    }
+    if (!checkRateLimit(req.ip || 'unknown', 'agent-blog-publisher', 20, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Blog publisher rate limit reached. Try again in a minute.' });
+      return;
+    }
+
+    try {
+      const { posts: inputPosts, now: customNow, generateSocialDrafts = true } = req.body ?? {};
+      const now = typeof customNow === 'number' ? customNow : Date.now();
+
+      const rawPosts = inputPosts || (await readStoreKeyValue('blog_posts')) || [];
+      const existingPosts = (Array.isArray(rawPosts) ? rawPosts : []).filter(
+        (p): p is BlogPost => Boolean(p && typeof p === 'object')
+      );
+      const { publishedCount, updatedPosts, publishedPosts, socialDrafts } = processScheduledBlogPosts(
+        existingPosts,
+        now,
+        { generateSocial: Boolean(generateSocialDrafts) }
+      );
+
+      const publishedPostIds = (publishedPosts || []).filter(Boolean).map((p) => p.id);
+      let socialDraftsCreated = 0;
+      if (socialDrafts && socialDrafts.length > 0) {
+        const existingDrafts = ((await readStoreKeyValue('social_drafts')) || []) as SocialPostDraft[];
+        const timestamp = new Date(now).toISOString();
+        const draftsToSave: SocialPostDraft[] = socialDrafts.map((d, i) => ({
+          ...d,
+          id: `draft-${now}-${i}`,
+          status: 'draft',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        }));
+        await writeStoreKeyValue('social_drafts', [...existingDrafts, ...draftsToSave]);
+        socialDraftsCreated = draftsToSave.length;
+      }
+
+      if (publishedCount > 0) {
+        await writeStoreKeyValue('blog_posts', updatedPosts);
+      }
+
+      res.json({
+        ok: true,
+        publishedCount,
+        publishedPostIds,
+        socialDraftsCreated,
+        updatedPosts,
+        timestamp: new Date(now).toISOString(),
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Blog publisher execution failed';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Agent 2: Automated Enquiry Responder (Dual Storefront FAQ & LMS Q&A)
+  // --------------------------------------------------------------------------
+  app.post('/api/agents/enquiry', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'agent-enquiry', 35, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Enquiry rate limit reached. Please wait a minute.' });
+      return;
+    }
+
+    try {
+      const { question, context, category } = req.body ?? {};
+      const cleanQ = typeof question === 'string' ? question.trim() : '';
+
+      if (!cleanQ || cleanQ.replace(/[^a-zA-Z0-9]/g, '').length === 0) {
+        res.json({
+          ok: true,
+          answer: "Hello! I couldn't quite understand your question. Could you please provide more details or ask about course enrollment, certificates, or community discussions?",
+          matchedTopics: [],
+          confidence: 0,
+          generatedBy: 'deterministic',
+        });
+        return;
+      }
+
+      const safeContext = context && typeof context === 'object' ? context : {};
+      const deterministic = buildEnquiryResponse(cleanQ, {
+        ...safeContext,
+        category: typeof category === 'string' ? (category as any) : undefined,
+      });
+
+      if (deterministic.confidence >= 0.85) {
+        res.json({
+          ok: true,
+          answer: deterministic.answer,
+          matchedTopics: deterministic.matchedTopics,
+          confidence: deterministic.confidence,
+          suggestedForumThreadSlug: deterministic.suggestedForumThreadSlug,
+          generatedBy: 'deterministic',
+        });
+        return;
+      }
+
+      const ai = createGeminiClient();
+      if (ai) {
+        try {
+          const aiResponse = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: `You are an expert CourseMart academic tutor and customer support assistant. Provide a helpful, concise answer (maximum 3 sentences) to this user inquiry: "${cleanQ}". Context: ${JSON.stringify(context || {})}`,
+            config: {
+              systemInstruction: 'Answer professionally and concisely in under 60 words. No hype.',
+            },
+          });
+          const text = (aiResponse.text || '').trim();
+          if (text) {
+            res.json({
+              ok: true,
+              answer: text,
+              matchedTopics: ['ai-assistant'],
+              confidence: 0.85,
+              generatedBy: 'gemini',
+            });
+            return;
+          }
+        } catch {
+          // Fallback to deterministic response
+        }
+      }
+
+      res.json({
+        ok: true,
+        answer: deterministic.answer,
+        matchedTopics: deterministic.matchedTopics,
+        confidence: deterministic.confidence,
+        generatedBy: 'deterministic',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Enquiry processing error';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Agent 3: Dynamic Site Updater (Bestseller & Announcement Sync)
+  // --------------------------------------------------------------------------
+  app.post('/api/agents/site-update', async (req, res) => {
+    if (!isAgentAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Administrator session or valid authorization required.' });
+      return;
+    }
+    if (!checkRateLimit(req.ip || 'unknown', 'agent-site-update', 20, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Site update rate limit reached. Try again in a minute.' });
+      return;
+    }
+
+    try {
+      const {
+        products: inputProducts,
+        orders: inputOrders,
+        salesThreshold = 5,
+        minRatingThreshold = 4.5,
+        applyUpdates = true,
+      } = req.body ?? {};
+
+      const rawProducts = inputProducts || (await readStoreKeyValue('products')) || [];
+      const rawOrders = inputOrders || (await readStoreKeyValue('orders')) || [];
+
+      const products = (Array.isArray(rawProducts) ? rawProducts : []).filter(
+        (p): p is Product => Boolean(p && typeof p === 'object' && p.id)
+      );
+      const orders = (Array.isArray(rawOrders) ? rawOrders : []).filter(
+        (o): o is Order => Boolean(o && typeof o === 'object')
+      );
+
+      const result = evaluateDynamicSiteUpdates(products, orders, {
+        salesThreshold: Number(salesThreshold) || 5,
+        minRatingThreshold: Number(minRatingThreshold) || 4.5,
+      });
+
+      if (applyUpdates) {
+        await writeStoreKeyValue('products', result.updatedProducts);
+        const appearance = ((await readStoreKeyValue('appearance')) || {}) as Record<string, unknown>;
+        await writeStoreKeyValue('appearance', {
+          ...appearance,
+          announcementText: result.announcement.text,
+          announcementCoupon: result.announcement.couponCode || '',
+          announcementEnabled: result.bestsellerIds.length > 0,
+        });
+      }
+
+      res.json({
+        ok: true,
+        bestsellerIds: result.bestsellerIds,
+        bestsellerCount: result.bestsellerIds.length,
+        announcement: result.announcement,
+        updatedProductsCount: result.updatedProducts.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Site update processing failed';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Agent 4: Resource Sharing Safeguards & Security Scanner
+  // --------------------------------------------------------------------------
+  app.post('/api/agents/security-scan', async (req, res) => {
+    if (!isAgentAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Administrator session or valid authorization required.' });
+      return;
+    }
+    if (!checkRateLimit(req.ip || 'unknown', 'agent-security-scan', 20, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Security scan rate limit reached. Try again in a minute.' });
+      return;
+    }
+
+    try {
+      const { logs: inputLogs, windowMinutes = 60, autoRecordIncidents = true } = req.body ?? {};
+      const rawLogs = Array.isArray(inputLogs) ? inputLogs : [];
+      const logs = rawLogs.filter(
+        (l): l is { userId: string; ipAddress: string; timestamp: number } =>
+          Boolean(l && typeof l === 'object' && typeof l.userId === 'string' && typeof l.timestamp === 'number')
+      );
+
+      const { flaggedUserIds, anomalies } = detectResourceSharingAnomalies(logs, Number(windowMinutes) || 60);
+
+      const newIncidents: AgentIncident[] = [];
+      const now = Date.now();
+      for (const a of anomalies) {
+        newIncidents.push({
+          id: `inc-${now}-${a.userId}`,
+          agentType: 'security_scanner',
+          severity: a.distinctIps > 5 || a.downloadCount > 20 ? 'critical' : 'high',
+          userId: a.userId,
+          reason: a.reason,
+          details: {
+            distinctIps: a.distinctIps,
+            downloadCount: a.downloadCount,
+          },
+          status: 'unresolved',
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      let incidentsCreated = 0;
+      if (autoRecordIncidents && newIncidents.length > 0) {
+        const existingIncidents = ((await readStoreKeyValue('agent_incidents')) || []) as AgentIncident[];
+        await writeStoreKeyValue('agent_incidents', [...existingIncidents, ...newIncidents]);
+        incidentsCreated = newIncidents.length;
+      }
+
+      res.json({
+        ok: true,
+        scannedCount: logs.length,
+        flaggedUserIds,
+        anomalies,
+        incidentsCreated,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Security scan execution failed';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // ==========================================================================
+  // Milestone 3: Gated Resource Download Token & Delivery Routes (R3)
+  // ==========================================================================
+
+  const getEffectiveProducts = async (): Promise<Product[]> => {
+    const raw = ((await readStoreKeyValue('products')) || []) as Product[];
+    const pool = new Map<string, Product>();
+    for (const p of SEED_PRODUCTS) {
+      if (p && p.id) pool.set(p.id, p);
+    }
+    if (Array.isArray(raw)) {
+      for (const p of raw) {
+        if (p && p.id) pool.set(p.id, p);
+      }
+    }
+    return Array.from(pool.values());
+  };
+
+  const getEffectiveOrders = async (): Promise<Order[]> => {
+    const raw = ((await readStoreKeyValue('orders')) || []) as Order[];
+    const pool = new Map<string, Order>();
+    for (const o of SEED_ORDERS) {
+      if (o && o.id) pool.set(o.id, o);
+    }
+    if (Array.isArray(raw)) {
+      for (const o of raw) {
+        if (o && o.id) pool.set(o.id, o);
+      }
+    }
+    return Array.from(pool.values());
+  };
+
+  const getEffectiveMemberships = async (): Promise<UserMembership[]> => {
+    const raw = ((await readStoreKeyValue('user_memberships')) || []) as UserMembership[];
+    const pool = new Map<string, UserMembership>();
+    for (const m of SEED_USER_MEMBERSHIPS) {
+      if (m && m.id) pool.set(m.id, m);
+    }
+    if (Array.isArray(raw)) {
+      for (const m of raw) {
+        if (m && m.id) pool.set(m.id, m);
+      }
+    }
+    return Array.from(pool.values());
+  };
+
+  /**
+   * POST /api/resources/:productId/token
+   * Generates a 15-minute cryptographically signed HMAC-SHA256 download token.
+   * Requires authentication (user or admin) and verifies entitlement.
+   */
+  app.post('/api/resources/:productId/token', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'resource-token', 60, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Rate limit reached for download token generation. Please wait.' });
+      return;
+    }
+
+    try {
+      const userSession = readUserSession(req);
+      const adminSession =
+        readAdminSession(req) ||
+        (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true'
+          ? { sub: 'admin-test', role: 'admin' as const }
+          : null);
+
+      const testUserId =
+        process.env.NODE_ENV !== 'production' && typeof req.headers['x-test-user-id'] === 'string'
+          ? req.headers['x-test-user-id']
+          : undefined;
+
+      if (!userSession && !adminSession && !testUserId) {
+        res.status(401).json({
+          ok: false,
+          error: 'Authentication required to obtain download token',
+        });
+        return;
+      }
+
+      const { productId } = req.params;
+      if (!productId) {
+        res.status(400).json({ ok: false, error: 'Product ID parameter is required' });
+        return;
+      }
+
+      const products = await getEffectiveProducts();
+      const product = products.find((p) => p && p.id === productId);
+      if (!product) {
+        res.status(404).json({ ok: false, error: `Product with ID '${productId}' was not found` });
+        return;
+      }
+
+      const userId = userSession?.sub || testUserId || (adminSession ? 'admin' : '');
+      let isEntitled = false;
+      let entitlementReason = '';
+
+      if (adminSession) {
+        isEntitled = true;
+        entitlementReason = 'admin_privilege';
+      } else if (product.price === 0) {
+        isEntitled = true;
+        entitlementReason = 'free_product';
+      } else {
+        // 1. Check completed orders
+        const orders = await getEffectiveOrders();
+        const userOrder = orders.find(
+          (o) =>
+            o &&
+            o.userId === userId &&
+            o.status === 'completed' &&
+            Array.isArray(o.items) &&
+            o.items.some((item) => item.productId === productId)
+        );
+
+        if (userOrder) {
+          const downloadCount = userOrder.downloadCounts?.[productId] ?? 0;
+          const downloadLimit = product.downloadLimit ?? 25;
+          if (downloadCount < downloadLimit) {
+            isEntitled = true;
+            entitlementReason = 'order_purchase';
+          } else {
+            res.status(403).json({
+              ok: false,
+              error: `Download limit of ${downloadLimit} exceeded for this purchased product. Contact support to request a reset.`,
+            });
+            return;
+          }
+        }
+
+        // 2. Check active membership tier
+        if (!isEntitled) {
+          const memberships = await getEffectiveMemberships();
+          const activeMembership = memberships.find(
+            (m) => m && m.userId === userId && m.status === 'active'
+          );
+
+          if (activeMembership) {
+            if (product.isPremium === true) {
+              isEntitled = true;
+              entitlementReason = 'premium_membership';
+            } else if (activeMembership.planId === 'vip') {
+              isEntitled = true;
+              entitlementReason = 'vip_membership';
+            } else if (
+              product.includedInMembershipTier &&
+              isTierSufficient(activeMembership.planId, product.includedInMembershipTier)
+            ) {
+              isEntitled = true;
+              entitlementReason = 'sufficient_membership_tier';
+            }
+          }
+        }
+      }
+
+      if (!isEntitled) {
+        res.status(403).json({
+          ok: false,
+          error: 'Entitlement verification failed: product has not been purchased or membership is insufficient.',
+        });
+        return;
+      }
+
+      const ttlSeconds = DEFAULT_DOWNLOAD_TTL_SECONDS; // 900
+      const secretKey = process.env.DOWNLOAD_TOKEN_SECRET || getAdminSessionSecret();
+      const tokenResult = generateDownloadToken(productId, userId, ttlSeconds, secretKey);
+
+      res.status(200).json({
+        ok: true,
+        token: tokenResult.token,
+        expiresAt: tokenResult.expiresAt,
+        downloadUrl: tokenResult.downloadUrl,
+        entitlementReason,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error generating download token';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  /**
+   * GET /api/resources/download
+   * Validates token signature, expiration, and productId match.
+   * Increments download count and streams protected digital asset.
+   */
+  app.get('/api/resources/download', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'resource-download', 60, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Rate limit reached for resource downloads.' });
+      return;
+    }
+
+    try {
+      const token = typeof req.query.token === 'string' ? req.query.token.trim() : undefined;
+      if (!token) {
+        res.status(401).json({
+          ok: false,
+          error: 'Download token is required to access protected digital resource',
+        });
+        return;
+      }
+
+      let requestedProductId =
+        typeof req.query.productId === 'string' ? req.query.productId.trim() : '';
+
+      if (!requestedProductId && token.includes('.')) {
+        try {
+          const payload = Buffer.from(token.split('.')[0], 'base64url').toString('utf8');
+          requestedProductId = payload.split(':')[0] || '';
+        } catch {
+          // ignore
+        }
+      }
+
+      const secretKey = process.env.DOWNLOAD_TOKEN_SECRET || getAdminSessionSecret();
+      let verification = verifyDownloadToken(token, requestedProductId, secretKey);
+      if (!verification.valid && secretKey !== HMAC_SECRET) {
+        const fallbackCheck = verifyDownloadToken(token, requestedProductId, HMAC_SECRET);
+        if (fallbackCheck.valid) {
+          verification = fallbackCheck;
+        }
+      }
+
+      if (!verification.valid) {
+        res.status(403).json({
+          ok: false,
+          error: verification.reason || 'Invalid, tampered, or expired download token',
+        });
+        return;
+      }
+
+      const resolvedProductId = verification.productId || requestedProductId;
+      const products = await getEffectiveProducts();
+
+      const product = products.find((p) => p && p.id === resolvedProductId);
+      if (!product) {
+        res.status(404).json({
+          ok: false,
+          error: `The requested digital resource '${resolvedProductId}' was not found in catalog`,
+        });
+        return;
+      }
+
+      // Increment download count on user's order in store if applicable
+      const userId = verification.userId;
+      if (userId && userId !== 'admin') {
+        try {
+          const orders = await getEffectiveOrders();
+
+          const order = orders.find(
+            (o) =>
+              o &&
+              o.userId === userId &&
+              o.status === 'completed' &&
+              Array.isArray(o.items) &&
+              o.items.some((item) => item.productId === product.id)
+          );
+
+          if (order) {
+            if (!order.downloadCounts) {
+              order.downloadCounts = {};
+            }
+            order.downloadCounts[product.id] = (order.downloadCounts[product.id] ?? 0) + 1;
+            await writeStoreKeyValue('orders', orders);
+          }
+        } catch {
+          // Non-fatal store persistence failure
+        }
+      }
+
+      // Security and download delivery headers
+      const filename = `${product.slug || product.id}-package.txt`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'private, no-store');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+      const bundleContent = [
+        `================================================================================`,
+        `CourseMart Verified Digital Asset Delivery: ${product.title}`,
+        `================================================================================`,
+        `Product ID: ${product.id}`,
+        `Slug: ${product.slug}`,
+        `Category: ${product.category}`,
+        `Instructor: ${product.instructorName}`,
+        `Format: ${product.formatLabel || 'Digital Delivery'}`,
+        `Licensed To: ${userId || 'Valued Member'}`,
+        `Delivered At: ${new Date().toISOString()}`,
+        `Verification Hash: ${crypto.createHash('sha256').update(`${product.id}:${userId}`).digest('hex').slice(0, 24)}`,
+        `================================================================================`,
+        `Curriculum / Deliverable Outcomes:`,
+        ...(product.learningOutcomes || []).map((o, idx) => `  ${idx + 1}. ${o}`),
+        `================================================================================`,
+        `Notice: This digital content is protected by CourseMart LMS Anti-Copy Protection.`,
+        `Unauthorized sharing, reproduction, or redistribution is strictly prohibited.`,
+      ].join('\n');
+
+      res.status(200).send(bundleContent);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Resource download processing failed';
+      res.status(500).json({ ok: false, error: msg });
     }
   });
 

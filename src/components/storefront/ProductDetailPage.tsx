@@ -283,6 +283,12 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              {product.isPremium && (
+                <span className="px-2.5 py-0.5 text-xs font-bold bg-amber-400 text-slate-900 rounded inline-flex items-center gap-1 shadow-sm">
+                  <Crown className="w-3.5 h-3.5 fill-slate-900" />
+                  <span>Premium Resource · Included with Membership</span>
+                </span>
+              )}
               {product.bestseller && (
                 <span className="px-2 py-0.5 text-xs font-bold bg-[#d4af37] text-[#0a192f] rounded">
                   Bestseller
@@ -1094,11 +1100,7 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
                       }
                       className={`w-full py-3 px-4 text-sm font-bold text-white ${accent.primaryBg} ${accent.primaryHoverBg} rounded-md transition-colors cursor-pointer`}
                     >
-                      {product.type === 'course'
-                        ? 'Go to Course Player'
-                        : product.type === 'ebook'
-                        ? 'Download / Read in Library'
-                        : 'Manage License Key in Library'}
+                      {product.type === 'course' ? 'Start Learning' : 'Access Now'}
                     </button>
                   </>
                 ) : (

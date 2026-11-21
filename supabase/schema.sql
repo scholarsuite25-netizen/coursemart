@@ -1,5 +1,12 @@
 -- Coursemart Digital Marketplace, LMS, Events & Broadcast Schema for Supabase (PostgreSQL)
 -- Paste and run this script once in Supabase Dashboard -> SQL Editor.
+--
+-- STATUS: The application currently persists ALL shared state through the
+-- key-value table `coursemart_kv_store` (section 1) only — that is the only
+-- table the server reads/writes, and it is what you MUST run before deploy.
+-- Sections 2-8 (users, products, orders, events, registrations, social drafts,
+-- email campaigns) are a reference/forward-looking relational schema: they are
+-- NOT queried by application code yet and are safe to skip.
 
 create extension if not exists "pgcrypto";
 

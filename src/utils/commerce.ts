@@ -3,6 +3,7 @@ import type {
   Coupon,
   Product,
   ProductFilterState,
+  UserMembership,
 } from '../types/marketplace';
 import { formatNaira } from './currency.ts';
 
@@ -449,18 +450,99 @@ export function isTierSufficient(
   return rank[userTier] >= rank[requiredTier];
 }
 
+export function isUnlockedByMembership(
+  product: (Product | { isPremium?: boolean; includedInMembershipTier?: any }) | null | undefined,
+  membership: (UserMembership | { status?: string; planId?: any }) | null | undefined
+): boolean {
+  if (!product || !membership || membership.status !== 'active') return false;
+  if (product.isPremium === true) return true;
+  return isTierSufficient(membership.planId, product.includedInMembershipTier);
+}
+
+export const DEFAULT_AFFILIATE_COMMISSION_PERCENT = 20;
+
 export function calculateAffiliateCommission(
   orderTotal: number,
-  commissionRatePercent: number
+  commissionRatePercent: number = DEFAULT_AFFILIATE_COMMISSION_PERCENT
 ): number {
   const clampedRate = Math.max(0, Math.min(75, commissionRatePercent));
   return roundCurrency(Math.max(0, orderTotal) * (clampedRate / 100));
 }
 
+export function attributeAffiliateReferral(
+  referralCode: string | null | undefined,
+  buyer: { id?: string; email?: string } | null | undefined,
+  affiliates: Array<{
+    id: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    code: string;
+    commissionRate?: number;
+    active: boolean;
+  }>,
+  orderTotal: number
+): {
+  attributed: boolean;
+  affiliateId?: string;
+  affiliateCode?: string;
+  commissionAmount: number;
+  reason?: string;
+} {
+  if (!referralCode || typeof referralCode !== 'string') {
+    return { attributed: false, commissionAmount: 0, reason: 'No referral code provided' };
+  }
+  const cleanCode = referralCode.trim().toUpperCase();
+  if (!cleanCode) {
+    return { attributed: false, commissionAmount: 0, reason: 'Empty referral code' };
+  }
+  const aff = affiliates.find((a) => a.code.toUpperCase() === cleanCode && a.active);
+  if (!aff) {
+    return { attributed: false, commissionAmount: 0, reason: 'Invalid or inactive affiliate code' };
+  }
+  if (buyer) {
+    const isSelfId = Boolean(buyer.id && buyer.id === aff.userId);
+    const isSelfEmail = Boolean(
+      buyer.email &&
+        aff.userEmail &&
+        buyer.email.trim().toLowerCase() === aff.userEmail.trim().toLowerCase()
+    );
+    if (isSelfId || isSelfEmail) {
+      return {
+        attributed: false,
+        commissionAmount: 0,
+        reason: 'Self-referrals are strictly disallowed',
+      };
+    }
+  }
+  const commissionRate = aff.commissionRate ?? DEFAULT_AFFILIATE_COMMISSION_PERCENT;
+  const commissionAmount = calculateAffiliateCommission(orderTotal, commissionRate);
+  return {
+    attributed: true,
+    affiliateId: aff.id,
+    affiliateCode: aff.code,
+    commissionAmount,
+  };
+}
+
+export function attributeReferralSale(
+  order: { id?: string; total?: number; userId?: string; customerEmail?: string } | number,
+  affiliateCode: string | null | undefined,
+  affiliatesList: any[],
+  buyerUser?: { id?: string; email?: string; name?: string }
+) {
+  const orderTotal = typeof order === 'number' ? order : (order?.total ?? 0);
+  const buyer =
+    buyerUser ||
+    (typeof order === 'object' ? { id: order.userId, email: order.customerEmail } : undefined);
+  return attributeAffiliateReferral(affiliateCode, buyer, affiliatesList, orderTotal);
+}
+
 export function extractReferralCodeFromSearch(search: string): string | null {
   if (!search) return null;
   const params = new URLSearchParams(search.startsWith('?') ? search : `?${search}`);
-  const ref = params.get('ref')?.trim().toUpperCase();
+  const raw = params.get('ref') || params.get('aff');
+  const ref = raw?.trim().toUpperCase();
   if (!ref || ref.length < 3 || ref.length > 32) return null;
   return ref.replace(/[^A-Z0-9_-]/g, '') || null;
 }

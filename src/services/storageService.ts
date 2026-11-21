@@ -19,6 +19,10 @@ import {
   SEED_USER_MEMBERSHIPS,
   SEED_USERS,
   SEED_WHATSAPP_GROUPS,
+  SEED_COMMUNITY_CHANNELS,
+  SEED_COMMUNITY_MESSAGES,
+  SEED_FORUM_THREADS,
+  SEED_FORUM_REPLIES,
 } from '../data/seedData';
 import type {
   AffiliateConversion,
@@ -26,6 +30,10 @@ import type {
   AffiliateProfile,
   BlogPost,
   CartItem,
+  CommunityChannel,
+  CommunityChatMessage,
+  CommunityForumReply,
+  CommunityForumThread,
   Coupon,
   CoursemartEvent,
   CourseProgress,
@@ -66,6 +74,10 @@ const STORAGE_KEYS = {
   EVENT_REGISTRATIONS: 'cm_db_event_registrations_v1',
   SOCIAL_DRAFTS: 'cm_db_social_drafts_v1',
   EMAIL_CAMPAIGNS: 'cm_db_email_campaigns_v1',
+  COMMUNITY_CHANNELS: 'cm_db_community_channels_v1',
+  COMMUNITY_MESSAGES: 'cm_db_community_messages_v1',
+  FORUM_THREADS: 'cm_db_forum_threads_v1',
+  FORUM_REPLIES: 'cm_db_forum_replies_v1',
   ACTIVE_REFERRAL_CODE: 'cm_session_ref_code_v1',
   CART: 'cm_session_cart_ngn_v1',
   WISHLIST: 'cm_session_wishlist_v1',
@@ -185,6 +197,26 @@ export const storageService = {
     readStorage(STORAGE_KEYS.EMAIL_CAMPAIGNS, SEED_EMAIL_CAMPAIGNS),
   saveEmailCampaigns: (list: EmailBroadcastCampaign[]): void =>
     writeStorage(STORAGE_KEYS.EMAIL_CAMPAIGNS, list),
+
+  getCommunityChannels: (): CommunityChannel[] =>
+    readStorage(STORAGE_KEYS.COMMUNITY_CHANNELS, SEED_COMMUNITY_CHANNELS),
+  saveCommunityChannels: (list: CommunityChannel[]): void =>
+    writeStorage(STORAGE_KEYS.COMMUNITY_CHANNELS, list),
+
+  getCommunityMessages: (): CommunityChatMessage[] =>
+    readStorage(STORAGE_KEYS.COMMUNITY_MESSAGES, SEED_COMMUNITY_MESSAGES),
+  saveCommunityMessages: (list: CommunityChatMessage[]): void =>
+    writeStorage(STORAGE_KEYS.COMMUNITY_MESSAGES, list),
+
+  getForumThreads: (): CommunityForumThread[] =>
+    readStorage(STORAGE_KEYS.FORUM_THREADS, SEED_FORUM_THREADS),
+  saveForumThreads: (list: CommunityForumThread[]): void =>
+    writeStorage(STORAGE_KEYS.FORUM_THREADS, list),
+
+  getForumReplies: (): CommunityForumReply[] =>
+    readStorage(STORAGE_KEYS.FORUM_REPLIES, SEED_FORUM_REPLIES),
+  saveForumReplies: (list: CommunityForumReply[]): void =>
+    writeStorage(STORAGE_KEYS.FORUM_REPLIES, list),
 
   getActiveReferralCode: (): string | null => {
     if (typeof window === 'undefined') return null;

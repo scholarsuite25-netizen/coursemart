@@ -280,14 +280,71 @@ export type ParsedAppRoute =
   | { page: 'admin' }
   | { page: 'login' }
   | { page: 'admin-login' }
-  | { page: 'learn'; productId: string };
+  | { page: 'learn'; productId: string }
+  | { page: 'funnel'; slug: string }
+  | { page: 'vault' }
+  | {
+      page: 'community';
+      subView?: 'chat' | 'forums' | 'thread';
+      channelId?: string;
+      threadId?: string;
+    };
 
 export function parseAppRoute(route: string): ParsedAppRoute {
   const cleanPath = route.split('?')[0].replace(/\/+$/, '') || '/';
+  const queryPart = route.includes('?') ? route.split('?')[1] : '';
+  const searchParams = new URLSearchParams(queryPart);
+
+  if (cleanPath === '/community' || cleanPath.startsWith('/community/')) {
+    const tabParam = searchParams.get('tab') as 'chat' | 'forums' | null;
+    const channelParam = searchParams.get('channel') || undefined;
+    const threadParam = searchParams.get('thread') || undefined;
+
+    if (cleanPath.startsWith('/community/threads/')) {
+      return {
+        page: 'community',
+        subView: 'thread',
+        threadId: cleanPath.replace('/community/threads/', ''),
+      };
+    }
+    if (cleanPath.startsWith('/community/thread/')) {
+      return {
+        page: 'community',
+        subView: 'thread',
+        threadId: cleanPath.replace('/community/thread/', ''),
+      };
+    }
+    if (cleanPath.startsWith('/community/channels/')) {
+      return {
+        page: 'community',
+        subView: 'chat',
+        channelId: cleanPath.replace('/community/channels/', ''),
+      };
+    }
+    if (cleanPath === '/community/forums' || cleanPath === '/community/forum') {
+      return { page: 'community', subView: 'forums' };
+    }
+    if (cleanPath === '/community/chat') {
+      return { page: 'community', subView: 'chat' };
+    }
+
+    return {
+      page: 'community',
+      subView: tabParam ?? (threadParam ? 'thread' : channelParam ? 'chat' : undefined),
+      channelId: channelParam,
+      threadId: threadParam,
+    };
+  }
 
   if (cleanPath === '/login') return { page: 'login' };
   if (cleanPath === '/admin-login') return { page: 'admin-login' };
   if (cleanPath === '/admin' || cleanPath.startsWith('/admin/')) return { page: 'admin' };
+  if (cleanPath === '/vault' || cleanPath.startsWith('/vault/')) return { page: 'vault' };
+  if (cleanPath.startsWith('/funnel/')) {
+    const slug = cleanPath.replace('/funnel/', '').trim();
+    return { page: 'funnel', slug: slug || 'ai-saas-accelerator' };
+  }
+  if (cleanPath === '/funnel') return { page: 'funnel', slug: 'ai-saas-accelerator' };
   if (cleanPath === '/library') return { page: 'library' };
   if (cleanPath === '/instructor') return { page: 'instructor' };
   if (cleanPath === '/membership') return { page: 'membership' };

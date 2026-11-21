@@ -188,6 +188,8 @@ export interface Product {
   status: ProductStatus;
   featured: boolean;
   bestseller?: boolean;
+  isPremium?: boolean;
+  copyProtectionEnabled?: boolean;
   learningOutcomes: string[];
   requirements: string[];
   targetAudience?: string[];
@@ -303,6 +305,120 @@ export interface WhatsAppGroup {
   createdAt: string;
 }
 
+// ==========================================
+// In-Platform Community Module (R1)
+// ==========================================
+
+export type CommunityChannelCategory =
+  | 'general'
+  | 'announcements'
+  | 'course'
+  | 'software'
+  | 'vip';
+
+export type CommunityVisibility = 'public' | 'enrolled_only' | 'members_only';
+
+export interface CommunityChannel {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: CommunityChannelCategory;
+  visibility: CommunityVisibility;
+  accessLevel?: 'public' | 'enrolled' | 'members' | CommunityVisibility;
+  productId?: string;
+  isReadOnly?: boolean;
+  isArchived?: boolean;
+  icon?: string;
+  memberCount?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CommunityChatMessage {
+  id: string;
+  channelId: string;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  userAvatar?: string;
+  authorId?: string;
+  authorName?: string;
+  authorRole?: UserRole;
+  content: string;
+  replyToId?: string;
+  reactions?: Record<string, string[]>; // emoji -> array of userIds
+  isPinned?: boolean;
+  isModerated?: boolean;
+  moderationReason?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type ForumCategory =
+  | 'Architecture & Systems'
+  | 'AI & Vibe Coding'
+  | 'Course Q&A'
+  | 'Career & Leadership'
+  | 'Showcase & Feedback'
+  | 'Announcements';
+
+export interface CommunityForumThread {
+  id: string;
+  slug: string;
+  title: string;
+  body: string;
+  content?: string;
+  category: ForumCategory | string;
+  productId?: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  authorAvatar?: string;
+  tags: string[];
+  upvotes: number;
+  upvotedUserIds: string[];
+  viewsCount: number;
+  replyCount: number;
+  isPinned: boolean;
+  pinned?: boolean;
+  isLocked: boolean;
+  isSolved: boolean;
+  solutionReplyId?: string;
+  isModerated?: boolean;
+  moderationReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastActivityAt: string;
+}
+
+export interface CommunityForumReply {
+  id: string;
+  threadId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  authorAvatar?: string;
+  body: string;
+  content?: string;
+  upvotes: number;
+  upvotedUserIds: string[];
+  isSolution?: boolean;
+  isPinned?: boolean;
+  isModerated?: boolean;
+  moderationReason?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CommunitySummaryStats {
+  totalChannels: number;
+  totalMessages: number;
+  totalThreads: number;
+  totalReplies: number;
+  solvedThreadsCount: number;
+}
+
 export interface LicenseKey {
   id: string;
   key: string;
@@ -408,6 +524,8 @@ export interface AffiliateProfile {
   joinedAt: string;
 }
 
+export type Affiliate = AffiliateProfile;
+
 export interface AffiliateConversion {
   id: string;
   affiliateCode: string;
@@ -418,6 +536,10 @@ export interface AffiliateConversion {
   commissionAmount: number;
   status: 'pending' | 'approved' | 'paid' | 'declined';
   createdAt: string;
+}
+
+export interface AffiliateCommissionRecord extends AffiliateConversion {
+  amount?: number;
 }
 
 export interface AffiliatePayoutRequest {
@@ -457,6 +579,7 @@ export interface StorefrontAppearance {
   showCatalogSection: boolean;
   showTrustStrip: boolean;
   sectionOrder: Array<'featured' | 'catalog' | 'trust'>;
+  globalCopyProtection?: boolean;
 }
 
 export interface ProductFilterState {
@@ -576,4 +699,225 @@ export interface PublicServerConfig {
   emailProvidersConfigured?: Array<'emailbump' | 'resend' | 'brevo'>;
   hasGeminiKey: boolean;
 }
+
+// ==========================================
+// Operational Automation Agents (R2)
+// ==========================================
+
+export type AgentTaskType =
+  | 'blog_publisher'
+  | 'enquiry_responder'
+  | 'site_updater'
+  | 'security_scanner';
+
+export type AgentRunStatus = 'idle' | 'running' | 'success' | 'error';
+
+export interface AgentIncident {
+  id: string;
+  agentType: 'security_scanner' | 'blog_publisher' | 'site_updater';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  userId?: string;
+  reason: string;
+  details?: {
+    distinctIps?: number;
+    downloadCount?: number;
+    ipAddresses?: string[];
+    productId?: string;
+    licenseKey?: string;
+    [key: string]: unknown;
+  };
+  status: 'unresolved' | 'investigating' | 'resolved' | 'dismissed';
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface BlogPublisherResult {
+  publishedCount: number;
+  publishedPostIds: string[];
+  socialDraftsCreated?: number;
+  updatedPosts?: BlogPost[];
+  timestamp?: string;
+}
+
+export interface EnquiryAgentRequest {
+  question: string;
+  category?: string;
+  context?: {
+    courseName?: string;
+    lectureTitle?: string;
+    productId?: string;
+    lectureId?: string;
+  };
+}
+
+export interface EnquiryAgentResponse {
+  answer: string;
+  matchedTopics: string[];
+  confidence: number;
+  suggestedForumThreadSlug?: string;
+  generatedBy?: 'gemini' | 'deterministic';
+}
+
+export interface SiteUpdateResult {
+  bestsellerIds: string[];
+  bestsellerCount: number;
+  announcement: {
+    text: string;
+    couponCode?: string;
+  };
+  updatedProducts?: Product[];
+  timestamp?: string;
+}
+
+export interface SecurityScanAnomaly {
+  userId: string;
+  reason: string;
+  distinctIps: number;
+  downloadCount: number;
+  ipAddresses?: string[];
+}
+
+export interface SecurityScanResult {
+  flaggedUserIds: string[];
+  anomalies: SecurityScanAnomaly[];
+  scannedCount?: number;
+  incidentsCreated?: number;
+  timestamp?: string;
+}
+
+// ==========================================
+// Sales Funnels & Member Prompt Vault (R4)
+// ==========================================
+
+export type SalesFunnelStep = 'offer' | 'checkout' | 'upsell' | 'confirmation';
+
+export interface SalesFunnelOrderBump {
+  productId: string;
+  title: string;
+  price: number;
+  originalPrice?: number;
+  description: string;
+  highlightText?: string;
+  thumbnail?: string;
+}
+
+export interface SalesFunnelUpsell {
+  productId: string;
+  title: string;
+  price: number;
+  originalPrice?: number;
+  headline: string;
+  description: string;
+  benefits: string[];
+  thumbnail?: string;
+  declineText?: string;
+}
+
+export interface SalesFunnelSocialProof {
+  quote: string;
+  author: string;
+  role: string;
+  avatar?: string;
+  rating?: number;
+}
+
+export interface SalesFunnelConfig {
+  id: string;
+  slug: string;
+  title: string;
+  headline: string;
+  subheadline?: string;
+  videoUrl?: string;
+  videoPoster?: string;
+  mainProductId: string;
+  mainProductPrice?: number; // Override price or defaults to product price
+  badgeText?: string;
+  features?: string[];
+  orderBump?: SalesFunnelOrderBump;
+  upsell?: SalesFunnelUpsell;
+  socialProof?: SalesFunnelSocialProof[];
+  guaranteeBadge?: string;
+  active: boolean;
+  createdAt?: string;
+}
+
+export interface FunnelOrderTotals {
+  subtotal: number;
+  bumpAmount: number;
+  upsellAmount: number;
+  discount?: number;
+  total: number;
+}
+
+export interface FunnelCheckoutPayload {
+  funnelId: string;
+  funnelSlug: string;
+  items: OrderItem[];
+  subtotal: number;
+  bumpAmount: number;
+  upsellAmount: number;
+  discount: number;
+  total: number;
+  customer: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  paymentMethod: PaymentMethod;
+  paymentReference?: string;
+  senderName?: string;
+  orderNotes?: string;
+  affiliateCode?: string;
+  status: OrderStatus;
+}
+
+export interface PromptVariable {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  placeholder?: string;
+  description?: string;
+  type?: 'text' | 'textarea' | 'select';
+  options?: string[];
+}
+
+export type PromptVaultCategory =
+  | 'All'
+  | 'Copywriting & Marketing'
+  | 'AI Engineering & Coding'
+  | 'Business & Strategy'
+  | 'Content Creation'
+  | 'Productivity'
+  | 'LMS & Education';
+
+export interface PromptVaultItem {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  category: PromptVaultCategory | string;
+  tags: string[];
+  template: string;
+  variables: PromptVariable[];
+  sampleOutput?: string;
+  recommendedModel?: string;
+  membershipTierRequired?: MembershipTierId;
+  isFeatured?: boolean;
+  copyCount?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PromptInterpolationResult {
+  prompt: string;
+  missingVariables: string[];
+  isComplete: boolean;
+}
+
+export interface PromptVaultAccessResult {
+  accessible: boolean;
+  reason?: string;
+}
+
+
 

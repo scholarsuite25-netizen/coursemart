@@ -18,6 +18,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Sparkles,
   Subtitles,
   Trash2,
   Volume1,
@@ -32,7 +33,11 @@ import {
   calculateModuleProgress,
   getCourseProgressSummary,
 } from '../../utils/commerce';
+import { runEnquiryAgent } from '../../utils/agentAutomation';
+import { isCopyProtectionActive } from '../../utils/contentProtection';
 import { LectureVideoCanvasPlayer } from './LectureVideoCanvasPlayer';
+import { ContentProtectionWrapper } from './ContentProtectionWrapper';
+import { DynamicWatermarkOverlay } from './DynamicWatermarkOverlay';
 
 interface CoursePlayerPageProps {
   productId: string;
@@ -54,11 +59,17 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
     submitModuleQuiz,
     issueCourseCertificate,
     addLectureQuestion,
+    answerLectureQuestion,
     navigate,
     showToast,
+    appearance,
   } = useStore();
 
   const product = products.find((p) => p.id === productId && p.type === 'course');
+  const isProtected = isCopyProtectionActive(
+    product?.copyProtectionEnabled,
+    appearance?.globalCopyProtection
+  );
   const flatLectures = useMemo(() => {
     if (!product?.courseData) return [];
     return product.courseData.modules.flatMap((m) =>
@@ -87,6 +98,8 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   const [noteDraft, setNoteDraft] = useState('');
   const [pinnedNoteText, setPinnedNoteText] = useState('');
   const [questionDraft, setQuestionDraft] = useState('');
+  const [loadingAiAnswerId, setLoadingAiAnswerId] = useState<string | null>(null);
+  const [isSubmittingAi, setIsSubmittingAi] = useState<boolean>(false);
   const [certificateOpen, setCertificateOpen] = useState(false);
 
   // Interactive Quiz modal state
@@ -221,7 +234,64 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
     setQuestionDraft('');
   };
 
-  const handleDownloadResource = (fileName: string) => {
+  const handleRequestAiTutorAnswer = (questionId: string, questionText: string) => {
+    if (!activeLecture || loadingAiAnswerId) return;
+    setLoadingAiAnswerId(questionId);
+
+    setTimeout(() => {
+      const res = runEnquiryAgent(questionText, {
+        courseName: product.title,
+        lectureTitle: activeLecture.title,
+      });
+      answerLectureQuestion(product.id, questionId, `[AI Tutor]: ${res.answer}`);
+      setLoadingAiAnswerId(null);
+      showToast('AI Tutor Answer generated');
+    }, 400);
+  };
+
+  const handleAskAiTutorDirectly = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!activeLecture || !questionDraft.trim() || isSubmittingAi) return;
+    setIsSubmittingAi(true);
+
+    const text = questionDraft.trim();
+    setQuestionDraft('');
+
+    addLectureQuestion(product.id, activeLecture.id, text);
+
+    setTimeout(() => {
+      const res = runEnquiryAgent(text, {
+        courseName: product.title,
+        lectureTitle: activeLecture.title,
+      });
+      const updatedProgress = getCourseProgress(product.id);
+      const latestQ = updatedProgress?.questions?.[0];
+      if (latestQ) {
+        answerLectureQuestion(product.id, latestQ.id, `[AI Tutor]: ${res.answer}`);
+      }
+      setIsSubmittingAi(false);
+      showToast('Question posted with instant AI Tutor answer!');
+    }, 400);
+  };
+
+  const handleDownloadResource = async (fileName: string) => {
+    try {
+      const res = await fetch(`/api/resources/${product.id}/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.downloadUrl) {
+          window.location.href = data.downloadUrl;
+          showToast(`Initiating secure download for ${fileName}...`);
+          return;
+        }
+      }
+    } catch {
+      // Fallback to client-side blob if offline or server route is unavailable
+    }
+
     const blob = new Blob(
       [
         `// Course: ${product.title}\n// Lecture: ${activeLecture?.title}\n// Resource: ${fileName}\n\nexport const lectureExample = true;\n`,
@@ -350,7 +420,7 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
 
       {/* Main Split: Video Theater + Tabs Left, Curriculum Sidebar Right */}
       <div className="flex-1 flex flex-col lg:flex-row">
-        <div className="flex-1 min-w-0 flex flex-col">
+        <ContentProtectionWrapper enabled={isProtected} className="flex-1 min-w-0 flex flex-col">
           {/* Theater Video Player */}
           {activeLecture && (
             <div className="bg-[#081221] text-white">
@@ -374,6 +444,8 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
                     volume={volume}
                     isMuted={isMuted}
                     voiceEnabled={voiceEnabled}
+                    watermarkUser={currentUser}
+                    copyProtectionEnabled={isProtected}
                     onTogglePlay={() => setIsPlaying((prev) => !prev)}
                     onVideoEnded={() => {
                       setIsPlaying(false);
@@ -386,6 +458,7 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
                       }
                     }}
                   />
+                  <DynamicWatermarkOverlay user={currentUser} visible={isProtected} />
                   {!isPlaying && !activeLecture.videoUrl && (
                     <button
                       type="button"
@@ -793,6 +866,15 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
                     >
                       Post Question
                     </button>
+                    <button
+                      type="button"
+                      onClick={handleAskAiTutorDirectly}
+                      disabled={!questionDraft.trim() || isSubmittingAi}
+                      className="px-3.5 h-10 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                      {isSubmittingAi ? 'Answering...' : 'Instant AI Answer'}
+                    </button>
                   </div>
                 </form>
 
@@ -810,12 +892,37 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
                           <span>{q.createdAt.slice(0, 10)}</span>
                         </div>
                         <p className="text-sm font-medium text-slate-900">{q.question}</p>
-                        {q.answer && (
-                          <div className="mt-2 p-3 bg-slate-50 rounded text-xs text-slate-700">
+                        {!q.answer && (
+                          <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-xs text-amber-600 font-medium">Awaiting instructor reply</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRequestAiTutorAnswer(q.id, q.question)}
+                              disabled={loadingAiAnswerId === q.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-md border border-indigo-200 transition cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                              {loadingAiAnswerId === q.id ? 'Generating Answer...' : 'AI Tutor Answer'}
+                            </button>
+                          </div>
+                        )}
+                        {q.answer && q.answer.startsWith('[AI Tutor]:') ? (
+                          <div className="mt-2 p-3 bg-indigo-50/70 border border-indigo-100 rounded text-xs text-slate-800 space-y-1">
+                            <div className="flex items-center gap-1.5 text-indigo-900 font-bold">
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>AI Course Tutor Reply</span>
+                              <span className="text-[10px] font-normal text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded">
+                                Automated Agent
+                              </span>
+                            </div>
+                            <p className="leading-relaxed">{q.answer.replace(/^\[AI Tutor\]:\s*/, '')}</p>
+                          </div>
+                        ) : q.answer ? (
+                          <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700">
                             <strong className="text-slate-900">Instructor Reply: </strong>
                             {q.answer}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     ))
                   )}
@@ -856,7 +963,7 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
               </div>
             )}
           </div>
-        </div>
+        </ContentProtectionWrapper>
 
         {/* Right Collapsible Curriculum & Quiz Sidebar */}
         {sidebarOpen && (

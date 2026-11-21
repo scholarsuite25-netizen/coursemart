@@ -2,15 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   AFFILIATE_MIN_PAYOUT_NGN,
+  DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+  attributeAffiliateReferral,
+  attributeReferralSale,
+  calculateAffiliateCommission,
   calculateAffiliateLedgerSummary,
   calculateCartTotals,
   calculateCourseProgressPercent,
   calculateModuleProgress,
+  extractReferralCodeFromSearch,
   filterAndSortProducts,
   generateLicenseKey,
   getCountdownSecondsRemaining,
   getCourseProgressSummary,
   getDiscountPercent,
+  isUnlockedByMembership,
   toggleModuleLecturesCompletion,
   validateAuthForm,
 } from './commerce';
@@ -276,5 +282,269 @@ test('getCountdownSecondsRemaining returns deterministic remaining seconds witho
   assert.equal(getCountdownSecondsRemaining('2026-11-19T23:59:59Z', now), 0);
   assert.equal(getCountdownSecondsRemaining(undefined, now), 0);
 });
+
+test('DEFAULT_AFFILIATE_COMMISSION_PERCENT is 20 percent', () => {
+  assert.equal(DEFAULT_AFFILIATE_COMMISSION_PERCENT, 20);
+});
+
+test('calculateAffiliateCommission calculates 20% by default, clamps between 0 and 75, handles zero/negative values, and rounds currency', () => {
+  // Default 20%
+  assert.equal(calculateAffiliateCommission(10000), 2000);
+  assert.equal(calculateAffiliateCommission(65000), 13000);
+  assert.equal(calculateAffiliateCommission(49.99), 10); // 9.998 rounded to 10
+
+  // Custom commission rate
+  assert.equal(calculateAffiliateCommission(10000, 25), 2500);
+
+  // Clamping: max 75%
+  assert.equal(calculateAffiliateCommission(10000, 90), 7500);
+  // Clamping: min 0%
+  assert.equal(calculateAffiliateCommission(10000, -10), 0);
+
+  // Zero and negative order total
+  assert.equal(calculateAffiliateCommission(0), 0);
+  assert.equal(calculateAffiliateCommission(-500), 0);
+});
+
+test('attributeAffiliateReferral attributes independent sales and rejects self-referral, inactive or unknown codes', () => {
+  const affiliates = [
+    {
+      id: 'aff-1',
+      userId: 'user-aff-1',
+      userName: 'John Doe',
+      userEmail: 'john@partner.io',
+      code: 'JOHN20',
+      commissionRate: 20,
+      active: true,
+    },
+    {
+      id: 'aff-2',
+      userId: 'user-aff-2',
+      userName: 'Jane Smith',
+      userEmail: 'jane@agency.com',
+      code: 'JANE30',
+      commissionRate: 30,
+      active: false, // inactive
+    },
+  ];
+
+  // 1. Independent sale attribution (case-insensitive code)
+  const success1 = attributeAffiliateReferral(
+    'john20',
+    { id: 'user-buyer-1', email: 'buyer@example.com' },
+    affiliates,
+    50000
+  );
+  assert.equal(success1.attributed, true);
+  assert.equal(success1.affiliateId, 'aff-1');
+  assert.equal(success1.affiliateCode, 'JOHN20');
+  assert.equal(success1.commissionAmount, 10000); // 20% of 50000
+
+  // 2. Self-referral rejection by userId
+  const selfUser = attributeAffiliateReferral(
+    'JOHN20',
+    { id: 'user-aff-1', email: 'different@example.com' },
+    affiliates,
+    50000
+  );
+  assert.equal(selfUser.attributed, false);
+  assert.equal(selfUser.commissionAmount, 0);
+  assert.match(selfUser.reason ?? '', /Self-referrals are strictly disallowed/);
+
+  // 3. Self-referral rejection by case-insensitive email
+  const selfEmail = attributeAffiliateReferral(
+    'JOHN20',
+    { id: 'another-user', email: 'JOHN@PARTNER.IO' },
+    affiliates,
+    50000
+  );
+  assert.equal(selfEmail.attributed, false);
+  assert.equal(selfEmail.commissionAmount, 0);
+  assert.match(selfEmail.reason ?? '', /Self-referrals are strictly disallowed/);
+
+  // 4. Inactive affiliate rejection
+  const inactiveAff = attributeAffiliateReferral(
+    'JANE30',
+    { id: 'user-buyer-2', email: 'buyer2@example.com' },
+    affiliates,
+    50000
+  );
+  assert.equal(inactiveAff.attributed, false);
+  assert.equal(inactiveAff.commissionAmount, 0);
+  assert.match(inactiveAff.reason ?? '', /Invalid or inactive/);
+
+  // 5. Unknown referral code
+  const unknown = attributeAffiliateReferral(
+    'NONEXISTENT',
+    { id: 'user-buyer-1', email: 'buyer@example.com' },
+    affiliates,
+    50000
+  );
+  assert.equal(unknown.attributed, false);
+  assert.equal(unknown.commissionAmount, 0);
+
+  // 6. Missing or empty code
+  assert.equal(attributeAffiliateReferral('', null, affiliates, 50000).attributed, false);
+  assert.equal(attributeAffiliateReferral(null, null, affiliates, 50000).attributed, false);
+  assert.equal(attributeAffiliateReferral('   ', null, affiliates, 50000).attributed, false);
+});
+
+test('attributeReferralSale alias supports both numeric order total and order object signature', () => {
+  const affiliates = [
+    {
+      id: 'aff-1',
+      userId: 'user-aff-1',
+      userName: 'John Doe',
+      userEmail: 'john@partner.io',
+      code: 'JOHN20',
+      commissionRate: 20,
+      active: true,
+    },
+  ];
+
+  // Numeric order total
+  const resNum = attributeReferralSale(
+    100000,
+    'JOHN20',
+    affiliates,
+    { id: 'buyer-99', email: 'buyer99@gmail.com' }
+  );
+  assert.equal(resNum.attributed, true);
+  assert.equal(resNum.commissionAmount, 20000);
+
+  // Object order signature
+  const resObj = attributeReferralSale(
+    { id: 'ORD-999', total: 60000, userId: 'buyer-99', customerEmail: 'buyer99@gmail.com' },
+    'JOHN20',
+    affiliates
+  );
+  assert.equal(resObj.attributed, true);
+  assert.equal(resObj.commissionAmount, 12000);
+
+  // Self-referral via object order
+  const resSelf = attributeReferralSale(
+    { id: 'ORD-1000', total: 60000, userId: 'user-aff-1', customerEmail: 'other@gmail.com' },
+    'JOHN20',
+    affiliates
+  );
+  assert.equal(resSelf.attributed, false);
+});
+
+test('isUnlockedByMembership grants instant access to isPremium resources for any active member and checks tiers when isPremium is false', () => {
+  const premiumProduct = {
+    id: 'prod-prem-1',
+    isPremium: true,
+    includedInMembershipTier: 'vip' as const,
+  };
+  const standardTierProduct = {
+    id: 'prod-pro-1',
+    isPremium: false,
+    includedInMembershipTier: 'pro' as const,
+  };
+
+  // 1. Any active member tier (starter, pro, vip) unlocks isPremium: true instantly
+  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'starter' }), true);
+  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'pro' }), true);
+  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'active', planId: 'vip' }), true);
+
+  // 2. Inactive, pending, cancelled, or missing membership rejects access even for premium
+  assert.equal(isUnlockedByMembership(premiumProduct, null), false);
+  assert.equal(isUnlockedByMembership(premiumProduct, undefined), false);
+  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'cancelled', planId: 'vip' }), false);
+  assert.equal(isUnlockedByMembership(premiumProduct, { status: 'pending', planId: 'vip' }), false);
+
+  // 3. Fallback tier check when isPremium is false / undefined
+  // Starter cannot unlock pro tier product
+  assert.equal(isUnlockedByMembership(standardTierProduct, { status: 'active', planId: 'starter' }), false);
+  // Pro tier unlocks pro tier product
+  assert.equal(isUnlockedByMembership(standardTierProduct, { status: 'active', planId: 'pro' }), true);
+  // VIP tier unlocks pro tier product
+  assert.equal(isUnlockedByMembership(standardTierProduct, { status: 'active', planId: 'vip' }), true);
+
+  // 4. Null product handles safely
+  assert.equal(isUnlockedByMembership(null, { status: 'active', planId: 'vip' }), false);
+});
+
+test('extractReferralCodeFromSearch parses both ?ref= and ?aff= query parameters', () => {
+  assert.equal(extractReferralCodeFromSearch('?ref=alex20'), 'ALEX20');
+  assert.equal(extractReferralCodeFromSearch('?aff=partner50'), 'PARTNER50');
+  assert.equal(extractReferralCodeFromSearch('search=course&aff=PROMO_CODE'), 'PROMO_CODE');
+  assert.equal(extractReferralCodeFromSearch('?ref=ab'), null); // too short (<3)
+  assert.equal(extractReferralCodeFromSearch(''), null);
+});
+
+test('attributeAffiliateReferral rejects self-referral when buyer email has leading/trailing whitespace and mixed casing', () => {
+  const affiliates = [
+    {
+      id: 'aff-3',
+      userId: 'user-aff-3',
+      userName: 'Tunde Mark',
+      userEmail: 'tunde@growthlabs.ng',
+      code: 'GROWTH20',
+      commissionRate: 20,
+      active: true,
+    },
+  ];
+  const res = attributeAffiliateReferral(
+    'growth20',
+    { id: 'user-buyer-other', email: '   TUNDE@GrowthLabs.NG   ' },
+    affiliates,
+    75000
+  );
+  assert.equal(res.attributed, false);
+  assert.equal(res.commissionAmount, 0);
+  assert.match(res.reason ?? '', /Self-referrals are strictly disallowed/);
+});
+
+test('attributeAffiliateReferral applies custom affiliate commission rate when configured', () => {
+  const affiliates = [
+    {
+      id: 'aff-super',
+      userId: 'user-super',
+      userName: 'Super Affiliate',
+      userEmail: 'super@ambassador.com',
+      code: 'SUPER35',
+      commissionRate: 35,
+      active: true,
+    },
+  ];
+  const res = attributeAffiliateReferral(
+    'SUPER35',
+    { id: 'buyer-random', email: 'random@gmail.com' },
+    affiliates,
+    40000
+  );
+  assert.equal(res.attributed, true);
+  assert.equal(res.commissionAmount, 14000); // 35% of 40000
+});
+
+test('isUnlockedByMembership returns false when product has isPremium: false and no membership tier configured', () => {
+  const nonMemberProduct = {
+    id: 'prod-regular',
+    isPremium: false,
+    includedInMembershipTier: undefined,
+  };
+  assert.equal(
+    isUnlockedByMembership(nonMemberProduct, { status: 'active', planId: 'vip' }),
+    false
+  );
+});
+
+test('isUnlockedByMembership validates tier hierarchy when product is not premium', () => {
+  const starterProduct = { id: 'p-start', isPremium: false, includedInMembershipTier: 'starter' as const };
+  const vipProduct = { id: 'p-vip', isPremium: false, includedInMembershipTier: 'vip' as const };
+
+  // Pro member can unlock Starter product (starter <= pro)
+  assert.equal(isUnlockedByMembership(starterProduct, { status: 'active', planId: 'pro' }), true);
+  // Pro member cannot unlock VIP product (pro < vip)
+  assert.equal(isUnlockedByMembership(vipProduct, { status: 'active', planId: 'pro' }), false);
+});
+
+test('extractReferralCodeFromSearch trims query string whitespace and handles raw search params without leading question mark', () => {
+  assert.equal(extractReferralCodeFromSearch('ref=PARTNER20'), 'PARTNER20');
+  assert.equal(extractReferralCodeFromSearch('aff=SUMMER_DEAL'), 'SUMMER_DEAL');
+  assert.equal(extractReferralCodeFromSearch('other=1&ref=CLEAN_CODE&foo=bar'), 'CLEAN_CODE');
+});
+
 
 

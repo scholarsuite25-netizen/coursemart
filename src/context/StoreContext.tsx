@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { storageService } from '../services/storageService';
 import type {
   AffiliateConversion,
@@ -7,11 +7,16 @@ import type {
   BlogComment,
   BlogPost,
   CartItem,
+  CommunityChannel,
+  CommunityChatMessage,
+  CommunityForumReply,
+  CommunityForumThread,
   Coupon,
   CoursemartEvent,
   CourseProgress,
   EmailBroadcastCampaign,
   EventRegistration,
+  FunnelCheckoutPayload,
   LicenseKey,
   MembershipPlan,
   MembershipTierId,
@@ -40,6 +45,8 @@ import {
 import { resolveInitialOrderStatus } from '../utils/automation';
 import {
   AFFILIATE_MIN_PAYOUT_NGN,
+  DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+  attributeAffiliateReferral,
   calculateAffiliateCommission,
   calculateAffiliateLedgerSummary,
   calculateExtendedCartTotals,
@@ -48,10 +55,12 @@ import {
   generateLicenseKey,
   gradeModuleQuiz,
   isTierSufficient,
+  isUnlockedByMembership as checkUnlockedByMembership,
   roundCurrency,
   toggleModuleLecturesCompletion,
 } from '../utils/commerce';
 import { formatNaira } from '../utils/currency';
+import { hashPassword, needsPasswordUpgrade, verifyPassword } from '../utils/passwordHash';
 
 export interface RouteState {
   path: string;
@@ -88,7 +97,7 @@ interface StoreContextValue {
     email: string,
     password: string,
     requiredRole?: UserRole
-  ) => { ok: boolean; error?: string; user?: UserAccount };
+  ) => Promise<{ ok: boolean; error?: string; user?: UserAccount }>;
   loginAdminWithServer: (
     email: string,
     password: string
@@ -99,7 +108,7 @@ interface StoreContextValue {
     password: string,
     role?: 'customer' | 'instructor',
     newsletterOptIn?: boolean
-  ) => { ok: boolean; error?: string; user?: UserAccount };
+  ) => Promise<{ ok: boolean; error?: string; user?: UserAccount }>;
   updateNewsletterPreference: (optIn: boolean) => void;
   quickLoginAsRole: (role: 'customer' | 'instructor') => UserAccount | null;
   logout: () => void;
@@ -128,6 +137,10 @@ interface StoreContextValue {
     generatedLicenses?: LicenseKey[];
     error?: string;
   };
+  completeFunnelOrder: (
+    payload: FunnelCheckoutPayload,
+    order: Order
+  ) => { ok: boolean; orderId: string; error?: string };
   verifyPaystackReference: (reference: string) => Promise<{
     ok: boolean;
     verified: boolean;
@@ -152,6 +165,7 @@ interface StoreContextValue {
   ) => ModuleQuizResult | null;
   issueCourseCertificate: (productId: string) => string | null;
   addLectureQuestion: (productId: string, lectureId: string, question: string) => void;
+  answerLectureQuestion: (productId: string, questionId: string, answer: string) => void;
   getCourseProgress: (productId: string) => CourseProgress | undefined;
   activateLicenseDomain: (licenseId: string, domain: string) => { ok: boolean; error?: string };
   deactivateLicenseDomain: (licenseId: string, domain: string) => void;
@@ -262,6 +276,43 @@ interface StoreContextValue {
   emailCampaigns: EmailBroadcastCampaign[];
   addEmailCampaign: (campaign: EmailBroadcastCampaign) => void;
 
+  // Community Module (R1)
+  communityChannels: CommunityChannel[];
+  communityMessages: CommunityChatMessage[];
+  forumThreads: CommunityForumThread[];
+  forumReplies: CommunityForumReply[];
+  sendCommunityMessage: (
+    channelId: string,
+    content: string,
+    replyToId?: string
+  ) => { ok: boolean; message?: CommunityChatMessage; error?: string };
+  toggleMessageReaction: (messageId: string, emoji: string) => void;
+  deleteCommunityMessage: (messageId: string) => void;
+  pinCommunityMessage: (messageId: string, isPinned?: boolean) => void;
+  createForumThread: (input: {
+    title: string;
+    body?: string;
+    content?: string;
+    category: string;
+    productId?: string;
+    tags?: string[];
+  }) => { ok: boolean; thread?: CommunityForumThread; error?: string };
+  updateForumThread: (threadId: string, updates: Partial<CommunityForumThread>) => void;
+  deleteForumThread: (threadId: string) => void;
+  toggleThreadPin: (threadId: string) => void;
+  toggleThreadLock: (threadId: string) => void;
+  upvoteForumThread: (threadId: string) => void;
+  createForumReply: (
+    threadId: string,
+    body: string
+  ) => { ok: boolean; reply?: CommunityForumReply; error?: string };
+  updateForumReply: (replyId: string, body: string) => void;
+  deleteForumReply: (replyId: string) => void;
+  upvoteForumReply: (replyId: string) => void;
+  markAcceptedForumReply: (threadId: string, replyId: string) => void;
+  upsertCommunityChannel: (channel: CommunityChannel) => void;
+  deleteCommunityChannel: (channelId: string) => void;
+
   // Instructor & Admin CRUD actions
   upsertProduct: (product: Product) => void;
   deleteProduct: (productId: string) => void;
@@ -284,6 +335,20 @@ const DEFAULT_FILTERS: ProductFilterState = {
   search: '',
   sortBy: 'popular',
 };
+
+/** Synced keys holding personal data: re-pushed after sign-in so records
+ *  created while signed out (or on another device) are uploaded. */
+const PERSONAL_SYNC_KEYS = [
+  'users',
+  'orders',
+  'licenses',
+  'progress',
+  'blog_bookmarks',
+  'user_memberships',
+  'affiliates',
+  'affiliate_conversions',
+  'affiliate_payouts',
+] as const;
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
@@ -340,6 +405,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [emailCampaigns, setEmailCampaigns] = useState<EmailBroadcastCampaign[]>(() =>
     storageService.getEmailCampaigns()
   );
+  const [communityChannels, setCommunityChannels] = useState<CommunityChannel[]>(() =>
+    storageService.getCommunityChannels()
+  );
+  const [communityMessages, setCommunityMessages] = useState<CommunityChatMessage[]>(() =>
+    storageService.getCommunityMessages()
+  );
+  const [forumThreads, setForumThreads] = useState<CommunityForumThread[]>(() =>
+    storageService.getForumThreads()
+  );
+  const [forumReplies, setForumReplies] = useState<CommunityForumReply[]>(() =>
+    storageService.getForumReplies()
+  );
   const [publicServerConfig, setPublicServerConfig] = useState<PublicServerConfig>({
     supabaseConfigured: false,
     paystackConfigured: false,
@@ -357,6 +434,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     storageService.getCurrentUserId()
   );
   const [adminSessionVerified, setAdminSessionVerified] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [filters, setFilters] = useState<ProductFilterState>(DEFAULT_FILTERS);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [appliedCouponCode, setAppliedCouponCode] = useState('');
@@ -366,11 +444,112 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setToastMessage(msg);
   }, []);
 
+  // Fresh-value refs for async callbacks and effects (avoids stale closures).
+  const usersRef = useRef(users);
+  useEffect(() => {
+    usersRef.current = users;
+  }, [users]);
+  const syncValuesRef = useRef<Record<string, unknown>>({});
+  const prevSyncRef = useRef<Record<string, unknown> | null>(null);
+
   useEffect(() => {
     if (!toastMessage) return;
     const timer = window.setTimeout(() => setToastMessage(null), 3200);
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
+
+  // The full set of collections synchronized through the server KV store.
+  const syncValues = useMemo<Record<string, unknown>>(
+    () => ({
+      products,
+      users,
+      orders,
+      licenses,
+      coupons,
+      reviews,
+      progress: progressList,
+      appearance,
+      whatsapp_groups: whatsappGroups,
+      blog_posts: blogPosts,
+      blog_bookmarks: blogBookmarksMap,
+      membership_plans: membershipPlans,
+      user_memberships: userMemberships,
+      affiliates,
+      affiliate_conversions: affiliateConversions,
+      affiliate_payouts: affiliatePayouts,
+      showcase_sites: showcaseSites,
+      events,
+      event_registrations: eventRegistrations,
+      social_drafts: socialDrafts,
+      email_campaigns: emailCampaigns,
+      community_channels: communityChannels,
+      community_messages: communityMessages,
+      forum_threads: forumThreads,
+      forum_replies: forumReplies,
+    }),
+    [
+      products,
+      users,
+      orders,
+      licenses,
+      coupons,
+      reviews,
+      progressList,
+      appearance,
+      whatsappGroups,
+      blogPosts,
+      blogBookmarksMap,
+      membershipPlans,
+      userMemberships,
+      affiliates,
+      affiliateConversions,
+      affiliatePayouts,
+      showcaseSites,
+      events,
+      eventRegistrations,
+      socialDrafts,
+      emailCampaigns,
+      communityChannels,
+      communityMessages,
+      forumThreads,
+      forumReplies,
+    ]
+  );
+
+  // Type-checked hydration setters keyed by KV store key.
+  const syncSetters = useMemo<Record<string, (value: unknown) => void>>(
+    () => ({
+      products: (v) => { if (Array.isArray(v)) setProducts(v as Product[]); },
+      orders: (v) => { if (Array.isArray(v)) setOrders(v as Order[]); },
+      licenses: (v) => { if (Array.isArray(v)) setLicenses(v as LicenseKey[]); },
+      coupons: (v) => { if (Array.isArray(v)) setCoupons(v as Coupon[]); },
+      reviews: (v) => { if (Array.isArray(v)) setReviews(v as ProductReview[]); },
+      progress: (v) => { if (Array.isArray(v)) setProgressList(v as CourseProgress[]); },
+      appearance: (v) => { if (v && typeof v === 'object' && !Array.isArray(v)) setAppearance(v as StorefrontAppearance); },
+      whatsapp_groups: (v) => { if (Array.isArray(v)) setWhatsappGroups(v as WhatsAppGroup[]); },
+      blog_posts: (v) => { if (Array.isArray(v)) setBlogPosts(v as BlogPost[]); },
+      blog_bookmarks: (v) => { if (v && typeof v === 'object' && !Array.isArray(v)) setBlogBookmarksMap(v as Record<string, string[]>); },
+      membership_plans: (v) => { if (Array.isArray(v)) setMembershipPlans(v as MembershipPlan[]); },
+      user_memberships: (v) => { if (Array.isArray(v)) setUserMemberships(v as UserMembership[]); },
+      affiliates: (v) => { if (Array.isArray(v)) setAffiliates(v as AffiliateProfile[]); },
+      affiliate_conversions: (v) => { if (Array.isArray(v)) setAffiliateConversions(v as AffiliateConversion[]); },
+      affiliate_payouts: (v) => { if (Array.isArray(v)) setAffiliatePayouts(v as AffiliatePayoutRequest[]); },
+      showcase_sites: (v) => { if (Array.isArray(v)) setShowcaseSites(v as ShowcaseSite[]); },
+      events: (v) => { if (Array.isArray(v)) setEvents(v as CoursemartEvent[]); },
+      event_registrations: (v) => { if (Array.isArray(v)) setEventRegistrations(v as EventRegistration[]); },
+      social_drafts: (v) => { if (Array.isArray(v)) setSocialDrafts(v as SocialPostDraft[]); },
+      email_campaigns: (v) => { if (Array.isArray(v)) setEmailCampaigns(v as EmailBroadcastCampaign[]); },
+      community_channels: (v) => { if (Array.isArray(v)) setCommunityChannels(v as CommunityChannel[]); },
+      community_messages: (v) => { if (Array.isArray(v)) setCommunityMessages(v as CommunityChatMessage[]); },
+      forum_threads: (v) => { if (Array.isArray(v)) setForumThreads(v as CommunityForumThread[]); },
+      forum_replies: (v) => { if (Array.isArray(v)) setForumReplies(v as CommunityForumReply[]); },
+    }),
+    []
+  );
+
+  useEffect(() => {
+    syncValuesRef.current = syncValues;
+  });
 
   useEffect(() => {
     const onPopState = () => {
@@ -380,7 +559,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
-  // Capture ?ref=CODE affiliate referral attribution once per session
+  // Capture ?ref=CODE or ?aff=CODE affiliate referral attribution once per session
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const refCode = extractReferralCodeFromSearch(window.location.search);
@@ -389,6 +568,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (matched) {
       setActiveReferralCode(matched.code);
       storageService.setActiveReferralCode(matched.code);
+      try {
+        window.localStorage.setItem('cm_referral_code', matched.code);
+        window.localStorage.setItem('cm_referral_timestamp', new Date().toISOString());
+      } catch {
+        // Safe storage fallback
+      }
       const clickKey = `cm_ref_clicked_${matched.code}`;
       if (!window.sessionStorage.getItem(clickKey)) {
         window.sessionStorage.setItem(clickKey, '1');
@@ -397,7 +582,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         );
       }
     }
-  }, []);
+  }, [affiliates]);
 
   const navigate = useCallback((path: string) => {
     if (typeof window !== 'undefined' && window.location.pathname !== path) {
@@ -439,13 +624,98 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
         if (!verified) {
           setCurrentUserId((prevId) => {
-            const matched = users.find((u) => u.id === prevId);
+            const matched = usersRef.current.find((u) => u.id === prevId);
             return matched?.role === 'admin' ? null : prevId;
           });
         }
       })
       .catch(() => setAdminSessionVerified(false));
   }, []);
+
+  // Hydrate shared collections from the server KV store (source of truth) and
+  // upgrade any legacy plaintext passwords to PBKDF2 hashes before first use.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setHydrated(true);
+      return;
+    }
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const resp = await fetch('/api/store');
+        if (cancelled) return;
+        if (!resp.ok) {
+          prevSyncRef.current = { ...syncValuesRef.current };
+          setHydrated(true);
+          return;
+        }
+        const data = (await resp.json()) as { ok?: boolean; values?: Record<string, unknown> };
+        const values =
+          data.values && typeof data.values === 'object' && !Array.isArray(data.values)
+            ? data.values
+            : {};
+
+        // `users` merges (never replaces): an anonymous caller only receives
+        // their own record, and a signed-in caller must keep other local
+        // accounts (previews, demo roles) intact.
+        const serverUsers = Array.isArray(values.users)
+          ? (values.users as UserAccount[]).filter(
+              (u): u is UserAccount => Boolean(u) && typeof u === 'object' && Boolean(u.id)
+            )
+          : null;
+        const baseUsers = serverUsers
+          ? (() => {
+              const byId = new Map(usersRef.current.map((u) => [u.id, u]));
+              for (const su of serverUsers) {
+                byId.set(su.id, { ...byId.get(su.id), ...su });
+              }
+              return Array.from(byId.values());
+            })()
+          : usersRef.current;
+
+        // Password migration: hash legacy plaintext records so they are never
+        // stored, compared or pushed in plaintext again.
+        let migrated = false;
+        const finalUsers: UserAccount[] = [];
+        for (const u of baseUsers) {
+          if (needsPasswordUpgrade(u.password)) {
+            finalUsers.push({ ...u, password: await hashPassword(u.password) });
+            migrated = true;
+          } else {
+            finalUsers.push(u);
+          }
+        }
+
+        // Seed the push snapshot before applying server values: keys the server
+        // returned are exactly what we set (no echo push), `users` keeps the
+        // pre-hydration snapshot so migrations/additions sync up once.
+        const overrides: Record<string, unknown> = {};
+        for (const key of Object.keys(values)) {
+          if (key !== 'users') overrides[key] = values[key];
+        }
+        prevSyncRef.current = { ...syncValuesRef.current, ...overrides };
+
+        if (migrated || serverUsers) {
+          setUsers(finalUsers);
+        }
+        for (const [key, value] of Object.entries(values)) {
+          if (key === 'users') continue;
+          syncSetters[key]?.(value);
+        }
+        setHydrated(true);
+      } catch {
+        if (!cancelled) {
+          prevSyncRef.current = { ...syncValuesRef.current };
+          setHydrated(true);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [syncSetters]);
 
   const applyVerifiedPaystackReference = useCallback((verifiedRef: string) => {
     let matchedOrder: Order | undefined;
@@ -603,50 +873,40 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
   useEffect(() => storageService.saveAffiliatePayouts(affiliatePayouts), [affiliatePayouts]);
   useEffect(() => storageService.saveShowcaseSites(showcaseSites), [showcaseSites]);
-  useEffect(() => {
-    storageService.saveEvents(events);
-    if (typeof window !== 'undefined' && adminSessionVerified) {
-      fetch('/api/store/events', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: events }),
-      }).catch(() => {});
-    }
-  }, [events, adminSessionVerified]);
-  useEffect(() => {
-    storageService.saveEventRegistrations(eventRegistrations);
-    if (typeof window !== 'undefined') {
-      fetch('/api/store/event_registrations', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: eventRegistrations }),
-      }).catch(() => {});
-    }
-  }, [eventRegistrations]);
-  useEffect(() => {
-    storageService.saveSocialDrafts(socialDrafts);
-    if (typeof window !== 'undefined' && adminSessionVerified) {
-      fetch('/api/store/social_drafts', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: socialDrafts }),
-      }).catch(() => {});
-    }
-  }, [socialDrafts, adminSessionVerified]);
-  useEffect(() => {
-    storageService.saveEmailCampaigns(emailCampaigns);
-    if (typeof window !== 'undefined' && adminSessionVerified) {
-      fetch('/api/store/email_campaigns', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: emailCampaigns }),
-      }).catch(() => {});
-    }
-  }, [emailCampaigns, adminSessionVerified]);
+  useEffect(() => storageService.saveEvents(events), [events]);
+  useEffect(() => storageService.saveEventRegistrations(eventRegistrations), [eventRegistrations]);
+  useEffect(() => storageService.saveSocialDrafts(socialDrafts), [socialDrafts]);
+  useEffect(() => storageService.saveEmailCampaigns(emailCampaigns), [emailCampaigns]);
+  useEffect(() => storageService.saveCommunityChannels(communityChannels), [communityChannels]);
+  useEffect(() => storageService.saveCommunityMessages(communityMessages), [communityMessages]);
+  useEffect(() => storageService.saveForumThreads(forumThreads), [forumThreads]);
+  useEffect(() => storageService.saveForumReplies(forumReplies), [forumReplies]);
   useEffect(() => storageService.setActiveReferralCode(activeReferralCode), [activeReferralCode]);
   useEffect(() => storageService.saveCart(cart), [cart]);
   useEffect(() => storageService.saveWishlist(wishlist), [wishlist]);
   useEffect(() => storageService.setCurrentUserId(currentUserId), [currentUserId]);
+
+  // Unified server sync: push only the collections whose values changed since
+  // the last snapshot. Non-OK responses (401/403/429) are graceful no-ops —
+  // the server decides what this session may write.
+  useEffect(() => {
+    if (!hydrated || typeof window === 'undefined') return;
+    const prev = prevSyncRef.current;
+    if (!prev) return;
+    const changed: string[] = [];
+    for (const key of Object.keys(syncValues)) {
+      if (!Object.is(prev[key], syncValues[key])) changed.push(key);
+    }
+    if (changed.length === 0) return;
+    prevSyncRef.current = { ...prev, ...syncValues };
+    for (const key of changed) {
+      fetch(`/api/store/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: syncValues[key] }),
+      }).catch(() => {});
+    }
+  }, [hydrated, syncValues]);
 
   const activeUserMembership = useMemo(() => {
     if (!currentUser) return null;
@@ -664,36 +924,113 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const isUnlockedByMembership = useCallback(
     (product: Product) => {
-      if (!activeUserMembership || !product.includedInMembershipTier) return false;
-      return isTierSufficient(activeUserMembership.planId, product.includedInMembershipTier);
+      return checkUnlockedByMembership(product, activeUserMembership);
     },
     [activeUserMembership]
   );
 
+  // After sign-in, re-push personal collections so records created while signed
+  // out (or fetched from another device) are uploaded under the new session.
+  const resyncPersonalKeys = useCallback(() => {
+    const prev = prevSyncRef.current;
+    if (!prev) return;
+    for (const key of PERSONAL_SYNC_KEYS) {
+      delete prev[key];
+    }
+  }, []);
+
   const loginWithCredentials = useCallback(
-    (email: string, password: string, requiredRole?: UserRole) => {
+    async (email: string, password: string, requiredRole?: UserRole) => {
       const normalizedEmail = email.trim().toLowerCase();
-      const found = users.find(
-        (u) => u.email.toLowerCase() === normalizedEmail && u.password === password
-      );
-      if (!found) {
-        return { ok: false, error: 'Invalid email or password.' };
+      if (!normalizedEmail || !password) {
+        return { ok: false, error: 'Email and password are required.' };
       }
-      if (requiredRole && found.role !== requiredRole) {
-        return {
-          ok: false,
-          error: `This portal requires ${requiredRole} privileges. Use the Super Admin account.`,
+
+      const roleError = (role: UserRole) =>
+        requiredRole && role !== requiredRole
+          ? `This portal requires ${requiredRole} privileges. Use the Super Admin account.`
+          : null;
+
+      // Prefer the server session: it verifies against the synced users
+      // collection and issues the HttpOnly cookie that scopes KV writes.
+      try {
+        const resp = await fetch('/api/auth/user/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: normalizedEmail, password }),
+        });
+        const data = (await resp.json()) as {
+          ok?: boolean;
+          user?: {
+            id?: string;
+            name?: string;
+            email?: string;
+            role?: UserRole;
+            avatar?: string;
+            title?: string;
+            newsletterOptIn?: boolean;
+            joinedAt?: string;
+          };
+          error?: string;
         };
+        if (resp.ok && data.ok && data.user?.id) {
+          const mismatch = roleError(data.user.role ?? 'customer');
+          if (mismatch) return { ok: false, error: mismatch };
+          const localExisting = usersRef.current.find((u) => u.id === data.user!.id);
+          const record: UserAccount = {
+            id: data.user.id,
+            name: data.user.name || normalizedEmail.split('@')[0] || 'Coursemart User',
+            email: data.user.email || normalizedEmail,
+            // Keep the local verifier when we already have one; otherwise hash
+            // the typed password so offline sign-in never stores plaintext.
+            password: localExisting?.password ?? (await hashPassword(password)),
+            role: data.user.role ?? 'customer',
+            avatar: data.user.avatar,
+            title: data.user.title,
+            newsletterOptIn: data.user.newsletterOptIn,
+            joinedAt: data.user.joinedAt || new Date().toISOString(),
+          };
+          setUsers((prev) =>
+            prev.some((u) => u.id === record.id)
+              ? prev.map((u) => (u.id === record.id ? { ...u, ...record } : u))
+              : [...prev, record]
+          );
+          setCurrentUserId(record.id);
+          resyncPersonalKeys();
+          showToast(`Signed in as ${record.name}`);
+          return { ok: true, user: record };
+        }
+        if (resp.status === 401 || resp.status === 404) {
+          return { ok: false, error: 'Invalid email or password.' };
+        }
+        if (resp.status === 429) {
+          return { ok: false, error: data.error || 'Too many sign-in attempts. Wait a minute.' };
+        }
+        // Other statuses fall through to local verification below.
+      } catch {
+        // Server unreachable — verify against the local collection instead.
       }
-      setCurrentUserId(found.id);
-      showToast(`Signed in as ${found.name}`);
-      return { ok: true, user: found };
+
+      const found = usersRef.current.find(
+        (u) => u.email.trim().toLowerCase() === normalizedEmail
+      );
+      if (found) {
+        const valid = await verifyPassword(password, found.password);
+        if (!valid) return { ok: false, error: 'Invalid email or password.' };
+        const mismatch = roleError(found.role);
+        if (mismatch) return { ok: false, error: mismatch };
+        setCurrentUserId(found.id);
+        resyncPersonalKeys();
+        showToast(`Signed in as ${found.name}`);
+        return { ok: true, user: found };
+      }
+      return { ok: false, error: 'Invalid email or password.' };
     },
-    [users, showToast]
+    [showToast, resyncPersonalKeys]
   );
 
   const registerUser = useCallback(
-    (
+    async (
       name: string,
       email: string,
       password: string,
@@ -701,7 +1038,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       newsletterOptIn: boolean = false
     ) => {
       const normalizedEmail = email.trim().toLowerCase();
-      if (users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
+      if (!name.trim()) return { ok: false, error: 'Enter your full name.' };
+      if (!password) return { ok: false, error: 'Choose a password.' };
+      if (usersRef.current.some((u) => u.email.trim().toLowerCase() === normalizedEmail)) {
         return { ok: false, error: 'An account with this email already exists.' };
       }
       const nowIso = new Date().toISOString();
@@ -709,15 +1048,39 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         id: `user-${Date.now()}`,
         name: name.trim(),
         email: normalizedEmail,
-        password,
+        password: await hashPassword(password),
         role,
         title: role === 'instructor' ? 'Independent Instructor' : 'Verified Learner',
         newsletterOptIn,
         newsletterOptedInAt: newsletterOptIn ? nowIso : undefined,
         joinedAt: nowIso,
       };
-      setUsers((prev) => [...prev, newUser]);
+      setUsers((prev) => (prev.some((u) => u.id === newUser.id) ? prev : [...prev, newUser]));
       setCurrentUserId(newUser.id);
+
+      // Persist the account first so the server can authenticate it, then open
+      // the session cookie. Both are best-effort: offline, the account stays
+      // local and signs in against the local collection.
+      try {
+        await fetch('/api/store/users', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: [newUser] }),
+        });
+      } catch {
+        // Offline — local only.
+      }
+      try {
+        await fetch('/api/auth/user/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: normalizedEmail, password }),
+        });
+      } catch {
+        // Offline — local session only.
+      }
+
+      resyncPersonalKeys();
       showToast(
         newsletterOptIn
           ? `Welcome ${newUser.name}! Account created & newsletter subscribed.`
@@ -725,7 +1088,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       );
       return { ok: true, user: newUser };
     },
-    [users, appearance.brandName, showToast]
+    [appearance.brandName, showToast, resyncPersonalKeys]
   );
 
   const updateNewsletterPreference = useCallback(
@@ -828,6 +1191,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setAdminSessionVerified(false);
     if (typeof window !== 'undefined') {
       fetch('/api/auth/admin/logout', { method: 'POST' }).catch(() => {});
+      fetch('/api/auth/user/logout', { method: 'POST' }).catch(() => {});
     }
     showToast('Signed out');
     if (route.startsWith('/admin') || route.startsWith('/instructor') || route.startsWith('/learn')) {
@@ -1113,26 +1477,28 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       // Attribute affiliate commission if referred (and not self-referral)
       if (activeReferralCode && totals.grandTotal > 0) {
-        const aff = affiliates.find(
-          (a) => a.active && a.code === activeReferralCode && a.userId !== activeUser.id
+        const attr = attributeAffiliateReferral(
+          activeReferralCode,
+          { id: activeUser.id, email: activeUser.email },
+          affiliates,
+          totals.grandTotal
         );
-        if (aff) {
-          const commissionAmount = calculateAffiliateCommission(
-            totals.grandTotal,
-            aff.commissionRate
-          );
-          const conv: AffiliateConversion = {
-            id: `aconv-${Date.now()}`,
-            affiliateCode: aff.code,
-            affiliateUserId: aff.userId,
-            orderId,
-            buyerName: activeUser.name,
-            orderTotal: totals.grandTotal,
-            commissionAmount,
-            status: isPendingTransfer ? 'pending' : 'approved',
-            createdAt: nowIso,
-          };
-          setAffiliateConversions((prev) => [conv, ...prev]);
+        if (attr.attributed && attr.affiliateId && attr.affiliateCode) {
+          const aff = affiliates.find((a) => a.id === attr.affiliateId);
+          if (aff) {
+            const conv: AffiliateConversion = {
+              id: `aconv-${Date.now()}`,
+              affiliateCode: attr.affiliateCode,
+              affiliateUserId: aff.userId,
+              orderId,
+              buyerName: activeUser.name,
+              orderTotal: totals.grandTotal,
+              commissionAmount: attr.commissionAmount,
+              status: isPendingTransfer ? 'pending' : 'approved',
+              createdAt: nowIso,
+            };
+            setAffiliateConversions((prev) => [conv, ...prev]);
+          }
         }
       }
 
@@ -1179,6 +1545,84 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       showToast,
     ]
   );
+
+  const completeFunnelOrder = useCallback(
+    (payload: FunnelCheckoutPayload, order: Order) => {
+      const nowIso = new Date().toISOString();
+      const generatedLicenses: LicenseKey[] = [];
+
+      if (order.status === 'completed') {
+        order.items.forEach((item) => {
+          if (item.productType === 'software') {
+            generatedLicenses.push({
+              id: `lic-${Date.now()}-${Math.floor(Math.random() * 9000)}`,
+              key: generateLicenseKey('CM', `${order.id}-${item.productId}-${Date.now()}`),
+              productId: item.productId,
+              productTitle: item.productTitle,
+              userId: order.userId,
+              orderId: order.id,
+              tierName: item.tierName ?? 'Commercial License',
+              maxSeats: item.seats ?? 1,
+              activatedDomains: [],
+              status: 'active',
+              createdAt: nowIso,
+            });
+          }
+        });
+      }
+
+      const affCode = payload.affiliateCode || activeReferralCode;
+      if (affCode && order.total > 0) {
+        const attr = attributeAffiliateReferral(
+          affCode,
+          { id: order.userId, email: order.customerEmail },
+          affiliates,
+          order.total
+        );
+        if (attr.attributed && attr.affiliateId && attr.affiliateCode) {
+          const aff = affiliates.find((a) => a.id === attr.affiliateId);
+          if (aff) {
+            const conv: AffiliateConversion = {
+              id: `aconv-${Date.now()}`,
+              affiliateCode: attr.affiliateCode,
+              affiliateUserId: aff.userId,
+              orderId: order.id,
+              buyerName: order.customerName,
+              orderTotal: order.total,
+              commissionAmount: attr.commissionAmount,
+              status: order.status === 'pending' ? 'pending' : 'approved',
+              createdAt: nowIso,
+            };
+            setAffiliateConversions((prev) => [conv, ...prev]);
+          }
+        }
+      }
+
+      setOrders((prev) => [order, ...prev]);
+      if (generatedLicenses.length > 0) {
+        setLicenses((prev) => [...generatedLicenses, ...prev]);
+      }
+      if (order.status === 'completed') {
+        setProducts((prev) =>
+          prev.map((p) =>
+            order.items.some((i) => i.productId === p.id)
+              ? { ...p, studentsCount: p.studentsCount + 1 }
+              : p
+          )
+        );
+      }
+
+      showToast(
+        order.status === 'pending'
+          ? `Order ${order.id} created — send transfer proof on WhatsApp`
+          : `Order ${order.id} completed! Access unlocked in Library.`
+      );
+
+      return { ok: true, orderId: order.id };
+    },
+    [activeReferralCode, affiliates, showToast]
+  );
+
 
   const recordProductDownload = useCallback(
     (orderId: string, productId: string) => {
@@ -1625,6 +2069,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [currentUser, showToast]
   );
 
+  const answerLectureQuestion = useCallback(
+    (productId: string, questionId: string, answer: string) => {
+      if (!currentUser || !answer.trim()) return;
+      const now = new Date().toISOString();
+      setProgressList((prev) =>
+        prev.map((p) => {
+          if (p.productId !== productId) return p;
+          return {
+            ...p,
+            questions: p.questions.map((q) =>
+              q.id === questionId ? { ...q, answer: answer.trim() } : q
+            ),
+            updatedAt: now,
+          };
+        })
+      );
+      showToast('Answer recorded');
+    },
+    [currentUser, showToast]
+  );
+
   // Membership actions
   const subscribeMembership = useCallback(
     (
@@ -1750,7 +2215,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         userName: currentUser.name,
         userEmail: currentUser.email,
         code,
-        commissionRate: 25,
+        commissionRate: DEFAULT_AFFILIATE_COMMISSION_PERCENT,
         clicks: 0,
         payoutMethod,
         bankDetails: bankDetails.trim(),
@@ -1828,7 +2293,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const updateAffiliateCommissionRate = useCallback(
     (affiliateId: string, rate: number) => {
-      const clamped = Math.max(5, Math.min(60, Math.round(rate)));
+      const clamped = Math.max(1, Math.min(75, Math.round(rate)));
       setAffiliates((prev) =>
         prev.map((a) => (a.id === affiliateId ? { ...a, commissionRate: clamped } : a))
       );
@@ -2454,6 +2919,388 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [showToast]
   );
 
+  // Community Module Actions (R1)
+  const sendCommunityMessage = useCallback(
+    (channelId: string, content: string, replyToId?: string) => {
+      if (!currentUser) {
+        return { ok: false, error: 'Sign in to participate in community discussions.' };
+      }
+      const trimmed = content.trim();
+      if (!trimmed) {
+        return { ok: false, error: 'Message cannot be empty.' };
+      }
+      const channel = communityChannels.find((c) => c.id === channelId);
+      if (!channel) {
+        return { ok: false, error: 'Channel not found.' };
+      }
+      if (channel.isReadOnly && currentUser.role !== 'admin' && currentUser.role !== 'instructor') {
+        return { ok: false, error: 'This channel is read-only. Only instructors and admins may post.' };
+      }
+      const now = new Date().toISOString();
+      const newMessage: CommunityChatMessage = {
+        id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        channelId,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userRole: currentUser.role,
+        userAvatar: currentUser.avatar,
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        authorRole: currentUser.role,
+        content: trimmed,
+        replyToId,
+        reactions: {},
+        isPinned: false,
+        isModerated: false,
+        createdAt: now,
+      };
+      setCommunityMessages((prev) => [...prev, newMessage]);
+      return { ok: true, message: newMessage };
+    },
+    [currentUser, communityChannels]
+  );
+
+  const toggleMessageReaction = useCallback(
+    (messageId: string, emoji: string) => {
+      if (!currentUser) {
+        showToast('Sign in to react to messages.');
+        return;
+      }
+      setCommunityMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId) return m;
+          const currentReactions = { ...(m.reactions || {}) };
+          const users = currentReactions[emoji] ? [...currentReactions[emoji]] : [];
+          const idx = users.indexOf(currentUser.id);
+          if (idx >= 0) {
+            users.splice(idx, 1);
+          } else {
+            users.push(currentUser.id);
+          }
+          if (users.length > 0) {
+            currentReactions[emoji] = users;
+          } else {
+            delete currentReactions[emoji];
+          }
+          return { ...m, reactions: currentReactions };
+        })
+      );
+    },
+    [currentUser, showToast]
+  );
+
+  const deleteCommunityMessage = useCallback(
+    (messageId: string) => {
+      setCommunityMessages((prev) => prev.filter((m) => m.id !== messageId));
+      showToast('Message deleted');
+    },
+    [showToast]
+  );
+
+  const pinCommunityMessage = useCallback(
+    (messageId: string, isPinned?: boolean) => {
+      setCommunityMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, isPinned: isPinned !== undefined ? isPinned : !m.isPinned }
+            : m
+        )
+      );
+      showToast('Updated pinned message');
+    },
+    [showToast]
+  );
+
+  const createForumThread = useCallback(
+    (input: {
+      title: string;
+      body?: string;
+      content?: string;
+      category: string;
+      productId?: string;
+      tags?: string[];
+    }) => {
+      if (!currentUser) {
+        return { ok: false, error: 'Sign in to create discussion threads.' };
+      }
+      const title = input.title.trim();
+      if (title.length < 5) {
+        return { ok: false, error: 'Title must be at least 5 characters.' };
+      }
+      const rawBody = input.body || input.content || '';
+      const body = rawBody.trim();
+      if (body.length < 10) {
+        return { ok: false, error: 'Body must be at least 10 characters.' };
+      }
+      const now = new Date().toISOString();
+      const rawSlug =
+        title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '') || `thread-${Date.now()}`;
+      const newThread: CommunityForumThread = {
+        id: `th-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        slug: rawSlug,
+        title,
+        body,
+        content: body,
+        category: input.category || 'General',
+        productId: input.productId,
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        authorRole: currentUser.role,
+        authorAvatar: currentUser.avatar,
+        tags: (input.tags || []).map((t) => t.trim().toLowerCase()).filter(Boolean),
+        upvotes: 0,
+        upvotedUserIds: [],
+        viewsCount: 0,
+        replyCount: 0,
+        isPinned: false,
+        pinned: false,
+        isLocked: false,
+        isSolved: false,
+        createdAt: now,
+        updatedAt: now,
+        lastActivityAt: now,
+      };
+      setForumThreads((prev) => [newThread, ...prev]);
+      showToast(`Discussion thread "${title}" published`);
+      return { ok: true, thread: newThread };
+    },
+    [currentUser, showToast]
+  );
+
+  const updateForumThread = useCallback(
+    (threadId: string, updates: Partial<CommunityForumThread>) => {
+      setForumThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+        )
+      );
+      showToast('Thread updated');
+    },
+    [showToast]
+  );
+
+  const deleteForumThread = useCallback(
+    (threadId: string) => {
+      setForumThreads((prev) => prev.filter((t) => t.id !== threadId));
+      setForumReplies((prev) => prev.filter((r) => r.threadId !== threadId));
+      showToast('Discussion thread deleted');
+    },
+    [showToast]
+  );
+
+  const toggleThreadPin = useCallback(
+    (threadId: string) => {
+      setForumThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId
+            ? { ...t, isPinned: !t.isPinned, pinned: !t.isPinned, updatedAt: new Date().toISOString() }
+            : t
+        )
+      );
+      showToast('Toggled thread pinned status');
+    },
+    [showToast]
+  );
+
+  const toggleThreadLock = useCallback(
+    (threadId: string) => {
+      setForumThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId
+            ? { ...t, isLocked: !t.isLocked, updatedAt: new Date().toISOString() }
+            : t
+        )
+      );
+      showToast('Toggled thread lock status');
+    },
+    [showToast]
+  );
+
+  const upvoteForumThread = useCallback(
+    (threadId: string) => {
+      if (!currentUser) {
+        showToast('Sign in to upvote threads');
+        return;
+      }
+      setForumThreads((prev) =>
+        prev.map((t) => {
+          if (t.id !== threadId) return t;
+          const userList = t.upvotedUserIds ? [...t.upvotedUserIds] : [];
+          const idx = userList.indexOf(currentUser.id);
+          if (idx >= 0) {
+            userList.splice(idx, 1);
+            return {
+              ...t,
+              upvotedUserIds: userList,
+              upvotes: Math.max(0, (t.upvotes || 1) - 1),
+            };
+          } else {
+            userList.push(currentUser.id);
+            return {
+              ...t,
+              upvotedUserIds: userList,
+              upvotes: (t.upvotes || 0) + 1,
+            };
+          }
+        })
+      );
+    },
+    [currentUser, showToast]
+  );
+
+  const createForumReply = useCallback(
+    (threadId: string, bodyText: string) => {
+      if (!currentUser) {
+        return { ok: false, error: 'Sign in to post replies.' };
+      }
+      const thread = forumThreads.find((t) => t.id === threadId);
+      if (!thread) {
+        return { ok: false, error: 'Discussion thread not found.' };
+      }
+      if (thread.isLocked) {
+        return { ok: false, error: 'This thread is locked for replies.' };
+      }
+      const trimmed = bodyText.trim();
+      if (!trimmed) {
+        return { ok: false, error: 'Reply cannot be empty.' };
+      }
+      const now = new Date().toISOString();
+      const newReply: CommunityForumReply = {
+        id: `rep-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        threadId,
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        authorRole: currentUser.role,
+        authorAvatar: currentUser.avatar,
+        body: trimmed,
+        content: trimmed,
+        upvotes: 0,
+        upvotedUserIds: [],
+        isSolution: false,
+        isPinned: false,
+        isModerated: false,
+        createdAt: now,
+      };
+      setForumReplies((prev) => [...prev, newReply]);
+      setForumThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId
+            ? { ...t, replyCount: (t.replyCount || 0) + 1, lastActivityAt: now, updatedAt: now }
+            : t
+        )
+      );
+      showToast('Reply posted');
+      return { ok: true, reply: newReply };
+    },
+    [currentUser, forumThreads, showToast]
+  );
+
+  const updateForumReply = useCallback(
+    (replyId: string, bodyText: string) => {
+      const trimmed = bodyText.trim();
+      if (!trimmed) return;
+      setForumReplies((prev) =>
+        prev.map((r) =>
+          r.id === replyId ? { ...r, body: trimmed, content: trimmed, updatedAt: new Date().toISOString() } : r
+        )
+      );
+      showToast('Reply updated');
+    },
+    [showToast]
+  );
+
+  const deleteForumReply = useCallback(
+    (replyId: string) => {
+      const reply = forumReplies.find((r) => r.id === replyId);
+      setForumReplies((prev) => prev.filter((r) => r.id !== replyId));
+      if (reply) {
+        setForumThreads((prev) =>
+          prev.map((t) =>
+            t.id === reply.threadId
+              ? { ...t, replyCount: Math.max(0, (t.replyCount || 1) - 1) }
+              : t
+          )
+        );
+      }
+      showToast('Reply deleted');
+    },
+    [forumReplies, showToast]
+  );
+
+  const upvoteForumReply = useCallback(
+    (replyId: string) => {
+      if (!currentUser) {
+        showToast('Sign in to upvote replies');
+        return;
+      }
+      setForumReplies((prev) =>
+        prev.map((r) => {
+          if (r.id !== replyId) return r;
+          const userList = r.upvotedUserIds ? [...r.upvotedUserIds] : [];
+          const idx = userList.indexOf(currentUser.id);
+          if (idx >= 0) {
+            userList.splice(idx, 1);
+            return {
+              ...r,
+              upvotedUserIds: userList,
+              upvotes: Math.max(0, (r.upvotes || 1) - 1),
+            };
+          } else {
+            userList.push(currentUser.id);
+            return {
+              ...r,
+              upvotedUserIds: userList,
+              upvotes: (r.upvotes || 0) + 1,
+            };
+          }
+        })
+      );
+    },
+    [currentUser, showToast]
+  );
+
+  const markAcceptedForumReply = useCallback(
+    (threadId: string, replyId: string) => {
+      const now = new Date().toISOString();
+      setForumThreads((prev) =>
+        prev.map((t) =>
+          t.id === threadId ? { ...t, isSolved: true, solutionReplyId: replyId, lastActivityAt: now } : t
+        )
+      );
+      setForumReplies((prev) =>
+        prev.map((r) =>
+          r.threadId === threadId ? { ...r, isSolution: r.id === replyId } : r
+        )
+      );
+      showToast('Marked verified solution');
+    },
+    [showToast]
+  );
+
+  const upsertCommunityChannel = useCallback(
+    (channel: CommunityChannel) => {
+      setCommunityChannels((prev) => {
+        const exists = prev.some((c) => c.id === channel.id);
+        return exists
+          ? prev.map((c) => (c.id === channel.id ? channel : c))
+          : [...prev, channel];
+      });
+      showToast(`Channel #${channel.slug} saved`);
+    },
+    [showToast]
+  );
+
+  const deleteCommunityChannel = useCallback(
+    (channelId: string) => {
+      setCommunityChannels((prev) => prev.filter((c) => c.id !== channelId));
+      showToast('Channel deleted');
+    },
+    [showToast]
+  );
+
   const resetDemoDatabase = useCallback(() => {
     storageService.resetAllDemoData();
     window.location.reload();
@@ -2496,6 +3343,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     toggleWishlist,
     isOwnedByCurrentUser,
     completeCheckout,
+    completeFunnelOrder,
     verifyPaystackReference,
     recordProductDownload,
     requestOrderRefund,
@@ -2510,6 +3358,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     submitModuleQuiz,
     issueCourseCertificate,
     addLectureQuestion,
+    answerLectureQuestion,
     getCourseProgress,
     membershipPlans,
     userMemberships,
@@ -2559,6 +3408,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     deleteWhatsAppGroup,
     toggleWhatsAppGroupStatus,
     joinWhatsAppGroup,
+    communityChannels,
+    communityMessages,
+    forumThreads,
+    forumReplies,
+    sendCommunityMessage,
+    toggleMessageReaction,
+    deleteCommunityMessage,
+    pinCommunityMessage,
+    createForumThread,
+    updateForumThread,
+    deleteForumThread,
+    toggleThreadPin,
+    toggleThreadLock,
+    upvoteForumThread,
+    createForumReply,
+    updateForumReply,
+    deleteForumReply,
+    upvoteForumReply,
+    markAcceptedForumReply,
+    upsertCommunityChannel,
+    deleteCommunityChannel,
     blogPosts,
     bookmarkedBlogIds,
     toggleBlogBookmark,
