@@ -80,6 +80,16 @@ payments/email/AI report as unconfigured).
 - **Code splitting** — routes load as separate chunks (`React.lazy` in `src/App.tsx`);
   the build fails if credential `.txt` files end up in `public/` or `dist/assets/`.
 
+## Platform Capabilities & Promoter Showcase
+
+- **Floating WhatsApp Instant Help Widget**: Context-aware floating support linked to `+2348034710699` across mobile and desktop.
+- **Executive Completion Certificate & QR Verification**: Auto-triggered certificate modal with live QR verification pointing to `/verify-certificate?id=...`.
+- **In-Player Student Notes**: Timestamped note-taking with clickable video seeking and 1-click formatted document / PDF export.
+- **1-Click Dark / Theater Mode**: Global theme switcher with `localStorage` persistence across catalog, header, and LMS video player.
+- **PWA "Add to Home Screen" Prompt**: Floating installation banner with deferred prompt capture for offline-ready mobile & desktop experience.
+- **S. B. OMOTOSO Executive Promoter Profile**: Dedicated `/promoter` profile (with `/facilitator` and `/speaker` routes), live availability calendar, and 11-field facilitator invitation booking system with structured WhatsApp notification dispatch.
+- **Vercel Hobby Tier Exploration**: Complete $0 optimization guide in `docs/VERCEL_HOBBY_EXPLORATION.md` covering Web Analytics, Speed Insights, Edge Config, Blob Storage, Fluid Compute, WAF, and Cron schedules.
+
 ## Tests
 
 ```bash
