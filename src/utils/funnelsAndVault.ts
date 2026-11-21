@@ -13,8 +13,8 @@ import type {
   UserAccount,
   UserMembership,
 } from '../types/marketplace';
-import { roundCurrency } from './commerce';
-import { resolveInitialOrderStatus } from './automation';
+import { roundCurrency } from './commerce.ts';
+import { resolveInitialOrderStatus } from './automation.ts';
 
 // ==========================================
 // Sales Funnel Calculations

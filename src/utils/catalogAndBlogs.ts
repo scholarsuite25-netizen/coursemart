@@ -5,7 +5,7 @@ import type {
   Product,
   ProductFilterState,
 } from '../types/marketplace';
-import { filterAndSortProducts } from './commerce';
+import { filterAndSortProducts } from './commerce.ts';
 
 export interface DigitalSubmenuMeta {
   subType: DigitalResourceSubType;

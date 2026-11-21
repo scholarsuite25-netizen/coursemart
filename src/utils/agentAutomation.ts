@@ -18,8 +18,8 @@ import type {
   SocialPostDraft,
   UserRole,
 } from '../types/marketplace';
-import { buildDeterministicSocialDrafts } from './automation';
-import { slugifyText } from './catalogAndBlogs';
+import { buildDeterministicSocialDrafts } from './automation.ts';
+import { slugifyText } from './catalogAndBlogs.ts';
 
 /* ============================================================================
    1. Blog Publisher Agent
