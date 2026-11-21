@@ -268,15 +268,7 @@ export function Footer() {
                 My Library
               </button>
             </li>
-            <li>
-              <button
-                type="button"
-                onClick={() => navigate('/events')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
-              >
-                Events & Seminars
-              </button>
-            </li>
+
           </ul>
         </div>
 
@@ -395,10 +387,6 @@ export function Footer() {
             </span>
             <span className="text-[#d4af37]/60">·</span>
             <span>GTB Settlement · Instant Course & License Delivery</span>
-            <span className="text-[#d4af37]/60">·</span>
-            <span className="text-slate-400">
-              Sample catalog ratings, buyer counts & demo financial figures shown for evaluation
-            </span>
           </div>
           <div className="flex items-center gap-4">
             <a

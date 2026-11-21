@@ -1086,6 +1086,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ? `Welcome ${newUser.name}! Account created & newsletter subscribed.`
           : `Welcome to ${appearance.brandName}, ${newUser.name}`
       );
+
+      // Request browser notification permission and show notification
+      try {
+        if (typeof Notification !== 'undefined') {
+          const sendNotif = () => {
+            new Notification(`Welcome, ${newUser.name}!`, {
+              body: `Your ${appearance.brandName} account is active. Explore courses, tools & community.`,
+              icon: '/icons/icon-192x192.png',
+            });
+          };
+          if (Notification.permission === 'granted') {
+            sendNotif();
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then((perm) => {
+              if (perm === 'granted') sendNotif();
+            });
+          }
+        }
+      } catch {
+        // Notification API unavailable — silent fallback
+      }
       return { ok: true, user: newUser };
     },
     [appearance.brandName, showToast, resyncPersonalKeys]
