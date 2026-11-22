@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Mail, Send, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Mail, Send, Sparkles, Users } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import type { EmailBroadcastAudience, EmailBroadcastCampaign } from '../../types/marketplace';
 import { resolveBroadcastRecipients } from '../../utils/automation';
@@ -25,10 +25,41 @@ export function EmailBroadcastPanel() {
     'Hello Builder,\n\nWe have new training releases, wealth creation playbooks, and upcoming live masterclasses waiting inside Digital Wealth Creators (DWC).\n\nExplore the latest release today.'
   );
   const [sending, setSending] = useState(false);
+  const [sendingWeekly, setSendingWeekly] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState<{
     type: 'success' | 'error' | 'info';
     text: string;
   } | null>(null);
+
+  const handleTriggerWeeklySummary = async () => {
+    setStatusFeedback(null);
+    setSendingWeekly(true);
+    try {
+      const resp = await fetch('/api/email/weekly-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await resp.json();
+      if (resp.ok && data.ok) {
+        setStatusFeedback({
+          type: 'success',
+          text: `✓ Live Weekly Summary Digest successfully dispatched to ${data.sentCount ?? data.recipientCount} member(s) via ${data.provider?.toUpperCase() || 'RESEND'}.`,
+        });
+      } else {
+        setStatusFeedback({
+          type: 'error',
+          text: data.error || data.message || 'Weekly summary dispatch could not be completed.',
+        });
+      }
+    } catch {
+      setStatusFeedback({
+        type: 'error',
+        text: 'Failed to connect to weekly summary endpoint.',
+      });
+    } finally {
+      setSendingWeekly(false);
+    }
+  };
 
   const recipients = useMemo(
     () =>
@@ -231,6 +262,30 @@ export function EmailBroadcastPanel() {
           </div>
         </div>
       )}
+
+      {/* Automated Weekly Summary Digest Card */}
+      <div className="bg-gradient-to-r from-[#0a192f] via-[#112240] to-[#0a192f] border border-[#d4af37]/60 rounded-md p-5 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-md">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[#f5c451]">
+            <Sparkles className="w-4 h-4" />
+            <h3 className="font-display font-bold text-sm uppercase tracking-wider">
+              Automated Weekly Summary Digest
+            </h3>
+          </div>
+          <p className="text-xs text-slate-300 max-w-xl">
+            Automatically sends every Monday via Vercel Cron. Compiles top weekly articles, featured courses, upcoming masterclasses, and VIP 50% discount reminders to all registered members.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleTriggerWeeklySummary}
+          disabled={sendingWeekly}
+          className="px-4 py-2.5 bg-gradient-to-r from-[#f5c451] via-[#d4af37] to-[#b89728] text-[#0a192f] font-bold text-xs rounded-md hover:brightness-110 transition-all shrink-0 flex items-center gap-2 cursor-pointer disabled:opacity-50 shadow"
+        >
+          <Send className="w-3.5 h-3.5" />
+          <span>{sendingWeekly ? 'Broadcasting Digest...' : 'Dispatch Weekly Digest Now (1-Click)'}</span>
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Composer */}

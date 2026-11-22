@@ -53,6 +53,8 @@ import type {
   SocialPostDraft,
   AgentIncident,
   UserMembership,
+  UserAccount,
+  EventItem,
 } from '../types/marketplace.ts';
 import {
   processScheduledBlogPosts,
@@ -301,6 +303,15 @@ async function sendViaEmailService(params: {
     sentCount: 0,
     error: lastError || 'All configured email providers rejected the message.',
   };
+}
+
+function safeHtmlEscape(str: string): string {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function readLocalRuntimeStore(): Record<string, unknown> {
@@ -1186,6 +1197,104 @@ export function createApiApp() {
     }
   });
 
+  // 1-Click Public Newsletter Subscription with automated welcome email
+  app.post('/api/newsletter/subscribe', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'newsletter-sub', 15, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Too many subscription attempts. Please wait a minute.' });
+      return;
+    }
+    try {
+      const { email, name } = req.body ?? {};
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (typeof email !== 'string' || !emailRegex.test(email.trim())) {
+        res.status(400).json({ ok: false, error: 'Please provide a valid email address.' });
+        return;
+      }
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = typeof name === 'string' && name.trim() ? name.trim().slice(0, 100) : 'Builder';
+      const nowIso = new Date().toISOString();
+
+      // Read current users and update / add subscriber
+      const rawUsers = await readStoreKeyValue('users');
+      const users: UserAccount[] = Array.isArray(rawUsers)
+        ? rawUsers.filter((u): u is UserAccount => Boolean(u && typeof u === 'object'))
+        : [];
+      const existing = users.find((u) => u.email && u.email.toLowerCase() === cleanEmail);
+
+      if (existing) {
+        existing.newsletterOptIn = true;
+        existing.newsletterOptedInAt = nowIso;
+        await writeStoreKeyValue('users', users);
+      } else {
+        const newSubscriber: UserAccount = {
+          id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          email: cleanEmail,
+          name: cleanName === 'Builder' ? cleanEmail.split('@')[0] : cleanName,
+          role: 'student',
+          status: 'active',
+          newsletterOptIn: true,
+          newsletterOptedInAt: nowIso,
+          purchasedProductIds: [],
+          enrolledCourseIds: [],
+          createdAt: nowIso,
+        };
+        users.push(newSubscriber);
+        await writeStoreKeyValue('users', users);
+      }
+
+      // Send branded welcome email via Resend / active ESP
+      const welcomeSubject = 'Welcome to Digital Wealth Creators · Your Weekly Wealth & AI Briefing';
+      const welcomeHtml = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f172a;line-height:1.6;">
+          <div style="background:#0a192f;color:#ffffff;padding:24px;border-bottom:4px solid #d4af37;text-align:center;">
+            <div style="display:inline-block;background:linear-gradient(135deg,#f5c451,#d4af37);color:#0a192f;font-weight:900;padding:6px 12px;border-radius:6px;font-size:16px;letter-spacing:1px;margin-bottom:8px;">
+              DWC
+            </div>
+            <h2 style="margin:0;font-size:20px;letter-spacing:0.5px;color:#ffffff;">DIGITAL WEALTH CREATORS</h2>
+            <p style="margin:6px 0 0;font-size:13px;color:#f5c451;">Official Intelligence & Briefings</p>
+          </div>
+          <div style="padding:24px;background:#ffffff;">
+            <p style="font-size:15px;margin-top:0;">Hello <b>${safeHtmlEscape(cleanName)}</b>,</p>
+            <p style="font-size:14px;color:#334155;">
+              Welcome to the <b>Digital Wealth Creators (DWC)</b> community. You are now officially subscribed to our weekly briefings covering AI execution, digital marketplace strategies, and hands-on wealth creation playbooks.
+            </p>
+            <div style="background:#f8fafc;border-left:4px solid #d4af37;padding:14px 18px;margin:20px 0;border-radius:4px;">
+              <p style="margin:0;font-weight:bold;color:#0a192f;font-size:13px;">What to expect in your inbox:</p>
+              <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;color:#475569;">
+                <li>Weekly curated AI & Vibe Coding tutorials</li>
+                <li>Exclusive masterclass & live webinar invitations</li>
+                <li>New digital course releases and tools updates</li>
+                <li>VIP member discounts (50% off premium items)</li>
+              </ul>
+            </div>
+            <div style="text-align:center;margin:28px 0;">
+              <a href="https://digitalwealthcreators.vercel.app" style="display:inline-block;background:#0a192f;color:#f5c451;font-weight:bold;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:13px;border:1px solid #d4af37;">
+                Explore Courses & Resources →
+              </a>
+            </div>
+            <p style="font-size:12px;color:#64748b;margin-bottom:0;">
+              Need support? Reach out directly via WhatsApp at +234 803 471 0699 or reply directly to this email.
+            </p>
+          </div>
+          <div style="background:#f1f5f9;padding:16px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">
+            © 2026 Digital Wealth Creators · Sent from support@digitalwealthcreators.org.ng
+          </div>
+        </div>
+      `;
+
+      sendViaEmailService({
+        recipients: [{ email: cleanEmail, name: cleanName }],
+        subject: welcomeSubject,
+        html: welcomeHtml,
+      }).catch(() => {});
+
+      res.json({ ok: true, message: 'Successfully subscribed to Digital Wealth Creators newsletter.' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Newsletter subscription failed';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
   // Live Email Broadcast (Admin Session Protected — EmailBump / Resend / Brevo)
   app.post('/api/email/broadcast', async (req, res) => {
     if (!requireAdminSession(req, res)) return;
@@ -1239,6 +1348,173 @@ export function createApiApp() {
       res.json(result);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Email broadcast failed';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // Authorization helper for cron endpoints
+  function isCronAuthorized(req: Request): boolean {
+    if (readAdminSession(req)) return true;
+    const cronSecret = (process.env.CRON_SECRET || '').trim();
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    if (!cronSecret && req.headers['x-vercel-cron'] === '1') return true;
+    if (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true') return true;
+    return false;
+  }
+
+  // Autonomous / On-Demand Weekly Newsletter Summary Builder & Dispatcher
+  async function dispatchWeeklyNewsletterSummary(options: { dryRun?: boolean } = {}) {
+    const rawUsers = await readStoreKeyValue('users');
+    const users: UserAccount[] = Array.isArray(rawUsers)
+      ? rawUsers.filter((u): u is UserAccount => Boolean(u && typeof u === 'object'))
+      : [];
+
+    const recipients = users
+      .filter((u) => u.email && u.newsletterOptIn !== false && u.status !== 'suspended')
+      .map((u) => ({ email: u.email.trim(), name: u.name || 'Member' }));
+
+    if (recipients.length === 0) {
+      return { ok: false, message: 'No eligible recipients found for weekly summary.', recipientCount: 0 };
+    }
+
+    const products = await getEffectiveProducts();
+    const rawBlogs = await readStoreKeyValue('blog_posts');
+    const blogs: BlogPost[] = Array.isArray(rawBlogs)
+      ? rawBlogs.filter((b): b is BlogPost => Boolean(b && typeof b === 'object' && b.status === 'published'))
+      : [];
+    const rawEvents = await readStoreKeyValue('events');
+    const events: EventItem[] = Array.isArray(rawEvents)
+      ? rawEvents.filter((e): e is EventItem => Boolean(e && typeof e === 'object' && e.status === 'published'))
+      : [];
+
+    const topBlog = blogs[0];
+    const featuredCourses = products.filter((p) => p.isPublished !== false).slice(0, 3);
+    const upcomingEvents = events.slice(0, 2);
+
+    const subject = 'Weekly Intelligence Briefing: New Playbooks, Courses & Masterclasses';
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#0f172a;line-height:1.6;background:#f8fafc;padding:20px 10px;">
+        <div style="background:#0a192f;color:#ffffff;padding:26px 20px;border-bottom:4px solid #d4af37;text-align:center;border-radius:8px 8px 0 0;">
+          <div style="display:inline-block;background:linear-gradient(135deg,#f5c451,#d4af37);color:#0a192f;font-weight:900;padding:6px 14px;border-radius:6px;font-size:16px;letter-spacing:1px;margin-bottom:8px;">
+            DWC
+          </div>
+          <h2 style="margin:0;font-size:22px;letter-spacing:0.5px;color:#ffffff;">DIGITAL WEALTH CREATORS</h2>
+          <p style="margin:6px 0 0;font-size:13px;color:#f5c451;font-weight:bold;">Weekly Executive Intelligence & Wealth Summary</p>
+        </div>
+        
+        <div style="background:#ffffff;padding:26px 22px;border:1px solid #e2e8f0;border-top:none;">
+          <p style="font-size:15px;margin-top:0;">Hello Builder,</p>
+          <p style="font-size:14px;color:#334155;">
+            Here is your curated weekly summary of new digital products, AI tutorials, and upcoming executive masterclasses waiting for you inside <b>Digital Wealth Creators</b>.
+          </p>
+
+          ${topBlog ? `
+            <div style="margin:24px 0;padding:16px;background:#f1f5f9;border-left:4px solid #0a192f;border-radius:4px;">
+              <span style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#d4af37;letter-spacing:1px;">Featured Editorial</span>
+              <h3 style="margin:6px 0;font-size:17px;color:#0a192f;">${safeHtmlEscape(topBlog.title)}</h3>
+              <p style="margin:0 0 10px;font-size:13px;color:#475569;">${safeHtmlEscape(topBlog.excerpt || '')}</p>
+              <a href="https://digitalwealthcreators.vercel.app/blog/${topBlog.slug}" style="font-size:12px;font-weight:bold;color:#0a192f;text-decoration:none;">Read Full Guide →</a>
+            </div>
+          ` : ''}
+
+          ${featuredCourses.length > 0 ? `
+            <div style="margin:24px 0;">
+              <h4 style="font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:#0a192f;margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">
+                Featured Courses & Software Tools
+              </h4>
+              ${featuredCourses.map(c => `
+                <div style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
+                  <div style="font-weight:bold;font-size:14px;color:#0a192f;">${safeHtmlEscape(c.title)}</div>
+                  <div style="font-size:12px;color:#64748b;margin:2px 0 6px;">${safeHtmlEscape(c.category || 'Executive')} · ${c.price === 0 ? 'Free' : `₦${c.price.toLocaleString()}`}</div>
+                  <a href="https://digitalwealthcreators.vercel.app/learn/${c.id}" style="font-size:12px;font-weight:bold;color:#d4af37;text-decoration:none;padding:4px 10px;background:#0a192f;border-radius:4px;display:inline-block;">View Resource</a>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${upcomingEvents.length > 0 ? `
+            <div style="margin:24px 0;padding:16px;background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;">
+              <span style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#7e22ce;letter-spacing:1px;">Upcoming Live Masterclass</span>
+              ${upcomingEvents.map(e => `
+                <div style="margin-top:8px;">
+                  <div style="font-weight:bold;font-size:14px;color:#581c87;">${safeHtmlEscape(e.title)}</div>
+                  <div style="font-size:12px;color:#6b21a8;">Date: ${new Date(e.startAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · Host: ${safeHtmlEscape(e.speakerName)}</div>
+                  <a href="https://digitalwealthcreators.vercel.app/events" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:bold;color:#7e22ce;text-decoration:none;">Reserve Free Seat →</a>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div style="background:#ecfdf5;border:1px solid #a7f3d0;padding:14px 16px;border-radius:6px;margin:24px 0;">
+            <p style="margin:0;font-size:13px;color:#065f46;font-weight:bold;">VIP Member Perk Reminder</p>
+            <p style="margin:4px 0 0;font-size:12px;color:#047857;">
+              Active Standard and Master Class members receive an automatic <b>50% discount</b> on all Premium digital products and courses at checkout!
+            </p>
+          </div>
+
+          <div style="text-align:center;margin:30px 0 10px;">
+            <a href="https://digitalwealthcreators.vercel.app/library" style="display:inline-block;background:linear-gradient(135deg,#f5c451,#d4af37);color:#0a192f;font-weight:bold;text-decoration:none;padding:12px 30px;border-radius:6px;font-size:14px;">
+              Access Your Student Dashboard →
+            </a>
+          </div>
+        </div>
+
+        <div style="background:#f1f5f9;padding:16px;text-align:center;font-size:11px;color:#94a3b8;border-radius:0 0 8px 8px;border:1px solid #e2e8f0;border-top:none;">
+          © 2026 Digital Wealth Creators · Sent from support@digitalwealthcreators.org.ng<br/>
+          You received this because you are an active member on Digital Wealth Creators.
+        </div>
+      </div>
+    `;
+
+    if (options.dryRun) {
+      return { ok: true, dryRun: true, recipientCount: recipients.length, subject };
+    }
+
+    const result = await sendViaEmailService({
+      recipients,
+      subject,
+      html,
+    });
+
+    try {
+      const rawCampaigns = await readStoreKeyValue('email_campaigns');
+      const campaigns = Array.isArray(rawCampaigns) ? rawCampaigns : [];
+      const newCamp = {
+        id: `weekly-${Date.now()}`,
+        subject,
+        preheader: 'Weekly Executive Intelligence & Wealth Summary',
+        bodyHtml: html,
+        audience: 'all_users',
+        recipientCount: result.sentCount || recipients.length,
+        provider: result.provider || 'resend',
+        status: result.ok ? 'sent' : 'failed',
+        createdAt: new Date().toISOString(),
+        sentAt: new Date().toISOString(),
+      };
+      await writeStoreKeyValue('email_campaigns', [newCamp, ...campaigns].slice(0, 100));
+    } catch {
+      // Non-fatal
+    }
+
+    return { ok: result.ok, sentCount: result.sentCount, provider: result.provider, recipientCount: recipients.length };
+  }
+
+  // Weekly Newsletter Summary Route (Admin or Cron Authorized)
+  app.post('/api/email/weekly-summary', async (req, res) => {
+    if (!requireAdminSession(req, res) && !isCronAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Unauthorized: Admin session or Cron authorization required.' });
+      return;
+    }
+    if (!checkRateLimit(req.ip || 'unknown', 'weekly-summary', 10, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Weekly summary is already being dispatched.' });
+      return;
+    }
+    try {
+      const dryRun = String(req.query.dryRun || '').toLowerCase() === 'true';
+      const result = await dispatchWeeklyNewsletterSummary({ dryRun });
+      res.json(result);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Weekly summary dispatch failed';
       res.status(500).json({ ok: false, error: msg });
     }
   });
@@ -1811,17 +2087,6 @@ Requirements:
   // --------------------------------------------------------------------------
   // Daily maintenance cron (Vercel: 0 0 * * *)
   // --------------------------------------------------------------------------
-  const isCronAuthorized = (req: Request): boolean => {
-    if (readAdminSession(req)) return true;
-    const cronSecret = (process.env.CRON_SECRET || '').trim();
-    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
-    // Vercel sends x-vercel-cron: 1. Accept it when no CRON_SECRET is configured
-    // so the schedule still works on a fresh deployment.
-    if (!cronSecret && req.headers['x-vercel-cron'] === '1') return true;
-    if (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true') return true;
-    return false;
-  };
-
   app.get('/api/cron/daily-maintenance', async (req, res) => {
     if (!isCronAuthorized(req)) {
       res.status(401).json({ ok: false, error: 'Cron authorization required.' });
@@ -2003,7 +2268,20 @@ Requirements:
       };
     }
 
-    // 7. Persist an audit entry so the admin panel shows what ran.
+    // 7. Automated Weekly Newsletter Summary Digest (runs every Monday UTC or when ?weeklyDigest=true)
+    const isMonday = new Date(now).getUTCDay() === 1;
+    const forceWeekly = String(req.query.weeklyDigest || '').toLowerCase() === 'true';
+    if (isMonday || forceWeekly) {
+      try {
+        tasks.weeklyNewsletterSummary = await dispatchWeeklyNewsletterSummary({ dryRun });
+      } catch (err: unknown) {
+        tasks.weeklyNewsletterSummary = {
+          error: err instanceof Error ? err.message : 'Weekly newsletter summary failed',
+        };
+      }
+    }
+
+    // 8. Persist an audit entry so the admin panel shows what ran.
     if (!dryRun) {
       const hasError = Object.values(tasks).some(
         (value) => value && typeof value === 'object' && 'error' in (value as Record<string, unknown>)
@@ -2341,7 +2619,7 @@ Requirements:
   // Milestone 3: Gated Resource Download Token & Delivery Routes (R3)
   // ==========================================================================
 
-  const getEffectiveProducts = async (): Promise<Product[]> => {
+  async function getEffectiveProducts(): Promise<Product[]> {
     const raw = ((await readStoreKeyValue('products')) || []) as Product[];
     const pool = new Map<string, Product>();
     for (const p of SEED_PRODUCTS) {
@@ -2353,9 +2631,9 @@ Requirements:
       }
     }
     return Array.from(pool.values());
-  };
+  }
 
-  const getEffectiveOrders = async (): Promise<Order[]> => {
+  async function getEffectiveOrders(): Promise<Order[]> {
     const raw = ((await readStoreKeyValue('orders')) || []) as Order[];
     const pool = new Map<string, Order>();
     for (const o of SEED_ORDERS) {
@@ -2367,7 +2645,7 @@ Requirements:
       }
     }
     return Array.from(pool.values());
-  };
+  }
 
   const getEffectiveMemberships = async (): Promise<UserMembership[]> => {
     const raw = ((await readStoreKeyValue('user_memberships')) || []) as UserMembership[];

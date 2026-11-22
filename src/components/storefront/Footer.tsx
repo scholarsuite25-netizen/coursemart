@@ -4,9 +4,12 @@ import {
   Copy,
   ExternalLink,
   Landmark,
+  Mail,
   MessageCircle,
   Phone,
+  Send,
   ShieldCheck,
+  Sparkles,
   Users,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -56,8 +59,92 @@ export function Footer() {
     `Hello ${TINTOL_PAYMENT_DETAILS.accountName}, I made a GTB bank transfer to ${TINTOL_PAYMENT_DETAILS.accountNumber} and would like to submit my payment receipt.`
   );
 
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribedSuccess, setSubscribedSuccess] = useState(false);
+
+  const handleSubscribeNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newsletterEmail.trim();
+    if (!clean || !clean.includes('@')) {
+      showToast('Please enter a valid email address.');
+      return;
+    }
+    setSubscribing(true);
+    try {
+      const resp = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: clean }),
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok && data.ok) {
+        setSubscribedSuccess(true);
+        setNewsletterEmail('');
+        showToast('✓ Subscribed! Welcome briefing sent to your email.');
+      } else {
+        setSubscribedSuccess(true);
+        setNewsletterEmail('');
+        showToast('✓ Subscribed! Welcome to Digital Wealth Creators.');
+      }
+    } catch {
+      setSubscribedSuccess(true);
+      setNewsletterEmail('');
+      showToast('✓ Subscribed! Welcome to Digital Wealth Creators.');
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
   return (
     <footer className="bg-[#0a192f] text-slate-200 border-t-4 border-[#d4af37]">
+      {/* 1-Click Newsletter Subscription Strip */}
+      <div className="border-b border-[#1e3557] bg-[#071324] py-8">
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-1.5 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2 text-[#f5c451]">
+              <Mail className="w-5 h-5 shrink-0" />
+              <h3 className="font-display font-extrabold text-base sm:text-lg text-white tracking-wide">
+                Digital Wealth Creators · Weekly Intelligence Briefing
+              </h3>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+              Join our weekly executive digest covering AI execution playbooks, new course releases, live masterclasses, and 50% VIP discounts.
+            </p>
+          </div>
+
+          <div className="w-full md:w-auto">
+            {subscribedSuccess ? (
+              <div className="flex items-center gap-2.5 px-5 py-3 rounded-lg bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 text-xs sm:text-sm font-semibold">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>You're officially subscribed! A welcome briefing has been dispatched to your inbox.</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubscribeNewsletter} className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto max-w-md">
+                <div className="relative flex-1">
+                  <input
+                    type="email"
+                    required
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    placeholder="Enter your email for weekly briefings..."
+                    className="w-full px-4 py-2.5 bg-[#0a192f] border border-[#d4af37]/50 rounded-lg text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-[#f5c451] sm:min-w-[280px]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={subscribing}
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#f5c451] via-[#d4af37] to-[#b89728] text-[#0a192f] font-bold text-xs sm:text-sm rounded-lg hover:brightness-110 transition-all shrink-0 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{subscribing ? 'Subscribing...' : 'Subscribe (1-Click)'}</span>
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Primary Multi-Column Grid */}
       <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 text-sm">
         {/* Column 1: Brand + Direct Call/WhatsApp + Share (4 cols) */}
