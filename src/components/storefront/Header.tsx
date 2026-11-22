@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Award,
   BookOpen,
   Calendar,
   ChevronDown,
@@ -7,6 +8,7 @@ import {
   Crown,
   FileText,
   Globe,
+  GraduationCap,
   Heart,
   LayoutDashboard,
   LogOut,
@@ -23,6 +25,7 @@ import {
   User,
   UserCheck,
   X,
+  Zap,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import {
@@ -221,6 +224,19 @@ export function Header() {
                   <Code2 className="w-3.5 h-3.5 text-[#d4af37]" />
                   <span>Software & Licenses</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => goToRoute('/funnel/ai-saas-accelerator')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-amber-50/70 flex items-center justify-between cursor-pointer border-t border-slate-100"
+                >
+                  <span className="flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span>AI Launch Accelerator</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    65% OFF
+                  </span>
+                </button>
               </div>
             )}
           </div>
@@ -312,6 +328,51 @@ export function Header() {
                   </span>
                   <span className="text-[9px] font-bold uppercase bg-purple-100 text-[#5624d0] px-1.5 py-0.5 rounded">
                     AI VIP
+                  </span>
+                </button>
+
+                {/* Certificate Verification */}
+                <button
+                  type="button"
+                  onClick={() => goToRoute('/verify-certificate')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Award className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Verify Certificate</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                    Verify
+                  </span>
+                </button>
+
+                {/* AI Launch Accelerator Funnel */}
+                <button
+                  type="button"
+                  onClick={() => goToRoute('/funnel/ai-saas-accelerator')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span>AI Launch Accelerator</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    Funnel
+                  </span>
+                </button>
+
+                {/* Instructor Studio */}
+                <button
+                  type="button"
+                  onClick={() => goToRoute('/instructor')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <GraduationCap className="w-3.5 h-3.5 text-[#0a192f]" />
+                    <span>Instructor Studio</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                    Teach
                   </span>
                 </button>
 
@@ -831,6 +892,30 @@ export function Header() {
                   >
                     <span>Member Prompt Vault</span>
                     <span className="text-[9px] bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded">VIP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToRoute('/verify-certificate')}
+                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-emerald-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
+                  >
+                    <span>Verify Certificate</span>
+                    <span className="text-[9px] bg-emerald-900 text-emerald-200 px-1.5 py-0.5 rounded">Verify</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToRoute('/funnel/ai-saas-accelerator')}
+                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-amber-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
+                  >
+                    <span>AI Launch Accelerator</span>
+                    <span className="text-[9px] bg-amber-900 text-amber-200 px-1.5 py-0.5 rounded">65% OFF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToRoute('/instructor')}
+                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-blue-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
+                  >
+                    <span>Instructor Studio</span>
+                    <span className="text-[9px] bg-blue-900 text-blue-200 px-1.5 py-0.5 rounded">Teach</span>
                   </button>
                   <button
                     type="button"

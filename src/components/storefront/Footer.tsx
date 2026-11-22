@@ -1,8 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
+  Award,
+  BookOpen,
   Check,
+  ChevronRight,
   Copy,
   ExternalLink,
+  FileText,
+  GraduationCap,
   Landmark,
   Mail,
   MessageCircle,
@@ -11,6 +16,7 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  Zap,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import {
@@ -28,8 +34,20 @@ export function Footer() {
     whatsappGroups,
     joinWhatsAppGroup,
     showToast,
+    blogPosts,
   } = useStore();
   const [copiedAcct, setCopiedAcct] = useState(false);
+
+  const latestBlogPosts = useMemo(() => {
+    return [...(blogPosts || [])]
+      .filter((post) => post.status === 'published')
+      .sort((a, b) => {
+        const timeA = new Date(a.publishedAt || a.updatedAt || 0).getTime();
+        const timeB = new Date(b.publishedAt || b.updatedAt || 0).getTime();
+        return timeB - timeA;
+      })
+      .slice(0, 4);
+  }, [blogPosts]);
 
   const publicGroups = whatsappGroups.filter(
     (g) => g.active && g.visibility === 'public'
@@ -45,7 +63,7 @@ export function Footer() {
 
   const handleCopyAccount = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(TINTOL_PAYMENT_DETAILS.accountNumber).catch(() => {});
+      navigator.clipboard.writeText(TINTOL_PAYMENT_DETAILS.accountNumber).catch(() => { });
     }
     setCopiedAcct(true);
     showToast(`Copied GTB Account ${TINTOL_PAYMENT_DETAILS.accountNumber}`);
@@ -146,9 +164,9 @@ export function Footer() {
       </div>
 
       {/* Primary Multi-Column Grid */}
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 text-sm">
-        {/* Column 1: Brand + Direct Call/WhatsApp + Share (4 cols) */}
-        <div className="lg:col-span-4 space-y-5">
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 xl:gap-8 text-sm">
+        {/* Column 1: Brand + Direct Call/WhatsApp + Share (3 cols) */}
+        <div className="lg:col-span-3 space-y-4">
           <div className="flex items-center gap-3">
             <span className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#f5c451] via-[#d4af37] to-[#b89728] text-[#0a192f] font-black text-sm tracking-wider flex items-center justify-center shrink-0 shadow-md border border-[#f5c451]/60">
               DWC
@@ -163,16 +181,16 @@ export function Footer() {
             </div>
           </div>
 
-          <p className="text-slate-300 leading-relaxed max-w-sm">
+          <p className="text-slate-300 leading-relaxed text-xs">
             Unified digital marketplace, editorial publication, and LMS covering AI, Vibe Coding,
             Mentorship, Leadership, and Apps Deployment.
           </p>
 
           {/* Click-to-Call, Click-to-WhatsApp, Share */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <a
               href={buildCallUrl()}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-[#112240] border border-[#d4af37]/50 hover:border-[#d4af37] hover:text-[#f5c451] rounded-md transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#112240] border border-[#d4af37]/50 hover:border-[#d4af37] hover:text-[#f5c451] rounded-md transition-colors"
             >
               <Phone className="w-3.5 h-3.5 text-[#f5c451]" />
               <span>Call {TINTOL_PAYMENT_DETAILS.phoneDisplay}</span>
@@ -182,10 +200,10 @@ export function Footer() {
               href={generalWhatsAppLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-md transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-md transition-colors"
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span>WhatsApp Support</span>
+              <span>WhatsApp Desk</span>
             </a>
 
             <ShareButton title={appearance.brandName} variant="footer" label="Share Site" />
@@ -195,9 +213,18 @@ export function Footer() {
         {/* Column 2: Digital Products & Storefront Pages (2 cols) */}
         <div className="lg:col-span-2 space-y-3">
           <p className="font-display text-xs font-bold text-[#f5c451] uppercase tracking-wider">
-            Digital Products
+            Digital Store
           </p>
-          <ul className="space-y-2 text-slate-300">
+          <ul className="space-y-2 text-xs text-slate-300">
+            <li>
+              <button
+                type="button"
+                onClick={() => navigate('/courses')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left font-medium"
+              >
+                Video Courses
+              </button>
+            </li>
             <li>
               <button
                 type="button"
@@ -213,7 +240,7 @@ export function Footer() {
                 onClick={() => navigate('/digital-products/ebooks')}
                 className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
               >
-                eBooks (PDF / EPUB)
+                eBooks & Handbooks
               </button>
             </li>
             <li>
@@ -222,7 +249,7 @@ export function Footer() {
                 onClick={() => navigate('/digital-products/templates')}
                 className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
               >
-                Templates
+                Notion & PRD Templates
               </button>
             </li>
             <li>
@@ -231,16 +258,7 @@ export function Footer() {
                 onClick={() => navigate('/digital-products/toolkits')}
                 className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
               >
-                Toolkits
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                onClick={() => navigate('/courses')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
-              >
-                Video Courses
+                Engineering Toolkits
               </button>
             </li>
             <li>
@@ -252,76 +270,100 @@ export function Footer() {
                 Software & Licenses
               </button>
             </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => navigate('/library')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left text-slate-400"
+              >
+                My Student Library
+              </button>
+            </li>
           </ul>
         </div>
 
-        {/* Column 3: Blogs & Portals (2 cols) */}
+        {/* Column 3: Portals, Funnels & Capabilities (2 cols) */}
         <div className="lg:col-span-2 space-y-3">
           <p className="font-display text-xs font-bold text-[#f5c451] uppercase tracking-wider">
-            Blogs & Portals
+            Portals & Features
           </p>
-          <ul className="space-y-2 text-slate-300">
+          <ul className="space-y-2 text-xs text-slate-300">
             <li>
               <button
                 type="button"
-                onClick={() => navigate('/blogs')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left font-semibold text-white"
+                onClick={() => navigate('/verify-certificate')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left flex items-center justify-between w-full group"
               >
-                All Blogs
+                <span className="font-semibold text-emerald-400 group-hover:text-emerald-300">Verify Certificate</span>
+                <span className="text-[9px] bg-emerald-950 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.5 rounded font-bold uppercase">
+                  Verify
+                </span>
               </button>
             </li>
             <li>
               <button
                 type="button"
-                onClick={() => navigate('/blogs/category/ai')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
+                onClick={() => navigate('/vault')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left flex items-center justify-between w-full group"
               >
-                AI
+                <span className="font-semibold text-purple-300 group-hover:text-purple-200">Member Prompt Vault</span>
+                <span className="text-[9px] bg-purple-950 border border-purple-500/40 text-purple-300 px-1.5 py-0.5 rounded font-bold uppercase">
+                  VIP
+                </span>
               </button>
             </li>
             <li>
               <button
                 type="button"
-                onClick={() => navigate('/blogs/category/mentorship')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
+                onClick={() => navigate('/funnel/ai-saas-accelerator')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left flex items-center justify-between w-full group"
               >
-                Mentorship
+                <span className="font-semibold text-amber-300 group-hover:text-amber-200">AI Launch Accelerator</span>
+                <span className="text-[9px] bg-amber-950 border border-amber-500/40 text-amber-300 px-1.5 py-0.5 rounded font-bold uppercase">
+                  65% OFF
+                </span>
               </button>
             </li>
             <li>
               <button
                 type="button"
-                onClick={() => navigate('/blogs/category/leadership')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
+                onClick={() => navigate('/instructor')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left flex items-center justify-between w-full group"
               >
-                Leadership
+                <span className="text-white group-hover:text-[#f5c451]">Instructor Studio</span>
+                <span className="text-[9px] bg-[#112240] border border-slate-600 text-slate-300 px-1.5 py-0.5 rounded font-medium uppercase">
+                  Teach
+                </span>
               </button>
             </li>
             <li>
               <button
                 type="button"
-                onClick={() => navigate('/blogs/category/vibe-coding')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
+                onClick={() => navigate('/community')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left flex items-center justify-between w-full group"
               >
-                Vibe Coding
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                onClick={() => navigate('/blogs/category/apps-deployment')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
-              >
-                Apps Deployment
+                <span className="text-white group-hover:text-[#f5c451]">VIP Community</span>
+                <span className="text-[9px] bg-emerald-950 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.5 rounded font-bold uppercase">
+                  Live
+                </span>
               </button>
             </li>
             <li>
               <button
                 type="button"
                 onClick={() => navigate('/events')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left text-white font-semibold"
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
               >
-                Events & Workshops
+                Events & Masterclasses
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => navigate('/promoter')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left text-amber-300/90 font-medium"
+              >
+                Executive Promoter Profile
               </button>
             </li>
             <li>
@@ -339,42 +381,59 @@ export function Footer() {
                 onClick={() => navigate('/affiliates')}
                 className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
               >
-                Affiliate Program
+                Affiliate Program (20%)
               </button>
             </li>
-            <li>
-              <button
-                type="button"
-                onClick={() => navigate('/showcase')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
-              >
-                Showcase
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                onClick={() => navigate('/promoter')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left text-amber-300 font-semibold"
-              >
-                Executive Promoter Profile
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                onClick={() => navigate('/library')}
-                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
-              >
-                My Library
-              </button>
-            </li>
-
           </ul>
         </div>
 
-        {/* Column 4: Official GTB Bank Transfer & WhatsApp Verification Card (4 cols) */}
-        <div className="lg:col-span-4">
+        {/* Column 4: Latest Editorial Intelligence (Dynamic Latest 4 Articles) (2 cols) */}
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex items-center justify-between gap-1">
+            <p className="font-display text-xs font-bold text-[#f5c451] uppercase tracking-wider">
+              Latest Editorial
+            </p>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Live editorial feed" />
+          </div>
+
+          <div className="space-y-2.5">
+            {latestBlogPosts.length === 0 ? (
+              <p className="text-xs text-slate-400">Loading latest briefings...</p>
+            ) : (
+              latestBlogPosts.map((post) => (
+                <button
+                  key={post.id}
+                  type="button"
+                  onClick={() => navigate(`/blog/${post.slug}`)}
+                  className="w-full text-left group block transition-all cursor-pointer"
+                >
+                  <p className="text-xs font-medium text-slate-200 group-hover:text-[#f5c451] line-clamp-2 leading-snug">
+                    {post.title}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400">
+                    <span className="text-[#d4af37] font-semibold">{post.category}</span>
+                    <span>•</span>
+                    <span>{post.readTimeMinutes}m read</span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="pt-2 border-t border-[#1e3557]">
+            <button
+              type="button"
+              onClick={() => navigate('/blogs')}
+              className="text-xs font-bold text-[#f5c451] hover:underline inline-flex items-center gap-1 cursor-pointer"
+            >
+              <span>All Articles & Guides</span>
+              <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Column 5: Official GTB Bank Transfer & WhatsApp Verification Card (3 cols) */}
+        <div className="lg:col-span-3">
           <div className="bg-[#112240] border border-[#d4af37]/50 rounded-xl p-5 space-y-3.5 shadow-lg">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-[#f5c451]">

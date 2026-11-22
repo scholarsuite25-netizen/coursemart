@@ -31,7 +31,7 @@ import { FacilitatorBookingModal } from './FacilitatorBookingModal';
 import { AppointmentsTable } from './AppointmentsTable';
 
 export function PromoterProfilePage() {
-  const { calendarEngagements } = useStore();
+  const { calendarEngagements, currentUser } = useStore();
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -527,8 +527,12 @@ export function PromoterProfilePage() {
         <section id="appointments-roster" className="space-y-4">
           <AppointmentsTable
             title="Facilitator Appointments & Engagement Roster"
-            subtitle="Live schedule of keynote invitations, masterclasses, and executive appointments with instant facilitator Accept/Decline toggle."
-            showAdminControls={true}
+            subtitle={
+              currentUser?.role === 'admin'
+                ? 'Live schedule of keynote invitations, masterclasses, and executive appointments with instant facilitator Accept/Decline toggle.'
+                : 'Live official schedule of confirmed keynote invitations, masterclasses, and executive appointments.'
+            }
+            showAdminControls={currentUser?.role === 'admin'}
           />
         </section>
 
