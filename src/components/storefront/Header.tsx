@@ -52,7 +52,6 @@ export function Header() {
   } = useStore();
 
   const [productsMenuOpen, setProductsMenuOpen] = useState(false);
-  const [blogsMenuOpen, setBlogsMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -66,7 +65,6 @@ export function Header() {
   const searchRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const productsRef = useRef<HTMLDivElement>(null);
-  const blogsRef = useRef<HTMLDivElement>(null);
   const moreRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click
@@ -76,7 +74,6 @@ export function Header() {
       if (searchRef.current && !searchRef.current.contains(target)) setSearchFocused(false);
       if (userRef.current && !userRef.current.contains(target)) setUserMenuOpen(false);
       if (productsRef.current && !productsRef.current.contains(target)) setProductsMenuOpen(false);
-      if (blogsRef.current && !blogsRef.current.contains(target)) setBlogsMenuOpen(false);
       if (moreRef.current && !moreRef.current.contains(target)) setMoreMenuOpen(false);
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -85,7 +82,6 @@ export function Header() {
 
   const closeAllMenus = () => {
     setProductsMenuOpen(false);
-    setBlogsMenuOpen(false);
     setMoreMenuOpen(false);
     setUserMenuOpen(false);
     setMobileMenuOpen(false);
@@ -130,10 +126,10 @@ export function Header() {
   }, [blogPosts, searchQuery]);
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0a192f] border-b-2 border-[#d4af37] shadow-lg">
+    <header className="sticky top-0 z-40 bg-[#0a192f] border-b-2 border-[#d4af37] shadow-lg w-full">
       {/* Contained Top Bar - strict height, overflow protected */}
-      <div className="max-w-[1440px] mx-auto px-3 sm:px-5 lg:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 md:gap-4 overflow-visible">
-        
+      <div className="w-full max-w-[1440px] mx-auto px-2 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center justify-between gap-1 sm:gap-2 lg:gap-3">
+
         {/* Brand Identity */}
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -161,35 +157,32 @@ export function Header() {
           </button>
         </div>
 
-        {/* Desktop Navigation Links - Organized & Contained */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 flex-1 justify-center max-w-2xl px-2">
-          {/* Courses */}
+        {/* Desktop Navigation Links - Organized into 5 Clean Pillars (zero horizontal extension) */}
+        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 shrink min-w-0">
+          {/* 1. Courses */}
           <button
             type="button"
             onClick={() => goToRoute('/courses')}
-            className={`px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md transition-colors cursor-pointer ${
-              isRouteActive('/courses')
+            className={`px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md transition-colors cursor-pointer whitespace-nowrap ${isRouteActive('/courses')
                 ? 'bg-[#112240] text-[#f5c451] border border-[#d4af37]/40'
                 : 'text-slate-200 hover:text-[#f5c451] hover:bg-[#112240]'
-            }`}
+              }`}
           >
             Courses
           </button>
 
-          {/* Products Dropdown */}
+          {/* 2. Products Dropdown */}
           <div className="relative" ref={productsRef}>
             <button
               type="button"
               onClick={() => {
                 setProductsMenuOpen((prev) => !prev);
-                setBlogsMenuOpen(false);
                 setMoreMenuOpen(false);
               }}
-              className={`px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md flex items-center gap-1 transition-colors cursor-pointer ${
-                isRouteActive('/digital-products') || isRouteActive('/software')
+              className={`px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${isRouteActive('/digital-products') || isRouteActive('/software')
                   ? 'bg-[#112240] text-[#f5c451] border border-[#d4af37]/40'
                   : 'text-slate-200 hover:text-[#f5c451] hover:bg-[#112240]'
-              }`}
+                }`}
             >
               <span>Products</span>
               <ChevronDown className={`w-3.5 h-3.5 text-[#d4af37] transition-transform ${productsMenuOpen ? 'rotate-180' : ''}`} />
@@ -232,111 +225,82 @@ export function Header() {
             )}
           </div>
 
-          {/* Blogs Dropdown */}
-          <div className="relative" ref={blogsRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setBlogsMenuOpen((prev) => !prev);
-                setProductsMenuOpen(false);
-                setMoreMenuOpen(false);
-              }}
-              className={`px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md flex items-center gap-1 transition-colors cursor-pointer ${
-                isRouteActive('/blogs') || isRouteActive('/blog')
-                  ? 'bg-[#112240] text-[#f5c451] border border-[#d4af37]/40'
-                  : 'text-slate-200 hover:text-[#f5c451] hover:bg-[#112240]'
+          {/* 3. Membership Plans */}
+          <button
+            type="button"
+            onClick={() => goToRoute('/membership')}
+            className={`px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${isRouteActive('/membership')
+                ? 'bg-[#112240] text-[#f5c451] border border-[#d4af37]/40'
+                : 'text-slate-200 hover:text-[#f5c451] hover:bg-[#112240]'
               }`}
-            >
-              <span>Blogs</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-[#d4af37] transition-transform ${blogsMenuOpen ? 'rotate-180' : ''}`} />
-            </button>
+          >
+            <Crown className="w-3.5 h-3.5 text-[#f5c451]" />
+            <span>Membership</span>
+          </button>
 
-            {blogsMenuOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-56 bg-white text-slate-900 border border-slate-200 rounded-lg shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
-                <button
-                  type="button"
-                  onClick={() => goToRoute('/blogs')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-bold text-[#0a192f] hover:bg-slate-50 border-b border-slate-100 cursor-pointer flex items-center gap-2"
-                >
-                  <FileText className="w-3.5 h-3.5 text-[#0a192f]" />
-                  <span>All Editorial Articles</span>
-                </button>
-                {BLOG_CATEGORY_ITEMS.map((item) => (
-                  <button
-                    key={item.category}
-                    type="button"
-                    onClick={() => goToRoute(item.route)}
-                    className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:text-[#0a192f] hover:bg-slate-50 cursor-pointer"
-                  >
-                    {item.category}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Community */}
+          {/* 4. Community */}
           <button
             type="button"
             onClick={() => goToRoute('/community')}
-            className={`px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md transition-colors cursor-pointer flex items-center gap-1.5 ${
-              isRouteActive('/community')
+            className={`px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${isRouteActive('/community')
                 ? 'bg-[#112240] text-[#f5c451] border border-[#d4af37]/40'
                 : 'text-slate-200 hover:text-[#f5c451] hover:bg-[#112240]'
-            }`}
+              }`}
           >
             <MessageSquare className="w-3.5 h-3.5 text-[#d4af37]" />
             <span>Community</span>
           </button>
 
-          {/* Membership Plans */}
-          <button
-            type="button"
-            onClick={() => goToRoute('/membership')}
-            className={`px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md transition-colors cursor-pointer flex items-center gap-1.5 ${
-              isRouteActive('/membership')
-                ? 'bg-[#112240] text-[#f5c451] border border-[#d4af37]/40'
-                : 'text-slate-200 hover:text-[#f5c451] hover:bg-[#112240]'
-            }`}
-          >
-            <Crown className="w-3.5 h-3.5 text-[#b4690e]" />
-            <span>Membership</span>
-          </button>
-
-          {/* More Dropdown (Prompt Vault, Events, Affiliates, Showcase) */}
+          {/* 5. Explore Dropdown (Blogs, Masterclasses, Vault, Promoter, Affiliates, Showcase) */}
           <div className="relative" ref={moreRef}>
             <button
               type="button"
               onClick={() => {
                 setMoreMenuOpen((prev) => !prev);
                 setProductsMenuOpen(false);
-                setBlogsMenuOpen(false);
               }}
-              className={`px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md flex items-center gap-1 transition-colors cursor-pointer ${
-                isRouteActive('/vault') || isRouteActive('/events') || isRouteActive('/affiliates') || isRouteActive('/showcase')
+              className={`px-2.5 xl:px-3 py-1.5 text-xs xl:text-sm font-semibold rounded-md flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap ${isRouteActive('/blogs') || isRouteActive('/blog') || isRouteActive('/vault') || isRouteActive('/events') || isRouteActive('/affiliates') || isRouteActive('/showcase') || isRouteActive('/promoter')
                   ? 'bg-[#112240] text-[#f5c451] border border-[#d4af37]/40'
                   : 'text-slate-200 hover:text-[#f5c451] hover:bg-[#112240]'
-              }`}
+                }`}
             >
               <span>Explore</span>
               <ChevronDown className={`w-3.5 h-3.5 text-[#d4af37] transition-transform ${moreMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {moreMenuOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-60 bg-white text-slate-900 border border-slate-200 rounded-lg shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
+              <div className="absolute right-0 top-full mt-1.5 w-64 bg-white text-slate-900 border border-slate-200 rounded-lg shadow-2xl py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
+                {/* Editorial Blogs */}
                 <button
                   type="button"
-                  onClick={() => goToRoute('/promoter')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                  onClick={() => goToRoute('/blogs')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer border-b border-slate-100"
                 >
                   <span className="flex items-center gap-2">
-                    <UserCheck className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>Promoter & Facilitator</span>
+                    <FileText className="w-3.5 h-3.5 text-[#0a192f]" />
+                    <span>Blogs & Articles</span>
                   </span>
-                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                    S.B.O.
+                  <span className="text-[9px] font-bold uppercase bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                    Editorial
                   </span>
                 </button>
+
+                {/* Events & Masterclasses */}
+                <button
+                  type="button"
+                  onClick={() => goToRoute('/events')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-[#0a192f]" />
+                    <span>Events & Masterclasses</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    Live
+                  </span>
+                </button>
+
+                {/* Prompt Vault */}
                 <button
                   type="button"
                   onClick={() => goToRoute('/vault')}
@@ -350,22 +314,40 @@ export function Header() {
                     AI VIP
                   </span>
                 </button>
+
+                {/* Promoter & Facilitator */}
                 <button
                   type="button"
-                  onClick={() => goToRoute('/events')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                  onClick={() => goToRoute('/promoter')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
                 >
-                  <Calendar className="w-3.5 h-3.5 text-[#0a192f]" />
-                  <span>Events & Workshops</span>
+                  <span className="flex items-center gap-2">
+                    <UserCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Promoter & Facilitator</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    S.B.O.
+                  </span>
                 </button>
+
+                {/* Affiliate Program */}
                 <button
                   type="button"
                   onClick={() => goToRoute('/affiliates')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                  className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
                 >
-                  <Share2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Affiliate Program (20%)</span>
+                  <span className="flex items-center gap-2">
+                    <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Affiliate Program</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                    20%
+                  </span>
                 </button>
+
+                <div className="border-t border-slate-100 my-1" />
+
+                {/* Platform Showcase */}
                 <button
                   type="button"
                   onClick={() => goToRoute('/showcase')}
@@ -379,11 +361,11 @@ export function Header() {
           </div>
         </nav>
 
-        {/* Right Section: Compact Search, Wishlist, Cart, User & Mobile Toggle */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          
-          {/* Quick Search Input */}
-          <div className="relative hidden md:block w-36 lg:w-48" ref={searchRef}>
+        {/* Right Section: Responsive Search, Wishlist, Cart, User & Mobile Toggle */}
+        <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
+
+          {/* Quick Search Input - Responsive expanding focus */}
+          <div className="relative hidden md:block w-28 lg:w-32 xl:w-44 focus-within:w-44 xl:focus-within:w-56 transition-all duration-200" ref={searchRef}>
             <Search className="w-3.5 h-3.5 text-[#d4af37] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="search"
@@ -448,13 +430,13 @@ export function Header() {
             )}
           </div>
 
-          {/* 1-Click Theme Toggle (Desktop) */}
+          {/* 1-Click Theme Toggle */}
           <button
             type="button"
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="p-1.5 sm:p-2 text-slate-200 hover:text-[#f5c451] rounded-md hover:bg-[#112240] transition-colors cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center p-0 text-slate-200 hover:text-[#f5c451] rounded-md hover:bg-[#112240] transition-colors cursor-pointer shrink-0"
           >
             {theme === 'dark' ? (
               <Sun className="w-4 h-4 text-amber-300" />
@@ -468,7 +450,7 @@ export function Header() {
             type="button"
             onClick={() => goToRoute('/library?tab=wishlist')}
             aria-label={`Wishlist (${wishlist.length})`}
-            className="relative p-1.5 sm:p-2 text-slate-200 hover:text-[#f5c451] rounded-md hover:bg-[#112240] transition-colors cursor-pointer"
+            className="relative w-8 h-8 flex items-center justify-center p-0 text-slate-200 hover:text-[#f5c451] rounded-md hover:bg-[#112240] transition-colors cursor-pointer shrink-0"
           >
             <Heart className="w-4 h-4" />
             {wishlist.length > 0 && (
@@ -483,7 +465,7 @@ export function Header() {
             type="button"
             onClick={() => setIsCartOpen(true)}
             aria-label={`Shopping Cart (${cart.length})`}
-            className="relative p-1.5 sm:p-2 text-slate-200 hover:text-[#f5c451] rounded-md hover:bg-[#112240] transition-colors cursor-pointer"
+            className="relative w-8 h-8 flex items-center justify-center p-0 text-slate-200 hover:text-[#f5c451] rounded-md hover:bg-[#112240] transition-colors cursor-pointer shrink-0"
           >
             <ShoppingCart className="w-4 h-4" />
             {cart.length > 0 && (
@@ -699,9 +681,8 @@ export function Header() {
             <button
               type="button"
               onClick={() => goToRoute('/courses')}
-              className={`w-full px-3 py-2.5 text-xs font-bold rounded-md flex items-center justify-between transition-colors cursor-pointer ${
-                isRouteActive('/courses') ? 'bg-[#112240] text-[#f5c451]' : 'text-slate-200 hover:bg-[#112240]'
-              }`}
+              className={`w-full px-3 py-2.5 text-xs font-bold rounded-md flex items-center justify-between transition-colors cursor-pointer ${isRouteActive('/courses') ? 'bg-[#112240] text-[#f5c451]' : 'text-slate-200 hover:bg-[#112240]'
+                }`}
             >
               <span className="flex items-center gap-2">
                 <PlayCircle className="w-4 h-4 text-[#d4af37]" />
@@ -792,9 +773,8 @@ export function Header() {
             <button
               type="button"
               onClick={() => goToRoute('/community')}
-              className={`w-full px-3 py-2.5 text-xs font-bold rounded-md flex items-center justify-between transition-colors cursor-pointer ${
-                isRouteActive('/community') ? 'bg-[#112240] text-[#f5c451]' : 'text-slate-200 hover:bg-[#112240]'
-              }`}
+              className={`w-full px-3 py-2.5 text-xs font-bold rounded-md flex items-center justify-between transition-colors cursor-pointer ${isRouteActive('/community') ? 'bg-[#112240] text-[#f5c451]' : 'text-slate-200 hover:bg-[#112240]'
+                }`}
             >
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-[#d4af37]" />
@@ -809,9 +789,8 @@ export function Header() {
             <button
               type="button"
               onClick={() => goToRoute('/membership')}
-              className={`w-full px-3 py-2.5 text-xs font-bold rounded-md flex items-center justify-between transition-colors cursor-pointer ${
-                isRouteActive('/membership') ? 'bg-[#112240] text-[#f5c451]' : 'text-slate-200 hover:bg-[#112240]'
-              }`}
+              className={`w-full px-3 py-2.5 text-xs font-bold rounded-md flex items-center justify-between transition-colors cursor-pointer ${isRouteActive('/membership') ? 'bg-[#112240] text-[#f5c451]' : 'text-slate-200 hover:bg-[#112240]'
+                }`}
             >
               <span className="flex items-center gap-2">
                 <Crown className="w-4 h-4 text-[#d4af37]" />

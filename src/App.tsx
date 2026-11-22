@@ -223,7 +223,7 @@ function AppRouter() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-slate-900 dark:bg-[#0b1329] dark:text-slate-100 transition-colors">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900 dark:bg-[#0b1329] dark:text-slate-100 transition-colors w-full max-w-full overflow-x-clip">
       {!isStandaloneShell && (
         <>
           <AnnouncementBar />
