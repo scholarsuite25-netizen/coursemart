@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, MessageCircle, Share2 } from 'lucide-react';
+import { Check, Copy, MessageCircle, Send, Share2 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { buildProductShareUrl } from '../../utils/whatsapp';
 
@@ -111,6 +111,18 @@ export function ShareButton({
           >
             <MessageCircle className="w-4 h-4 shrink-0" />
             <span>Share on WhatsApp</span>
+          </a>
+
+          <a
+            href={buildProductShareUrl('telegram', title, resolvedUrl)}
+            target="_blank"
+            rel="noopener noreferrer"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="w-full px-2.5 py-2 text-left text-xs font-semibold text-sky-600 hover:bg-sky-50 rounded flex items-center gap-2.5"
+          >
+            <Send className="w-4 h-4 text-sky-500 shrink-0" />
+            <span>Share on Telegram</span>
           </a>
 
           <a

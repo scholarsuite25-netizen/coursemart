@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  TELEGRAM_DETAILS,
   TINTOL_PAYMENT_DETAILS,
   buildBankTransferWhatsAppMessage,
   buildCallUrl,
   buildProductShareUrl,
+  buildTelegramUrl,
   buildWhatsAppUrl,
   isValidWhatsAppInviteUrl,
 } from './whatsapp.ts';
@@ -36,15 +38,19 @@ test('buildBankTransferWhatsAppMessage includes GTB account details and order me
   assert.equal(TINTOL_PAYMENT_DETAILS.accountNumber, '0029103844');
 });
 
-test('buildProductShareUrl formats WhatsApp, X, and LinkedIn share URLs', () => {
+test('buildProductShareUrl formats WhatsApp, Telegram, X, and LinkedIn share URLs', () => {
   const url = 'https://coursemart.example/product/test';
   const wa = buildProductShareUrl('whatsapp', 'TypeScript Course', url);
+  const tg = buildProductShareUrl('telegram', 'TypeScript Course', url);
   const x = buildProductShareUrl('x', 'TypeScript Course', url);
   const li = buildProductShareUrl('linkedin', 'TypeScript Course', url);
 
   assert.match(wa, /^https:\/\/wa\.me\/\?text=/);
+  assert.match(tg, /^https:\/\/t\.me\/share\/url\?url=/);
   assert.match(x, /^https:\/\/twitter\.com\/intent\/tweet\?/);
   assert.match(li, /^https:\/\/www\.linkedin\.com\/sharing\/share-offsite\/\?/);
+  assert.equal(TELEGRAM_DETAILS.handle, '@digitalwealthcreators');
+  assert.equal(buildTelegramUrl('@digitalwealthcreators'), 'https://t.me/digitalwealthcreators');
 });
 
 test('isValidWhatsAppInviteUrl validates chat.whatsapp.com invite links', () => {

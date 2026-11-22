@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { MessageCircle, Send, X } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
-import { TINTOL_PAYMENT_DETAILS, buildWhatsAppUrl } from '../../utils/whatsapp';
+import { TELEGRAM_DETAILS, TINTOL_PAYMENT_DETAILS, buildWhatsAppUrl } from '../../utils/whatsapp';
 
 export function WhatsAppHelpWidget() {
   const { route, appearance, currentUser } = useStore();
@@ -86,7 +86,7 @@ export function WhatsAppHelpWidget() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold truncate">DWC Instant Support</p>
-                <p className="text-[10px] text-emerald-400 font-medium">Online · Direct WhatsApp</p>
+                <p className="text-[10px] text-emerald-400 font-medium">Online · WhatsApp & Telegram</p>
               </div>
             </div>
             <button
@@ -115,7 +115,7 @@ export function WhatsAppHelpWidget() {
           </div>
 
           {/* Action CTA */}
-          <div className="p-3 bg-white dark:bg-[#112240] border-t border-slate-100 dark:border-[#1e3557]">
+          <div className="p-3 bg-white dark:bg-[#112240] border-t border-slate-100 dark:border-[#1e3557] space-y-2">
             <a
               href={targetWhatsAppUrl}
               target="_blank"
@@ -123,8 +123,19 @@ export function WhatsAppHelpWidget() {
               onClick={() => setIsOpen(false)}
               className="w-full py-2.5 px-4 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg inline-flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
             >
-              <Send className="w-3.5 h-3.5" />
+              <MessageCircle className="w-3.5 h-3.5" />
               <span>Chat on WhatsApp (+2348034710699)</span>
+            </a>
+
+            <a
+              href={TELEGRAM_DETAILS.supportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setIsOpen(false)}
+              className="w-full py-2 px-4 text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 rounded-lg inline-flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Chat on Telegram ({TELEGRAM_DETAILS.handle})</span>
             </a>
           </div>
         </div>

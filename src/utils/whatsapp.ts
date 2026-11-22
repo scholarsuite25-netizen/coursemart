@@ -56,8 +56,20 @@ export function buildBankTransferWhatsAppMessage(input: BankTransferProofInput):
   return lines.join('\n');
 }
 
+export const TELEGRAM_DETAILS = {
+  channelUrl: 'https://t.me/digitalwealthcreators',
+  communityUrl: 'https://t.me/digitalwealthcreators',
+  supportUrl: 'https://t.me/digitalwealthcreators',
+  handle: '@digitalwealthcreators',
+} as const;
+
+export function buildTelegramUrl(handleOrPath: string = 'digitalwealthcreators'): string {
+  const clean = handleOrPath.replace(/^@/, '').trim();
+  return `https://t.me/${clean}`;
+}
+
 export function buildProductShareUrl(
-  channel: 'whatsapp' | 'x' | 'linkedin',
+  channel: 'whatsapp' | 'x' | 'linkedin' | 'telegram',
   title: string,
   targetUrl: string
 ): string {
@@ -65,6 +77,10 @@ export function buildProductShareUrl(
   switch (channel) {
     case 'whatsapp':
       return `https://wa.me/?text=${encodeURIComponent(text)}`;
+    case 'telegram':
+      return `https://t.me/share/url?url=${encodeURIComponent(targetUrl)}&text=${encodeURIComponent(
+        `Check out "${title}"`
+      )}`;
     case 'x':
       return `https://twitter.com/intent/tweet?text=${encodeURIComponent(
         `Check out "${title}"`

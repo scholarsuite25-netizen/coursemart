@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import {
+  TELEGRAM_DETAILS,
   TINTOL_PAYMENT_DETAILS,
   buildCallUrl,
   buildWhatsAppUrl,
@@ -204,6 +205,16 @@ export function Footer() {
             >
               <MessageCircle className="w-3.5 h-3.5" />
               <span>WhatsApp Desk</span>
+            </a>
+
+            <a
+              href={TELEGRAM_DETAILS.channelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 rounded-md transition-colors"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Telegram Channel</span>
             </a>
 
             <ShareButton title={appearance.brandName} variant="footer" label="Share Site" />
@@ -515,6 +526,20 @@ export function Footer() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
+              <a
+                href={TELEGRAM_DETAILS.channelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#112240] border border-[#2a436e] hover:border-[#38bdf8] rounded-md transition-colors"
+              >
+                <Send className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                <span>Official Telegram Hub</span>
+                <span className="text-[11px] text-[#38bdf8] font-bold">
+                  {TELEGRAM_DETAILS.handle}
+                </span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+
               {publicGroups.map((group) => (
                 <a
                   key={group.id}
@@ -562,6 +587,14 @@ export function Footer() {
               className="hover:text-[#f5c451] transition-colors"
             >
               WhatsApp Desk
+            </a>
+            <a
+              href={TELEGRAM_DETAILS.channelUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#f5c451] transition-colors"
+            >
+              Telegram Channel
             </a>
           </div>
         </div>
