@@ -9,6 +9,7 @@ import {
   Trash2,
   TrendingUp,
   Users,
+  Youtube,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import type { BlogPost, Product } from '../../types/marketplace';
@@ -16,6 +17,7 @@ import { formatNaira } from '../../utils/currency';
 import { formatProductTypeLabel } from '../../utils/theme';
 import { ProductEditorModal } from '../admin/ProductEditorModal';
 import { BlogEditorModal } from '../blog/BlogEditorModal';
+import { YouTubeCourseConverterModal } from './YouTubeCourseConverterModal';
 
 export function InstructorStudioPage() {
   const {
@@ -32,6 +34,7 @@ export function InstructorStudioPage() {
   } = useStore();
   const [editingProduct, setEditingProduct] = useState<Product | null | undefined>(undefined);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null | undefined>(undefined);
+  const [isYouTubeModalOpen, setIsYouTubeModalOpen] = useState(false);
 
   const instructorProducts = useMemo(() => {
     if (!currentUser) return [];
@@ -110,6 +113,14 @@ export function InstructorStudioPage() {
           >
             <ExternalLink className="w-4 h-4 text-[#d4af37]" />
             <span>View Executive Promoter Profile</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsYouTubeModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-110 rounded-md cursor-pointer shadow-md transition-all"
+          >
+            <Youtube className="w-4 h-4 text-white shrink-0" />
+            <span>Convert YouTube URL to Course</span>
           </button>
           <button
             type="button"
@@ -329,6 +340,13 @@ export function InstructorStudioPage() {
             setEditingBlog(undefined);
           }}
           onClose={() => setEditingBlog(undefined)}
+        />
+      )}
+
+      {isYouTubeModalOpen && (
+        <YouTubeCourseConverterModal
+          isOpen={isYouTubeModalOpen}
+          onClose={() => setIsYouTubeModalOpen(false)}
         />
       )}
     </main>
