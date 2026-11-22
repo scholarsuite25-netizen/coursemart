@@ -615,9 +615,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
               aria-label="Course completion percentage"
             >
               <div
-                className={`h-full transition-all duration-300 ${
-                  progressPct === 100 ? 'bg-emerald-400' : 'bg-[#d4af37]'
-                }`}
+                className={`h-full transition-all duration-300 ${progressPct === 100 ? 'bg-emerald-400' : 'bg-[#d4af37]'
+                  }`}
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -630,11 +629,10 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
           <button
             type="button"
             onClick={handleOpenCertificate}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold cursor-pointer ${
-              progressPct === 100
-                ? 'bg-[#d4af37] text-[#0a192f] hover:bg-[#e5bf45]'
-                : 'border border-slate-600 text-slate-300 hover:text-white'
-            }`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold cursor-pointer ${progressPct === 100
+              ? 'bg-[#d4af37] text-[#0a192f] hover:bg-[#e5bf45]'
+              : 'border border-slate-600 text-slate-300 hover:text-white'
+              }`}
           >
             <Award className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">
@@ -647,11 +645,10 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
             onClick={() => setTheaterMode((prev) => !prev)}
             title={theaterMode ? 'Exit theater mode' : 'Enter theater mode'}
             aria-label={theaterMode ? 'Exit theater mode' : 'Enter theater mode'}
-            className={`p-1.5 rounded cursor-pointer transition ${
-              theaterMode
-                ? 'bg-[#d4af37] text-[#0a192f] font-bold'
-                : 'text-slate-300 hover:text-white hover:bg-[#112240]'
-            }`}
+            className={`p-1.5 rounded cursor-pointer transition ${theaterMode
+              ? 'bg-[#d4af37] text-[#0a192f] font-bold'
+              : 'text-slate-300 hover:text-white hover:bg-[#112240]'
+              }`}
           >
             <Tv className="w-4 h-4" />
           </button>
@@ -1039,11 +1036,10 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`pb-3 border-b-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    activeTab === tab.id
-                      ? 'border-[#0a192f] text-[#0a192f]'
-                      : 'border-transparent text-slate-500 hover:text-slate-900'
-                  }`}
+                  className={`pb-3 border-b-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${activeTab === tab.id
+                    ? 'border-[#0a192f] text-[#0a192f]'
+                    : 'border-transparent text-slate-500 hover:text-slate-900'
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -1395,9 +1391,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
 
               <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-300 ${
-                    progressPct === 100 ? 'bg-emerald-600' : 'bg-[#0a192f]'
-                  }`}
+                  className={`h-full transition-all duration-300 ${progressPct === 100 ? 'bg-emerald-600' : 'bg-[#0a192f]'
+                    }`}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -1430,9 +1425,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                         <button
                           type="button"
                           onClick={() => toggleModuleComplete(product.id, mod.id)}
-                          aria-label={`Mark module "${mod.title}" as ${
-                            modStats.isCompleted ? 'incomplete' : 'complete'
-                          }`}
+                          aria-label={`Mark module "${mod.title}" as ${modStats.isCompleted ? 'incomplete' : 'complete'
+                            }`}
                           className="mt-0.5 text-slate-500 hover:text-[#0a192f] shrink-0 cursor-pointer"
                         >
                           {modStats.isCompleted ? (
@@ -1452,9 +1446,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                           </div>
                           <div className="mt-1.5 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className={`h-full transition-all duration-300 ${
-                                modStats.isCompleted ? 'bg-emerald-600' : 'bg-[#5624d0]'
-                              }`}
+                              className={`h-full transition-all duration-300 ${modStats.isCompleted ? 'bg-emerald-600' : 'bg-[#5624d0]'
+                                }`}
                               style={{ width: `${modStats.percent}%` }}
                             />
                           </div>
@@ -1469,16 +1462,14 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                         return (
                           <div
                             key={lec.id}
-                            className={`px-4 py-3 flex items-start gap-3 transition-colors ${
-                              isActive ? 'bg-[#f3effc]' : 'hover:bg-slate-50'
-                            }`}
+                            className={`px-4 py-3 flex items-start gap-3 transition-colors ${isActive ? 'bg-[#f3effc]' : 'hover:bg-slate-50'
+                              }`}
                           >
                             <button
                               type="button"
                               onClick={() => toggleLectureComplete(product.id, lec.id)}
-                              aria-label={`Mark "${lec.title}" as ${
-                                isDone ? 'incomplete' : 'complete'
-                              }`}
+                              aria-label={`Mark "${lec.title}" as ${isDone ? 'incomplete' : 'complete'
+                                }`}
                               className="mt-0.5 text-slate-500 hover:text-[#5624d0] shrink-0 cursor-pointer"
                             >
                               {isDone ? (
@@ -1494,9 +1485,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                               className="flex-1 text-left cursor-pointer"
                             >
                               <p
-                                className={`text-xs font-semibold leading-snug ${
-                                  isActive ? 'text-[#5624d0]' : 'text-slate-900'
-                                }`}
+                                className={`text-xs font-semibold leading-snug ${isActive ? 'text-[#5624d0]' : 'text-slate-900'
+                                  }`}
                               >
                                 {lec.title}
                               </p>
@@ -1535,9 +1525,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                             <p className="text-[11px] text-slate-500 tabular-nums mt-0.5">
                               {mod.quiz.questions.length} questions · Pass {mod.quiz.passingScore}%
                               {modQuizResult
-                                ? ` · Score ${modQuizResult.scorePercent}% (${
-                                    modQuizResult.passed ? 'Passed' : 'Retry'
-                                  })`
+                                ? ` · Score ${modQuizResult.scorePercent}% (${modQuizResult.passed ? 'Passed' : 'Retry'
+                                })`
                                 : ''}
                             </p>
                           </div>
@@ -1601,15 +1590,14 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                       {q.options.map((opt, optIdx) => (
                         <label
                           key={optIdx}
-                          className={`flex items-center gap-2.5 p-2.5 rounded border text-xs cursor-pointer ${
-                            quizSubmitted && optIdx === q.correctIndex
-                              ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-semibold'
-                              : quizSubmitted && selectedIdx === optIdx && !isCorrect
+                          className={`flex items-center gap-2.5 p-2.5 rounded border text-xs cursor-pointer ${quizSubmitted && optIdx === q.correctIndex
+                            ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-semibold'
+                            : quizSubmitted && selectedIdx === optIdx && !isCorrect
                               ? 'bg-rose-50 border-rose-300 text-rose-900'
                               : selectedIdx === optIdx
-                              ? 'bg-white border-[#0a192f] font-semibold'
-                              : 'bg-white border-slate-200'
-                          }`}
+                                ? 'bg-white border-[#0a192f] font-semibold'
+                                : 'bg-white border-slate-200'
+                            }`}
                         >
                           <input
                             type="radio"
@@ -1685,15 +1673,15 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
             completionDate={
               progress?.updatedAt
                 ? new Date(progress.updatedAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
                 : new Date().toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
             }
             instructorName={product.instructorName}
             track={product.category || 'Executive Technology Mastery'}

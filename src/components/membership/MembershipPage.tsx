@@ -74,8 +74,8 @@ export function MembershipPage() {
       checkoutPlan.id === 'free'
         ? 0
         : billingCycle === 'masterclass'
-        ? (checkoutPlan.masterclassPrice ?? 25000)
-        : checkoutPlan.annualPrice;
+          ? (checkoutPlan.masterclassPrice ?? 25000)
+          : checkoutPlan.annualPrice;
 
     if ((paymentMethod === 'paystack' || paymentMethod === 'card') && currentUser) {
       setProcessingPaystack(true);
@@ -727,22 +727,20 @@ export function MembershipPage() {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('paystack')}
-                  className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${
-                    paymentMethod === 'paystack' || paymentMethod === 'card'
-                      ? 'border-[#0a192f] bg-[#0a192f] text-white'
-                      : 'border-slate-300 text-slate-700'
-                  }`}
+                  className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${paymentMethod === 'paystack' || paymentMethod === 'card'
+                    ? 'border-[#0a192f] bg-[#0a192f] text-white'
+                    : 'border-slate-300 text-slate-700'
+                    }`}
                 >
                   Paystack / Instant Card
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('gtb_whatsapp')}
-                  className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${
-                    paymentMethod === 'gtb_whatsapp'
-                      ? 'border-[#d4af37] bg-amber-50 text-[#0a192f]'
-                      : 'border-slate-300 text-slate-700'
-                  }`}
+                  className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${paymentMethod === 'gtb_whatsapp'
+                    ? 'border-[#d4af37] bg-amber-50 text-[#0a192f]'
+                    : 'border-slate-300 text-slate-700'
+                    }`}
                 >
                   GTB Bank + WhatsApp
                 </button>
@@ -774,10 +772,9 @@ export function MembershipPage() {
                   />
                   <a
                     href={buildWhatsAppUrl(
-                      `Hello ${TINTOL_PAYMENT_DETAILS.accountName}, I am activating the ${checkoutPlan.name} (${
-                        billingCycle === 'masterclass'
-                          ? '₦25,000 1-Year Master Class Pass with Online Training'
-                          : '₦10,000 1-Year Standard Pass without masterclass training'
+                      `Hello ${TINTOL_PAYMENT_DETAILS.accountName}, I am activating the ${checkoutPlan.name} (${billingCycle === 'masterclass'
+                        ? '₦25,000 1-Year Master Class Pass with Online Training'
+                        : '₦10,000 1-Year Standard Pass without masterclass training'
                       }) membership via GTB transfer.`
                     )}
                     target="_blank"
@@ -845,10 +842,10 @@ export function MembershipPage() {
                     {processingPaystack
                       ? 'Connecting Paystack...'
                       : paymentMethod === 'gtb_whatsapp'
-                      ? 'Submit Transfer & Activate Pending Pass'
-                      : publicServerConfig.paystackConfigured
-                      ? 'Pay via Paystack & Activate'
-                      : 'Proceed to Paystack Settlement'}
+                        ? 'Submit Transfer & Activate Pending Pass'
+                        : publicServerConfig.paystackConfigured
+                          ? 'Pay via Paystack & Activate'
+                          : 'Proceed to Paystack Settlement'}
                   </span>
                 </button>
               )}
