@@ -473,11 +473,10 @@ export function AppointmentsTable({
                                   ? 'Date is already booked! Cannot accept in the first instance.'
                                   : 'Accept appointment and lock date on Facilitator Calendar'
                               }
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                                dateFree
-                                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
-                              }`}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${dateFree
+                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
+                                }`}
                             >
                               <Check className="w-3.5 h-3.5" />
                               <span>Accept</span>
