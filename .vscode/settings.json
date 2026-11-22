@@ -2,5 +2,7 @@
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": false,
-  "files.autoSave": "off"
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "workbench.editor.closeOnFileDelete": true
 }
