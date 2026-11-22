@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Award,
+  BookOpen,
   BookmarkPlus,
   CheckCircle2,
   ChevronLeft,
@@ -21,6 +22,7 @@ import {
   Sparkles,
   Subtitles,
   Trash2,
+  Video,
   Volume1,
   Volume2,
   VolumeX,
@@ -672,234 +674,347 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
       {/* Main Split: Video Theater + Tabs Left, Curriculum Sidebar Right */}
       <div className="flex-1 flex flex-col lg:flex-row">
         <ContentProtectionWrapper enabled={isProtected} className="flex-1 min-w-0 flex flex-col">
-          {/* Theater Video Player */}
-          {activeLecture && (
-            <div className={`transition-colors duration-300 text-white ${theaterMode ? 'bg-[#030712] py-4' : 'bg-[#081221]'}`}>
-              <div className={`mx-auto p-3 sm:p-6 space-y-3 transition-all duration-300 ${theaterMode ? 'max-w-7xl' : 'max-w-5xl'}`}>
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span className="truncate pr-2">{activeLecture.moduleTitle}</span>
-                  <span className="font-mono shrink-0">
-                    Lecture {activeLectureIndex + 1} of {flatLectures.length}
-                  </span>
-                </div>
+          {/* Theater Video Player OR Text Lesson Stage */}
+          {activeLecture && (() => {
+            const isTextLesson = activeLecture.lectureType === 'text' || activeLecture.lectureType === 'article' || (!activeLecture.videoUrl && Boolean(activeLecture.textContent));
+            return (
+              <div className={`transition-colors duration-300 text-white ${theaterMode ? 'bg-[#030712] py-4' : 'bg-[#081221]'}`}>
+                <div className={`mx-auto p-3 sm:p-6 space-y-4 transition-all duration-300 ${theaterMode ? 'max-w-7xl' : 'max-w-5xl'}`}>
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="truncate pr-2">{activeLecture.moduleTitle}</span>
+                    <span className="font-mono shrink-0">
+                      Lecture {activeLectureIndex + 1} of {flatLectures.length}
+                    </span>
+                  </div>
 
-                {/* Live HTML5 Video Theater Stage */}
-                <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-[#233554] bg-black">
-                  <LectureVideoCanvasPlayer
-                    lecture={activeLecture}
-                    isPlaying={isPlaying}
-                    elapsedSeconds={elapsedSeconds}
-                    totalSeconds={totalLectureSeconds}
-                    playbackSpeed={playbackSpeed}
-                    captionsEnabled={captionsEnabled}
-                    volume={volume}
-                    isMuted={isMuted}
-                    voiceEnabled={voiceEnabled}
-                    watermarkUser={currentUser}
-                    copyProtectionEnabled={isProtected}
-                    onTogglePlay={() => setIsPlaying((prev) => !prev)}
-                    onVideoEnded={() => {
-                      setIsPlaying(false);
-                      if (!completedIds.includes(activeLecture.id)) {
-                        toggleLectureComplete(product.id, activeLecture.id);
-                      }
-                      if (autoAdvance && activeLectureIndex < flatLectures.length - 1) {
-                        const nextLec = flatLectures[activeLectureIndex + 1];
-                        if (nextLec) setActiveLectureId(nextLec.id);
-                      }
-                    }}
-                  />
-                  <DynamicWatermarkOverlay user={currentUser} visible={isProtected} />
-                  {!isPlaying && !activeLecture.videoUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setIsPlaying(true)}
-                      aria-label="Play lecture video"
-                      className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-[#d4af37] hover:bg-[#e5bf45] text-[#0a192f] flex items-center justify-center shadow-xl transition-transform hover:scale-105 cursor-pointer"
-                    >
-                      <Play className="w-7 h-7 ml-0.5" />
-                    </button>
-                  )}
-                </div>
+                  {isTextLesson ? (
+                    /* Pure Text-Based Reading Lesson Workspace */
+                    <div className="w-full rounded-xl border border-[#233554] bg-[#0c1a30] p-5 sm:p-8 space-y-6 text-slate-100 shadow-2xl">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#233554] pb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-400/30 flex items-center justify-center font-bold shadow-inner">
+                            <BookOpen className="w-5 h-5" />
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                Text-Based Lesson
+                              </span>
+                              <span className="text-xs text-slate-400 font-mono">
+                                ⏱ {activeLecture.durationMinutes} min read
+                              </span>
+                            </div>
+                            <h2 className="font-display text-lg sm:text-2xl font-black text-white mt-1">
+                              {activeLecture.title}
+                            </h2>
+                          </div>
+                        </div>
 
-                {/* Video Player Controls Bar + Chapter Markers */}
-                <div className="space-y-2.5">
-                  {activeLecture.chapters && activeLecture.chapters.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                      <span className="text-slate-400 font-semibold mr-1">Chapters:</span>
-                      {activeLecture.chapters.map((ch) => (
-                        <button
-                          key={ch.label}
-                          type="button"
-                          onClick={() => setElapsedSeconds(ch.timeSeconds)}
-                          className="px-2 py-0.5 rounded bg-white/10 hover:bg-[#d4af37] hover:text-[#0a192f] text-slate-200 transition-colors cursor-pointer tabular-nums"
-                        >
-                          {formatTimer(ch.timeSeconds)} · {ch.label}
-                        </button>
-                      ))}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleLectureComplete(product.id, activeLecture.id)}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow ${
+                              isCurrentCompleted
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[#d4af37] text-[#0a192f] hover:bg-[#e5bf45]'
+                            }`}
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>{isCurrentCompleted ? 'Lesson Completed' : 'Mark as Completed'}</span>
+                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              disabled={activeLectureIndex === 0}
+                              onClick={() =>
+                                setActiveLectureId(flatLectures[activeLectureIndex - 1].id)
+                              }
+                              aria-label="Previous lecture"
+                              className="p-2 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={activeLectureIndex >= flatLectures.length - 1}
+                              onClick={() =>
+                                setActiveLectureId(flatLectures[activeLectureIndex + 1].id)
+                              }
+                              aria-label="Next lecture"
+                              className="p-2 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lesson Article Body */}
+                      <div className="space-y-4 text-slate-200 text-sm sm:text-base leading-relaxed">
+                        {activeLecture.textContent ? (
+                          <div className="whitespace-pre-line font-sans leading-relaxed text-slate-200">
+                            {activeLecture.textContent}
+                          </div>
+                        ) : (
+                          <p className="text-slate-300 leading-relaxed text-sm sm:text-base">
+                            {activeLecture.summary}
+                          </p>
+                        )}
+
+                        {activeLecture.keyTakeaways && activeLecture.keyTakeaways.length > 0 && (
+                          <div className="mt-6 p-4 sm:p-5 rounded-xl bg-[#112240] border border-[#263d66] space-y-2.5">
+                            <h4 className="text-xs font-bold text-[#f5c451] uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>Key Takeaways & Summary</span>
+                            </h4>
+                            <ul className="space-y-2 text-xs sm:text-sm text-slate-200">
+                              {activeLecture.keyTakeaways.map((item, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {/* Live HTML5 Video Theater Stage */}
+                      <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-[#233554] bg-black">
+                        <LectureVideoCanvasPlayer
+                          lecture={activeLecture}
+                          isPlaying={isPlaying}
+                          elapsedSeconds={elapsedSeconds}
+                          totalSeconds={totalLectureSeconds}
+                          playbackSpeed={playbackSpeed}
+                          captionsEnabled={captionsEnabled}
+                          volume={volume}
+                          isMuted={isMuted}
+                          voiceEnabled={voiceEnabled}
+                          watermarkUser={currentUser}
+                          copyProtectionEnabled={isProtected}
+                          onTogglePlay={() => setIsPlaying((prev) => !prev)}
+                          onVideoEnded={() => {
+                            setIsPlaying(false);
+                            if (!completedIds.includes(activeLecture.id)) {
+                              toggleLectureComplete(product.id, activeLecture.id);
+                            }
+                            if (autoAdvance && activeLectureIndex < flatLectures.length - 1) {
+                              const nextLec = flatLectures[activeLectureIndex + 1];
+                              if (nextLec) setActiveLectureId(nextLec.id);
+                            }
+                          }}
+                        />
+                        <DynamicWatermarkOverlay user={currentUser} visible={isProtected} />
+                        {!isPlaying && !activeLecture.videoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setIsPlaying(true)}
+                            aria-label="Play lecture video"
+                            className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-[#d4af37] hover:bg-[#e5bf45] text-[#0a192f] flex items-center justify-center shadow-xl transition-transform hover:scale-105 cursor-pointer"
+                          >
+                            <Play className="w-7 h-7 ml-0.5" />
+                          </button>
+                        )}
+                      </div>
 
-                  <input
-                    type="range"
-                    min={0}
-                    max={totalLectureSeconds}
-                    value={elapsedSeconds}
-                    onChange={(e) => setElapsedSeconds(Number(e.target.value))}
-                    aria-label="Seek lecture timeline"
-                    className="w-full accent-[#d4af37] cursor-pointer"
-                  />
+                      {/* Video Player Controls Bar + Chapter Markers */}
+                      <div className="space-y-2.5">
+                        {activeLecture.chapters && activeLecture.chapters.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span className="text-slate-400 font-semibold mr-1">Chapters:</span>
+                            {activeLecture.chapters.map((ch) => (
+                              <button
+                                key={ch.label}
+                                type="button"
+                                onClick={() => setElapsedSeconds(ch.timeSeconds)}
+                                className="px-2 py-0.5 rounded bg-white/10 hover:bg-[#d4af37] hover:text-[#0a192f] text-slate-200 transition-colors cursor-pointer tabular-nums"
+                              >
+                                {formatTimer(ch.timeSeconds)} · {ch.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
 
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setIsPlaying((prev) => !prev)}
-                        className="inline-flex items-center gap-1 font-semibold hover:text-[#f5c451] cursor-pointer"
-                      >
-                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        <span>{isPlaying ? 'Pause' : 'Play'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setElapsedSeconds(0)}
-                        aria-label="Restart lecture"
-                        className="text-slate-300 hover:text-white cursor-pointer"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="font-mono tabular-nums text-slate-300">
-                        {formatTimer(elapsedSeconds)} / {formatTimer(totalLectureSeconds)}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => setAutoAdvance((v) => !v)}
-                        className={`px-2 py-1 rounded text-[11px] font-semibold cursor-pointer ${
-                          autoAdvance
-                            ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/60'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        Auto-Next: {autoAdvance ? 'ON' : 'OFF'}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const speeds: Array<1 | 1.25 | 1.5 | 2> = [1, 1.25, 1.5, 2];
-                          const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
-                          setPlaybackSpeed(next);
-                        }}
-                        className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 font-mono text-xs cursor-pointer"
-                      >
-                        {playbackSpeed}x
-                      </button>
-
-                      {/* Volume & Audio Controls */}
-                      <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800 text-slate-300">
-                        <button
-                          type="button"
-                          onClick={() => setIsMuted((m) => !m)}
-                          aria-label={isMuted ? 'Unmute video audio' : 'Mute video audio'}
-                          className="p-0.5 hover:text-[#f5c451] cursor-pointer"
-                        >
-                          {isMuted || volume === 0 ? (
-                            <VolumeX className="w-3.5 h-3.5 text-rose-400" />
-                          ) : volume < 0.5 ? (
-                            <Volume1 className="w-3.5 h-3.5 text-[#f5c451]" />
-                          ) : (
-                            <Volume2 className="w-3.5 h-3.5 text-[#f5c451]" />
-                          )}
-                        </button>
                         <input
                           type="range"
                           min={0}
-                          max={1}
-                          step={0.05}
-                          value={isMuted ? 0 : volume}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value);
-                            setVolume(v);
-                            if (v > 0 && isMuted) setIsMuted(false);
-                          }}
-                          aria-label="Audio volume"
-                          className="w-16 h-1 accent-[#d4af37] cursor-pointer"
+                          max={totalLectureSeconds}
+                          value={elapsedSeconds}
+                          onChange={(e) => setElapsedSeconds(Number(e.target.value))}
+                          aria-label="Seek lecture timeline"
+                          className="w-full accent-[#d4af37] cursor-pointer"
                         />
-                        <span className="font-mono text-[10px] tabular-nums text-slate-400 w-7 text-right">
-                          {isMuted ? 'MUT' : `${Math.round(volume * 100)}%`}
-                        </span>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setIsPlaying((prev) => !prev)}
+                              className="inline-flex items-center gap-1 font-semibold hover:text-[#f5c451] cursor-pointer"
+                            >
+                              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                              <span>{isPlaying ? 'Pause' : 'Play'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setElapsedSeconds(0)}
+                              aria-label="Restart lecture"
+                              className="text-slate-300 hover:text-white cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="font-mono tabular-nums text-slate-300">
+                              {formatTimer(elapsedSeconds)} / {formatTimer(totalLectureSeconds)}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => setAutoAdvance((v) => !v)}
+                              className={`px-2 py-1 rounded text-[11px] font-semibold cursor-pointer ${
+                                autoAdvance
+                                  ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/60'
+                                  : 'bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              Auto-Next: {autoAdvance ? 'ON' : 'OFF'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const speeds: Array<1 | 1.25 | 1.5 | 2> = [1, 1.25, 1.5, 2];
+                                const next = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+                                setPlaybackSpeed(next);
+                              }}
+                              className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 font-mono text-xs cursor-pointer"
+                            >
+                              {playbackSpeed}x
+                            </button>
+
+                            {/* Volume & Audio Controls */}
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800 text-slate-300">
+                              <button
+                                type="button"
+                                onClick={() => setIsMuted((m) => !m)}
+                                aria-label={isMuted ? 'Unmute video audio' : 'Mute video audio'}
+                                className="p-0.5 hover:text-[#f5c451] cursor-pointer"
+                              >
+                                {isMuted || volume === 0 ? (
+                                  <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+                                ) : volume < 0.5 ? (
+                                  <Volume1 className="w-3.5 h-3.5 text-[#f5c451]" />
+                                ) : (
+                                  <Volume2 className="w-3.5 h-3.5 text-[#f5c451]" />
+                                )}
+                              </button>
+                              <input
+                                type="range"
+                                min={0}
+                                max={1}
+                                step={0.05}
+                                value={isMuted ? 0 : volume}
+                                onChange={(e) => {
+                                  const v = parseFloat(e.target.value);
+                                  setVolume(v);
+                                  if (v > 0 && isMuted) setIsMuted(false);
+                                }}
+                                aria-label="Audio volume"
+                                className="w-16 h-1 accent-[#d4af37] cursor-pointer"
+                              />
+                              <span className="font-mono text-[10px] tabular-nums text-slate-400 w-7 text-right">
+                                {isMuted ? 'MUT' : `${Math.round(volume * 100)}%`}
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setVoiceEnabled((v) => !v)}
+                              aria-label="Toggle spoken voice narration"
+                              className={`px-2 py-1 rounded text-[11px] font-semibold cursor-pointer inline-flex items-center gap-1 ${
+                                voiceEnabled && !isMuted
+                                  ? 'bg-amber-900/60 text-[#f5c451] border border-amber-700/60'
+                                  : 'bg-slate-800 text-slate-400'
+                              }`}
+                            >
+                              <Mic className="w-3 h-3" />
+                              <span>Voice: {voiceEnabled && !isMuted ? 'ON' : 'OFF'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setCaptionsEnabled((prev) => !prev)}
+                              aria-label="Toggle captions"
+                              className={`p-1 rounded cursor-pointer ${
+                                captionsEnabled ? 'text-[#f5c451]' : 'text-slate-400'
+                              }`}
+                            >
+                              <Subtitles className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleLectureComplete(product.id, activeLecture.id)}
+                              className={`px-3 py-1 rounded text-xs font-bold cursor-pointer ${
+                                isCurrentCompleted
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-white text-slate-900 hover:bg-slate-100'
+                              }`}
+                            >
+                              {isCurrentCompleted ? 'Completed' : 'Mark Complete'}
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={activeLectureIndex === 0}
+                                onClick={() =>
+                                  setActiveLectureId(flatLectures[activeLectureIndex - 1].id)
+                                }
+                                aria-label="Previous lecture"
+                                className="p-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={activeLectureIndex >= flatLectures.length - 1}
+                                onClick={() =>
+                                  setActiveLectureId(flatLectures[activeLectureIndex + 1].id)
+                                }
+                                aria-label="Next lecture"
+                                className="p-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setVoiceEnabled((v) => !v)}
-                        aria-label="Toggle spoken voice narration"
-                        className={`px-2 py-1 rounded text-[11px] font-semibold cursor-pointer inline-flex items-center gap-1 ${
-                          voiceEnabled && !isMuted
-                            ? 'bg-amber-900/60 text-[#f5c451] border border-amber-700/60'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        <Mic className="w-3 h-3" />
-                        <span>Voice: {voiceEnabled && !isMuted ? 'ON' : 'OFF'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setCaptionsEnabled((prev) => !prev)}
-                        aria-label="Toggle captions"
-                        className={`p-1 rounded cursor-pointer ${
-                          captionsEnabled ? 'text-[#f5c451]' : 'text-slate-400'
-                        }`}
-                      >
-                        <Subtitles className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => toggleLectureComplete(product.id, activeLecture.id)}
-                        className={`px-3 py-1 rounded text-xs font-bold cursor-pointer ${
-                          isCurrentCompleted
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-white text-slate-900 hover:bg-slate-100'
-                        }`}
-                      >
-                        {isCurrentCompleted ? 'Completed' : 'Mark Complete'}
-                      </button>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          disabled={activeLectureIndex === 0}
-                          onClick={() =>
-                            setActiveLectureId(flatLectures[activeLectureIndex - 1].id)
-                          }
-                          aria-label="Previous lecture"
-                          className="p-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={activeLectureIndex >= flatLectures.length - 1}
-                          onClick={() =>
-                            setActiveLectureId(flatLectures[activeLectureIndex + 1].id)
-                          }
-                          aria-label="Next lecture"
-                          className="p-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                      {/* Mixed / Companion Reading Guide (if mixed lesson) */}
+                      {(activeLecture.lectureType === 'mixed' || (activeLecture.videoUrl && activeLecture.textContent)) && (
+                        <div className="mt-4 p-5 rounded-xl bg-[#0c1a30] border border-[#233554] space-y-3">
+                          <h4 className="text-xs font-bold text-[#f5c451] uppercase tracking-wider flex items-center gap-1.5">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>Companion Lesson Guide & Code</span>
+                          </h4>
+                          <div className="whitespace-pre-line text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+                            {activeLecture.textContent || activeLecture.summary}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Below-Player Tabs: Overview, Transcript, Resources, Timestamped Notes, Q&A, Announcements */}
           <div className="max-w-5xl w-full mx-auto px-4 sm:px-8 py-6 space-y-6">
@@ -1385,10 +1500,25 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                               >
                                 {lec.title}
                               </p>
-                              <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
-                                {lec.durationMinutes} min
+                              <div className="text-[11px] text-slate-500 mt-1 tabular-nums flex items-center gap-1.5 flex-wrap">
+                                {lec.lectureType === 'text' || lec.lectureType === 'article' || (!lec.videoUrl && lec.textContent) ? (
+                                  <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
+                                    <BookOpen className="w-3 h-3" />
+                                    <span>Reading ({lec.durationMinutes}m)</span>
+                                  </span>
+                                ) : lec.lectureType === 'mixed' ? (
+                                  <span className="inline-flex items-center gap-0.5 text-purple-600 font-medium">
+                                    <Sparkles className="w-3 h-3" />
+                                    <span>Mixed ({lec.durationMinutes}m)</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-0.5 text-slate-500 font-medium">
+                                    <Video className="w-3 h-3" />
+                                    <span>Video ({lec.durationMinutes}m)</span>
+                                  </span>
+                                )}
                                 {lec.resourceFileName ? ` · ${lec.resourceFileName}` : ''}
-                              </p>
+                              </div>
                             </button>
                           </div>
                         );

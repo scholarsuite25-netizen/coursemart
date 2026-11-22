@@ -95,13 +95,14 @@ export interface CourseLecture {
   title: string;
   durationMinutes: number;
   isPreview: boolean;
-  lectureType?: 'video' | 'article' | 'exercise';
+  lectureType?: 'video' | 'article' | 'exercise' | 'text' | 'mixed';
   summary: string;
   keyTakeaways: string[];
   resourceFileName?: string;
   chapters?: LectureChapterMarker[];
   transcript?: string;
   videoUrl?: string;
+  textContent?: string;
   downloadUrl?: string;
 }
 
@@ -213,6 +214,7 @@ export interface Product {
   };
   courseData?: {
     totalHours: number;
+    courseFormat?: 'video' | 'text' | 'mixed';
     modules: CourseModule[];
     announcements?: CourseAnnouncement[];
     promoHighlights?: string[];

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, ExternalLink, Plus, Trash2, Video, X } from 'lucide-react';
+import { BookOpen, CheckCircle2, Crown, Download, ExternalLink, Plus, Sparkles, Trash2, Video, X } from 'lucide-react';
 import {
   INSTRUCTOR_AVATAR,
   TEMPLATES_TOOLKIT_COVER,
@@ -18,6 +18,7 @@ import type {
 } from '../../types/marketplace';
 import { ALL_PRODUCT_TOPICS, DIGITAL_SUBMENU_ITEMS } from '../../utils/catalogAndBlogs';
 import { migrateLegacyTier } from '../../utils/commerce';
+import { formatNaira } from '../../utils/currency';
 import { getProviderLabel, resolveDownloadUrl, resolveMediaUrl } from '../../utils/mediaResolver';
 
 interface ProductEditorModalProps {
@@ -275,21 +276,28 @@ export function ProductEditorModal({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
 
-    const totalHours =
-      Math.round(
-        (modules.reduce(
-          (sum, m) => sum + m.lectures.reduce((ls, l) => ls + l.durationMinutes, 0),
-          0
-        ) /
-          60) *
-          10
-      ) / 10 || 4.5;
+    const totalMinutes = modules.reduce(
+      (sum, m) => sum + m.lectures.reduce((ls, l) => ls + l.durationMinutes, 0),
+      0
+    );
+    const totalHours = Math.round((totalMinutes / 60) * 10) / 10 || 4.5;
+
+    const allLectures = modules.flatMap((m) => m.lectures);
+    const totalLecturesCount = allLectures.length;
+    const hasVideo = allLectures.some((l) => Boolean(l.videoUrl && l.videoUrl.trim().length > 0));
+    const hasTextOnly = allLectures.some((l) => l.lectureType === 'text' || l.lectureType === 'article' || (!l.videoUrl && Boolean(l.textContent)));
+    const courseFormat: 'text' | 'video' | 'mixed' =
+      !hasVideo ? 'text' : hasTextOnly ? 'mixed' : 'video';
 
     const resolvedDigitalSub = type === 'ebook' ? digitalSubType : undefined;
 
     const formatLabel =
       type === 'course'
-        ? `${totalHours} Hours Video`
+        ? courseFormat === 'text'
+          ? `${totalLecturesCount} Text Lessons · Reading`
+          : courseFormat === 'mixed'
+          ? `${totalLecturesCount} Lessons · Mixed (Video & Text)`
+          : `${totalHours} Hours Video`
         : type === 'ebook'
         ? resolvedDigitalSub === 'template'
           ? `Template · ${resourceFormat}`
@@ -354,6 +362,7 @@ export function ProductEditorModal({
         type === 'course'
           ? {
               totalHours,
+              courseFormat,
               modules,
               announcements: initialProduct?.courseData?.announcements,
               promoHighlights: initialProduct?.courseData?.promoHighlights,
@@ -591,22 +600,91 @@ export function ProductEditorModal({
               </select>
             </div>
 
-            <div>
-              <label htmlFor="prod-membership-tier" className="block text-xs font-bold text-slate-700 mb-1">
-                Membership Access Tier
+            {/* 3-Way Segmented Access Toggle: Free | Paid | Premium */}
+            <div className="col-span-full">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Pricing & Membership Access Model (Select Classification)
               </label>
-              <select
-                id="prod-membership-tier"
-                value={includedInMembershipTier}
-                onChange={(e) =>
-                  setIncludedInMembershipTier(e.target.value as MembershipTierId | '')
-                }
-                className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md bg-white"
-              >
-                <option value="">Not Included (One-Time Purchase)</option>
-                <option value="free">Free for All Members (Free & Paid)</option>
-                <option value="paid">Included in Paid Membership</option>
-              </select>
+              <div className="grid grid-cols-3 gap-2.5 p-1.5 bg-slate-100 rounded-xl border border-slate-200">
+                {/* 1. Free Item Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIncludedInMembershipTier('free');
+                    setIsPremium(false);
+                    setPrice('0');
+                  }}
+                  className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                    includedInMembershipTier === 'free' && !isPremium
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/60'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Free Item</span>
+                  </span>
+                  <span className="text-[10px] font-normal opacity-90">₦0 · Free for All</span>
+                </button>
+
+                {/* 2. Standard Paid Item Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIncludedInMembershipTier('paid');
+                    setIsPremium(false);
+                    if (Number(price) === 0) setPrice('10000');
+                  }}
+                  className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                    includedInMembershipTier === 'paid' && !isPremium
+                      ? 'bg-[#0a192f] text-[#f5c451] border border-[#d4af37]/60 shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/60'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5" />
+                    <span>Paid Item</span>
+                  </span>
+                  <span className="text-[10px] font-normal opacity-90">Free for Paid Members</span>
+                </button>
+
+                {/* 3. Premium Item Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIncludedInMembershipTier('');
+                    setIsPremium(true);
+                    if (Number(price) === 0) setPrice('25000');
+                  }}
+                  className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                    isPremium
+                      ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/60'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Premium Item</span>
+                  </span>
+                  <span className="text-[10px] font-semibold opacity-90">50% Off for Paid Members</span>
+                </button>
+              </div>
+
+              <div className="mt-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+                {isPremium ? (
+                  <p className="text-amber-800 font-medium">
+                    ⭐ <strong>Premium Classification:</strong> Labeled with Gold Premium badge. Non-members pay full rate ({formatNaira(Number(price) || 0)}); all Paid members (Standard ₦10k and Master Class ₦25k tiers) automatically receive an instant <strong>50% discount ({formatNaira(Math.round((Number(price) || 0) * 0.5))})</strong> at checkout!
+                  </p>
+                ) : includedInMembershipTier === 'paid' ? (
+                  <p className="text-[#0a192f] font-medium">
+                    💎 <strong>Standard Paid Classification:</strong> Non-members purchase at normal checkout price ({formatNaira(Number(price) || 0)}). All active Paid Members unlock this item automatically at 100% discount.
+                  </p>
+                ) : (
+                  <p className="text-emerald-800 font-medium">
+                    🎁 <strong>Free Classification:</strong> 100% free of charge (₦0) for every visitor and member without payment checkout.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -619,16 +697,6 @@ export function ProductEditorModal({
                 className="accent-[#2271b1]"
               />
               <span>Feature on Storefront Homepage</span>
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isPremium}
-                onChange={(e) => setIsPremium(e.target.checked)}
-                className="accent-[#2271b1]"
-              />
-              <span>Designate as Premium Product (50% discount for Paid members, Full price for Free members)</span>
             </label>
 
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
@@ -668,17 +736,22 @@ export function ProductEditorModal({
             />
           </div>
 
-          {/* Course Curriculum Builder */}
+          {/* Course Curriculum Builder - Supports Text, Video, and Mixed Formats */}
           {type === 'course' && (
             <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-sm font-bold text-slate-900">
-                  Curriculum Modules & Lectures
-                </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
+                <div>
+                  <h3 className="font-display text-sm font-bold text-slate-900">
+                    Curriculum Modules & Lectures
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Build pure text-based reading courses (articles/guides), video courses, or mixed hybrid modules.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={handleAddModule}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-slate-900 rounded cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-slate-900 rounded cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Module</span>
@@ -719,13 +792,14 @@ export function ProductEditorModal({
                     )}
                   </div>
 
-                  <div className="space-y-2 pl-2">
+                  <div className="space-y-3 pl-2">
                     {mod.lectures.map((lec, lIdx) => {
                       const media = lec.videoUrl ? resolveMediaUrl(lec.videoUrl) : null;
+                      const currentFormat = lec.lectureType ?? (lec.videoUrl ? 'video' : 'text');
                       return (
                         <div
                           key={lec.id}
-                          className="p-2.5 bg-slate-50 border border-slate-200 rounded-md space-y-2"
+                          className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-2.5"
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-bold text-slate-500 w-5 shrink-0">
@@ -776,41 +850,108 @@ export function ProductEditorModal({
                             )}
                           </div>
 
-                          {/* Video Stream URL Input with Auto-Detection Badge */}
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-200/60">
-                            <div className="flex-1 flex items-center gap-1.5">
-                              <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <input
-                                type="url"
-                                value={lec.videoUrl ?? ''}
-                                placeholder="Paste YouTube Unlisted, Google Drive, Vimeo, or MP4 link..."
-                                onChange={(e) =>
-                                  handleUpdateLecture(mIdx, lIdx, { videoUrl: e.target.value })
-                                }
-                                className="flex-1 h-7 px-2 text-[11px] bg-white border border-slate-200 rounded focus:border-[#5624d0] focus:ring-1 focus:ring-[#5624d0]"
-                              />
-                            </div>
-                            {media && lec.videoUrl ? (
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded shrink-0 ${
-                                  media.provider === 'youtube'
-                                    ? 'bg-red-50 text-red-700 border border-red-200'
-                                    : media.provider === 'google-drive'
-                                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                    : media.provider === 'vimeo'
-                                    ? 'bg-sky-50 text-sky-700 border border-sky-200'
-                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          {/* Lecture Format Switcher: Video vs Text Only vs Mixed */}
+                          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/60">
+                            <span className="text-[11px] font-bold text-slate-600">Lesson Type:</span>
+                            <div className="inline-flex items-center p-0.5 bg-slate-200/80 rounded-md">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'video' })}
+                                className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                  currentFormat === 'video'
+                                    ? 'bg-white text-slate-900 shadow-xs'
+                                    : 'text-slate-600 hover:text-slate-900'
                                 }`}
                               >
-                                <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                                {getProviderLabel(media.provider)}
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-400 shrink-0 italic">
-                                Canvas Narrator & Watermark Active
-                              </span>
-                            )}
+                                <Video className="w-3 h-3 text-red-600" />
+                                <span>Video Lesson</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'text' })}
+                                className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                  currentFormat === 'text' || currentFormat === 'article'
+                                    ? 'bg-white text-slate-900 shadow-xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                <BookOpen className="w-3 h-3 text-blue-600" />
+                                <span>Text Only (No Video)</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'mixed' })}
+                                className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                  currentFormat === 'mixed'
+                                    ? 'bg-white text-slate-900 shadow-xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                <Sparkles className="w-3 h-3 text-purple-600" />
+                                <span>Mixed (Video + Reading)</span>
+                              </button>
+                            </div>
                           </div>
+
+                          {/* Video Stream URL Input (for video or mixed) */}
+                          {(currentFormat === 'video' || currentFormat === 'mixed') && (
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
+                              <div className="flex-1 flex items-center gap-1.5">
+                                <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <input
+                                  type="url"
+                                  value={lec.videoUrl ?? ''}
+                                  placeholder="Paste YouTube Unlisted, Google Drive, Vimeo, or MP4 link..."
+                                  onChange={(e) =>
+                                    handleUpdateLecture(mIdx, lIdx, { videoUrl: e.target.value })
+                                  }
+                                  className="flex-1 h-7 px-2 text-[11px] bg-white border border-slate-200 rounded focus:border-[#5624d0] focus:ring-1 focus:ring-[#5624d0]"
+                                />
+                              </div>
+                              {media && lec.videoUrl ? (
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded shrink-0 ${
+                                    media.provider === 'youtube'
+                                      ? 'bg-red-50 text-red-700 border border-red-200'
+                                      : media.provider === 'google-drive'
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                      : media.provider === 'vimeo'
+                                      ? 'bg-sky-50 text-sky-700 border border-sky-200'
+                                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  }`}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                  {getProviderLabel(media.provider)}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400 shrink-0 italic">
+                                  Canvas Narrator & Watermark Active
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Text/Article Reading Content textarea (for text or mixed) */}
+                          {(currentFormat === 'text' || currentFormat === 'article' || currentFormat === 'mixed') && (
+                            <div className="space-y-1 pt-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                                  <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Text Lesson Content (Reading / Article / Guide / Code)</span>
+                                </label>
+                                <span className="text-[10px] text-slate-400 font-mono">Supports formatted text & markdown</span>
+                              </div>
+                              <textarea
+                                rows={4}
+                                value={lec.textContent ?? lec.summary ?? ''}
+                                placeholder="Write the complete reading lesson, step-by-step instructions, code snippets, formulas, or study material here..."
+                                onChange={(e) =>
+                                  handleUpdateLecture(mIdx, lIdx, { textContent: e.target.value })
+                                }
+                                className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded leading-relaxed focus:border-blue-500 focus:ring-1 focus:ring-blue-500 font-sans"
+                              />
+                            </div>
+                          )}
                         </div>
                       );
                     })}

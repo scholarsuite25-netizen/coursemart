@@ -144,35 +144,34 @@ export function MembershipPage() {
 
   return (
     <main className="pb-20 bg-white">
-      {/* Navy & Gold Header */}
+      {/* Navy & Gold Centered Header */}
       <section className="bg-[#0a192f] text-white border-b-4 border-[#d4af37]">
-        <div className="max-w-[1280px] mx-auto px-4 lg:px-8 py-12 lg:py-16 space-y-6">
-          <div className="max-w-3xl space-y-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#f5c451]">
-              All-Access Membership Tiers
-            </p>
-            <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight text-balance">
-              Unlock courses, digital products, and member-only savings.
-            </h1>
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-              Choose a predictable monthly or annual pass to unlock tier-eligible video courses,
-              downloadable eBooks, templates, toolkits, and automatic checkout discounts.
-            </p>
-          </div>
+        <div className="max-w-4xl mx-auto px-4 lg:px-8 py-12 lg:py-16 text-center space-y-5">
+          <p className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#112240] text-[#f5c451] border border-[#d4af37]/40 mx-auto">
+            <Crown className="w-3.5 h-3.5" />
+            <span>Digital Wealth Creators · All-Access Tiers</span>
+          </p>
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight text-balance">
+            Unlock Courses, Digital Tools, and Member-Only Savings.
+          </h1>
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
+            Choose your learning path: start 100% free with open catalog courses, or upgrade to an
+            all-access pass for unrestricted resource downloads, masterclasses, and automatic 50% checkout savings on Premium items.
+          </p>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
             {/* Standard ₦10k vs Master Class ₦25k Segmented Switch */}
             <div
               role="group"
               aria-label="Membership options"
-              className="inline-flex items-center p-1 bg-[#112240] border border-[#263d66] rounded-lg"
+              className="inline-flex items-center p-1 bg-[#112240] border border-[#263d66] rounded-lg shadow-inner"
             >
               <button
                 type="button"
                 onClick={() => setBillingCycle('annual')}
                 className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   billingCycle === 'annual'
-                    ? 'bg-[#d4af37] text-[#0a192f]'
+                    ? 'bg-[#d4af37] text-[#0a192f] shadow'
                     : 'text-slate-200 hover:text-white'
                 }`}
               >
@@ -183,11 +182,11 @@ export function MembershipPage() {
                 onClick={() => setBillingCycle('masterclass')}
                 className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   billingCycle === 'masterclass'
-                    ? 'bg-[#d4af37] text-[#0a192f]'
+                    ? 'bg-[#d4af37] text-[#0a192f] shadow'
                     : 'text-slate-200 hover:text-white'
                 }`}
               >
-                Master Class 1-Year Pass (₦25,000 / yr · Includes Online Training)
+                Master Class 1-Year Pass (₦25,000 / yr · Online Training)
               </button>
             </div>
 
@@ -195,7 +194,7 @@ export function MembershipPage() {
               <button
                 type="button"
                 onClick={() => quickLoginAsRole('customer')}
-                className="px-4 py-2.5 text-xs font-bold text-[#0a192f] bg-[#f5c451] hover:bg-[#e5bf45] rounded-md whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-4 py-2.5 text-xs font-bold text-[#0a192f] bg-[#f5c451] hover:bg-[#e5bf45] rounded-md whitespace-nowrap shrink-0 cursor-pointer shadow"
               >
                 Try with Demo Student Account
               </button>
@@ -204,10 +203,10 @@ export function MembershipPage() {
         </div>
       </section>
 
-      <div className="max-w-[1280px] mx-auto px-4 lg:px-8 pt-10 space-y-12">
+      <div className="max-w-6xl mx-auto px-4 lg:px-8 pt-10 space-y-16">
         {/* Active Member Banner */}
         {currentUser && activeUserMembership && activeMembershipPlan && (
-          <div className="p-6 rounded-xl bg-slate-50 border border-[#d4af37] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-6 rounded-xl bg-slate-50 border border-[#d4af37] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-[#0a192f] text-[#f5c451] flex items-center justify-center shrink-0">
                 <Crown className="w-5 h-5" />
@@ -217,7 +216,7 @@ export function MembershipPage() {
                   Active Membership Pass
                 </p>
                 <h2 className="font-display text-lg font-extrabold text-slate-900">
-                  {activeMembershipPlan.name} · {activeUserMembership.billingCycle === 'annual' ? 'Annual' : 'Monthly'} Plan
+                  {activeMembershipPlan.name} · {activeUserMembership.billingCycle === 'annual' ? 'Standard 1-Year' : 'Master Class 1-Year'} Pass
                 </h2>
                 <p className="text-xs text-slate-600 mt-0.5 tabular-nums">
                   Automatic {activeMembershipPlan.storeDiscountPercent}% store discount active · Renews{' '}
@@ -244,180 +243,436 @@ export function MembershipPage() {
           </div>
         )}
 
-        {/* 3 Tier Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          {membershipPlans.map((plan) => {
-            const isCurrent = activeUserMembership?.planId === plan.id && activeUserMembership.status === 'active';
-            const displayPrice =
-              plan.id === 'free'
-                ? 0
-                : billingCycle === 'masterclass'
-                ? (plan.masterclassPrice ?? 25000)
-                : plan.annualPrice;
-            const unlockedCount = includedProductsCountByTier(plan.id);
-
-            return (
-              <div
-                key={plan.id}
-                className={`rounded-xl p-6 flex flex-col justify-between transition-colors ${
-                  plan.featured
-                    ? 'bg-[#0a192f] text-white border-2 border-[#d4af37] shadow-lg'
-                    : 'bg-white text-slate-900 border border-slate-200'
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p
-                        className={`text-xs font-semibold ${
-                          plan.featured ? 'text-[#f5c451]' : 'text-slate-500'
-                        }`}
-                      >
-                        {plan.audienceLabel}
-                      </p>
-                      <h2 className="font-display text-2xl font-extrabold mt-1">
-                        {plan.name}
-                      </h2>
-                    </div>
-                    {plan.featured && (
-                      <span className="text-[11px] font-bold px-2.5 py-1 rounded bg-[#d4af37] text-[#0a192f] shrink-0">
-                        Most Popular
-                      </span>
-                    )}
-                  </div>
-
-                  <p className={`text-sm leading-relaxed ${plan.featured ? 'text-slate-300' : 'text-slate-600'}`}>
-                    {plan.tagline}
-                  </p>
-
-                  <div className="pt-2 pb-4 border-b border-slate-200/20">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="font-display text-3xl sm:text-4xl font-extrabold tabular-nums">
-                        {formatNaira(displayPrice)}
-                      </span>
-                      <span className={`text-xs ${plan.featured ? 'text-slate-300' : 'text-slate-500'}`}>
-                        {plan.id === 'free' ? 'forever' : '/ year'}
-                      </span>
-                    </div>
-
-                    {plan.id === 'paid' && (
-                      <div className="mt-2.5 space-y-1.5">
-                        {billingCycle === 'masterclass' ? (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-400 text-slate-950 shadow-sm">
-                            <Check className="w-3.5 h-3.5 text-slate-950" />
-                            <span>1-Year Access WITH Master Class Online Training Included</span>
-                          </div>
-                        ) : (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700">
-                            <span>1-Year Access (without masterclass training)</span>
-                          </div>
-                        )}
-                        <p className="text-xs text-[#f5c451] tabular-nums pt-1">
-                          {billingCycle === 'masterclass'
-                            ? '₦25,000 for one year access to all resources and master class online training'
-                            : '₦10,000 for one year access to all resources without masterclass training'}
-                          {' · '}50% discount on premium products
-                        </p>
-                      </div>
-                    )}
-
-                    {plan.id === 'free' && (
-                      <p className="text-xs mt-1 text-slate-500">
-                        Always 100% Free · Direct access to all free-toggled catalog items & preview lessons
-                      </p>
-                    )}
-                  </div>
-
-                  <ul className="space-y-2.5 text-sm pt-1">
-                    {plan.perks.map((perk, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5">
-                        <Check
-                          className={`w-4 h-4 shrink-0 mt-0.5 ${
-                            plan.featured ? 'text-[#f5c451]' : 'text-emerald-700'
-                          }`}
-                        />
-                        <span className={plan.featured ? 'text-slate-200' : 'text-slate-700'}>
-                          {perk}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+        {/* 3 Symmetrically Centered & Well-Designed Tier Cards */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch justify-center">
+          {/* 1. Free Membership Card - High-Polish Emerald/Slate Design */}
+          <div className="rounded-2xl p-6 sm:p-7 flex flex-col justify-between bg-white text-slate-900 border-2 border-emerald-500/40 hover:border-emerald-600 shadow-md hover:shadow-xl transition-all relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -z-0 pointer-events-none" />
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    Free Forever
+                  </span>
+                  <h2 className="font-display text-2xl font-black text-slate-900 mt-2">
+                    Free Member
+                  </h2>
                 </div>
-
-                <div className="pt-6">
-                  {isCurrent ? (
-                    <div className="w-full py-3 px-4 rounded-md text-center text-xs font-bold bg-emerald-600 text-white inline-flex items-center justify-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Current Active Tier</span>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenSubscribe(plan)}
-                      className={`w-full py-3 px-4 rounded-md text-sm font-bold transition-colors cursor-pointer ${
-                        plan.featured
-                          ? 'bg-[#d4af37] text-[#0a192f] hover:bg-[#e5bf45]'
-                          : 'bg-[#0a192f] text-white hover:bg-[#112240]'
-                      }`}
-                    >
-                      {activeUserMembership ? `Switch to ${plan.name}` : `Join ${plan.name}`}
-                    </button>
-                  )}
+                <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  ✓
                 </div>
               </div>
-            );
-          })}
+
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Ideal for self-paced beginners exploring digital wealth creation, free catalog courses, and community chats.
+              </p>
+
+              <div className="pt-2 pb-4 border-b border-slate-100">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-3xl sm:text-4xl font-black text-slate-900 tabular-nums">
+                    ₦0
+                  </span>
+                  <span className="text-xs font-semibold text-slate-500">
+                    / forever
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-700 font-semibold mt-1.5 flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>No credit card required · Instant access</span>
+                </p>
+              </div>
+
+              <ul className="space-y-2.5 text-xs sm:text-sm pt-1">
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="text-slate-700">Access to all free courses (text & video formats)</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="text-slate-700">Preview lessons on all catalog courses</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="text-slate-700">Download free community eBooks and toolkits</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="text-slate-700">Public discussion channels & verifiable certificate</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="w-4 h-4 text-slate-400 font-bold shrink-0 mt-0.5 text-center">·</span>
+                  <span className="text-slate-500 italic">Pay full rate for Premium products at checkout</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-6 relative z-10">
+              {activeUserMembership?.planId === 'free' ? (
+                <div className="w-full py-3 px-4 rounded-xl text-center text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 inline-flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Your Current Active Tier</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const freePlan = membershipPlans.find((p) => p.id === 'free');
+                    if (freePlan) handleOpenSubscribe(freePlan);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer shadow"
+                >
+                  Get Started Free
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Standard 1-Year Pass Card (₦10,000 / year) */}
+          <div className="rounded-2xl p-6 sm:p-7 flex flex-col justify-between bg-[#0a192f] text-white border-2 border-slate-700 hover:border-[#d4af37]/60 shadow-lg hover:shadow-xl transition-all relative overflow-hidden">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#112240] text-[#f5c451] border border-[#263d66]">
+                    Self-Paced Pass
+                  </span>
+                  <h2 className="font-display text-2xl font-black text-white mt-2">
+                    Standard 1-Year
+                  </h2>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-[#112240] text-[#f5c451] flex items-center justify-center font-bold border border-[#d4af37]/30">
+                  <Crown className="w-4 h-4" />
+                </div>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Full 1-year access to all resources and catalog courses without masterclass training, plus 50% off Premium products.
+              </p>
+
+              <div className="pt-2 pb-4 border-b border-slate-700/60">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-3xl sm:text-4xl font-black text-[#f5c451] tabular-nums">
+                    ₦10,000
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    / year
+                  </span>
+                </div>
+                <p className="text-xs text-amber-300 font-semibold mt-1.5 flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5 text-amber-400" />
+                  <span>50% discount on all Premium products</span>
+                </p>
+              </div>
+
+              <ul className="space-y-2.5 text-xs sm:text-sm pt-1">
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-200">100% catalog access to all courses (text & video)</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-200">All digital resources, eBooks, templates & toolkits</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-200">Automatic 50% discount on products labeled Premium</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-200">Full Community Chat channels & support forum</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="w-4 h-4 text-slate-500 font-bold shrink-0 mt-0.5 text-center">·</span>
+                  <span className="text-slate-400 italic">Self-paced learning without live masterclasses</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-6">
+              {activeUserMembership?.planId === 'paid' && activeUserMembership.billingCycle === 'annual' ? (
+                <div className="w-full py-3 px-4 rounded-xl text-center text-xs font-bold bg-[#112240] text-[#f5c451] border border-[#d4af37]/40 inline-flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-[#f5c451]" />
+                  <span>Your Current Active Plan</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBillingCycle('annual');
+                    const paidPlan = membershipPlans.find((p) => p.id === 'paid');
+                    if (paidPlan) handleOpenSubscribe(paidPlan);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-bold bg-[#112240] text-[#f5c451] border border-[#d4af37]/60 hover:bg-[#1a335e] transition-colors cursor-pointer shadow"
+                >
+                  Subscribe Standard (₦10,000 / yr)
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 3. VIP Master Class 1-Year Pass Card (₦25,000 / year) */}
+          <div className="rounded-2xl p-6 sm:p-7 flex flex-col justify-between bg-gradient-to-b from-[#0a192f] via-[#0e2242] to-[#0a192f] text-white border-2 border-[#d4af37] shadow-2xl relative overflow-hidden hover:scale-[1.01] transition-transform">
+            <div className="absolute -top-3 right-5">
+              <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-gradient-to-r from-[#f5c451] to-[#d4af37] text-[#0a192f] shadow-md border border-white/20">
+                ⭐ Master Class VIP
+              </span>
+            </div>
+
+            <div className="space-y-4 pt-1">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#f5c451]">
+                    Complete Mastermind
+                  </span>
+                  <h2 className="font-display text-2xl font-black text-white mt-1">
+                    Master Class 1-Year
+                  </h2>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-[#d4af37] text-[#0a192f] flex items-center justify-center font-black shadow">
+                  <Crown className="w-4 h-4" />
+                </div>
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                One year access to all resources and catalog courses PLUS online masterclass training & VIP Prompt Vault.
+              </p>
+
+              <div className="pt-2 pb-4 border-b border-[#d4af37]/30">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-3xl sm:text-4xl font-black text-white tabular-nums">
+                    ₦25,000
+                  </span>
+                  <span className="text-xs text-[#f5c451] font-semibold">
+                    / year · All-Inclusive
+                  </span>
+                </div>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#d4af37] text-[#0a192f]">
+                  <Check className="w-3 h-3 text-[#0a192f]" />
+                  <span>Online Master Class Training Included</span>
+                </div>
+              </div>
+
+              <ul className="space-y-2.5 text-xs sm:text-sm pt-1">
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-white font-medium">1-Year online masterclass training workshops</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-100">100% all resources, video & text courses unlocked</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-100">VIP AI Prompt Vault access with verified agents</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-100">Automatic 50% discount on products labeled Premium</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Check className="w-4 h-4 text-[#f5c451] shrink-0 mt-0.5" />
+                  <span className="text-slate-100">Promoter & Facilitator direct support & reviews</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-6">
+              {activeUserMembership?.planId === 'paid' && activeUserMembership.billingCycle === 'masterclass' ? (
+                <div className="w-full py-3 px-4 rounded-xl text-center text-xs font-bold bg-[#d4af37] text-[#0a192f] inline-flex items-center justify-center gap-1.5 shadow">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Your Current VIP Tier</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBillingCycle('masterclass');
+                    const paidPlan = membershipPlans.find((p) => p.id === 'paid');
+                    if (paidPlan) handleOpenSubscribe(paidPlan);
+                  }}
+                  className="w-full py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold bg-[#d4af37] hover:bg-[#e5bf45] text-[#0a192f] transition-all cursor-pointer shadow-lg hover:shadow-xl"
+                >
+                  Join Master Class VIP (₦25,000 / yr)
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Detailed Benefits of Each Membership Explanation Section */}
+        <section className="space-y-6 pt-4">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-slate-900">
+              Detailed Benefits of Each Membership
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600">
+              Clear breakdown of who each membership is built for and what value you receive.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Free Tier Deep Dive */}
+            <div className="p-6 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                  1
+                </div>
+                <h3 className="font-display text-base font-bold text-slate-900">
+                  Free Member Benefits
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                <strong>Who it is for:</strong> Exploratory students, visitors, and curious learners testing out the platform.
+              </p>
+              <ul className="space-y-1.5 text-xs text-slate-700">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-emerald-600 font-bold">✔</span>
+                  <span><strong>Zero Financial Obligation:</strong> Completely free forever without card requirements.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-emerald-600 font-bold">✔</span>
+                  <span><strong>Open Catalog Courses:</strong> Full access to all courses marked Free, including preview lectures.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-emerald-600 font-bold">✔</span>
+                  <span><strong>Community Chat:</strong> Join open discussions with peers across Nigeria and globally.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-emerald-600 font-bold">✔</span>
+                  <span><strong>Free Certificates:</strong> Verifiable digital certificate issued upon completing free courses.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Standard ₦10k Tier Deep Dive */}
+            <div className="p-6 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#112240] text-[#f5c451] flex items-center justify-center font-bold text-sm">
+                  2
+                </div>
+                <h3 className="font-display text-base font-bold text-slate-900">
+                  Standard 1-Year (₦10,000)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                <strong>Who it is for:</strong> Self-paced builders, developers, and educators who want all materials without live sessions.
+              </p>
+              <ul className="space-y-1.5 text-xs text-slate-700">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-[#0a192f] font-bold">✔</span>
+                  <span><strong>All Resources Access:</strong> Unrestricted access to all courses, eBooks, templates, and toolkits.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-[#0a192f] font-bold">✔</span>
+                  <span><strong>50% Premium Discount:</strong> Instant 50% discount on all products labeled Premium at checkout.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-[#0a192f] font-bold">✔</span>
+                  <span><strong>Self-Directed Pace:</strong> Learn when you want without recurring scheduled masterclass obligations.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-[#0a192f] font-bold">✔</span>
+                  <span><strong>Immediate ROI:</strong> Buying two premium products saves more than the entire ₦10,000 annual fee.</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* VIP Masterclass ₦25k Tier Deep Dive */}
+            <div className="p-6 rounded-xl border border-[#d4af37]/60 bg-amber-50/30 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#d4af37] text-[#0a192f] flex items-center justify-center font-bold text-sm">
+                  3
+                </div>
+                <h3 className="font-display text-base font-bold text-slate-900">
+                  Master Class 1-Year (₦25,000)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                <strong>Who it is for:</strong> Serious creators, tech founders, and leaders who demand hands-on live guidance.
+              </p>
+              <ul className="space-y-1.5 text-xs text-slate-700">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-amber-700 font-bold">✔</span>
+                  <span><strong>Online Masterclass Training:</strong> Live virtual workshops, hands-on labs, and expert feedback.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-amber-700 font-bold">✔</span>
+                  <span><strong>VIP Prompt Vault:</strong> Exclusive access to production AI prompts, agents, and templates.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-amber-700 font-bold">✔</span>
+                  <span><strong>All Resources Included:</strong> Unlocked access to every video course, text guide, and software tool.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-amber-700 font-bold">✔</span>
+                  <span><strong>50% Premium Discount:</strong> Half-price savings on all premium digital product purchases.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         {/* Concrete Plan Comparison Matrix */}
         <section className="space-y-4">
-          <h2 className="font-display text-2xl font-extrabold text-slate-900">
-            Membership Tier Comparison
-          </h2>
-          <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white">
+          <div className="text-center max-w-xl mx-auto space-y-1">
+            <h2 className="font-display text-xl sm:text-2xl font-extrabold text-slate-900">
+              Side-by-Side Entitlement Matrix
+            </h2>
+            <p className="text-xs text-slate-500">
+              Compare features across Free, Standard, and Master Class plans.
+            </p>
+          </div>
+          <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
                 <tr>
                   <th className="px-5 py-3.5">Capability & Entitlement</th>
-                  {membershipPlans.map((p) => (
-                    <th key={p.id} className="px-5 py-3.5 text-slate-900">
-                      {p.name}
-                    </th>
-                  ))}
+                  <th className="px-5 py-3.5 text-slate-900">Free Member</th>
+                  <th className="px-5 py-3.5 text-slate-900">Standard 1-Year (₦10k)</th>
+                  <th className="px-5 py-3.5 text-amber-900 bg-amber-50/50">Master Class 1-Year (₦25k)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
                 <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Course Library Access</td>
-                  {membershipPlans.map((p) => (
-                    <td key={p.id} className="px-5 py-3.5 text-slate-600">
-                      {p.courseAccessLabel}
-                    </td>
-                  ))}
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">Annual Pricing</td>
+                  <td className="px-5 py-3.5 text-slate-600 font-bold">₦0 (Forever)</td>
+                  <td className="px-5 py-3.5 text-slate-900 font-bold">₦10,000 / year</td>
+                  <td className="px-5 py-3.5 text-amber-900 font-bold bg-amber-50/30">₦25,000 / year</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Digital Resources</td>
-                  {membershipPlans.map((p) => (
-                    <td key={p.id} className="px-5 py-3.5 text-slate-600">
-                      {p.digitalAccessLabel}
-                    </td>
-                  ))}
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">Course Formats Included</td>
+                  <td className="px-5 py-3.5 text-slate-600">Free Text & Video Courses</td>
+                  <td className="px-5 py-3.5 text-slate-900 font-semibold">100% Courses (Text, Video, Mixed)</td>
+                  <td className="px-5 py-3.5 text-amber-900 font-semibold bg-amber-50/30">100% Courses (Text, Video, Mixed)</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Automatic Cart Discount</td>
-                  {membershipPlans.map((p) => (
-                    <td key={p.id} className="px-5 py-3.5 font-bold text-[#0a192f] tabular-nums">
-                      {p.storeDiscountPercent}% Off All Items
-                    </td>
-                  ))}
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">Online Master Class Training</td>
+                  <td className="px-5 py-3.5 text-slate-400">Not Included</td>
+                  <td className="px-5 py-3.5 text-slate-500">Not Included (Self-Paced)</td>
+                  <td className="px-5 py-3.5 text-emerald-700 font-bold bg-amber-50/30">✔ Included (1-Year Online Training)</td>
                 </tr>
                 <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Mentorship & Community</td>
-                  {membershipPlans.map((p) => (
-                    <td key={p.id} className="px-5 py-3.5 text-slate-600">
-                      {p.supportLevel}
-                    </td>
-                  ))}
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">Discount on Premium Products</td>
+                  <td className="px-5 py-3.5 text-slate-400">0% (Full Price)</td>
+                  <td className="px-5 py-3.5 text-emerald-700 font-bold">50% Automatic Discount</td>
+                  <td className="px-5 py-3.5 text-emerald-700 font-bold bg-amber-50/30">50% Automatic Discount</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">VIP AI Prompt Vault</td>
+                  <td className="px-5 py-3.5 text-slate-400">Sample Prompts Only</td>
+                  <td className="px-5 py-3.5 text-slate-600">Standard Prompts</td>
+                  <td className="px-5 py-3.5 text-purple-700 font-bold bg-amber-50/30">✔ Full VIP Access</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">Downloadable Resources</td>
+                  <td className="px-5 py-3.5 text-slate-600">Free Deliverables</td>
+                  <td className="px-5 py-3.5 text-slate-900 font-semibold">All eBooks, Toolkits, Software</td>
+                  <td className="px-5 py-3.5 text-amber-900 font-semibold bg-amber-50/30">All eBooks, Toolkits, Software</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-semibold text-slate-700">Community Support</td>
+                  <td className="px-5 py-3.5 text-slate-600">Public Channels</td>
+                  <td className="px-5 py-3.5 text-slate-600">Full Community Channels</td>
+                  <td className="px-5 py-3.5 text-amber-900 font-semibold bg-amber-50/30">Facilitator Mentorship & S.B.O Hub</td>
                 </tr>
               </tbody>
             </table>
