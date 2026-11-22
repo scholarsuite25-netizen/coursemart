@@ -250,6 +250,7 @@ async function sendViaEmailService(params: {
             const resp = await fetch(reqSpec.url, {
               method: 'POST',
               headers: reqSpec.headers,
+              signal: AbortSignal.timeout(15_000),
               body: JSON.stringify(reqSpec.body),
             });
             if (!resp.ok) {
@@ -1213,6 +1214,13 @@ export function createApiApp() {
       });
 
       if (!result.ok) {
+        if (result.sentCount > 0) {
+          // Partial success: some recipients already received the message, so
+          // a hard failure response would invite a duplicate retry. Report
+          // success with an explicit partial flag and the delivery error.
+          res.json({ ...result, ok: true, partial: true });
+          return;
+        }
         const status = result.provider === 'none' ? 503 : 502;
         res.status(status).json(result);
         return;
@@ -1670,6 +1678,7 @@ Requirements:
         const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(8_000),
           body: JSON.stringify({
             platform: draft.platform,
             content: draft.content,

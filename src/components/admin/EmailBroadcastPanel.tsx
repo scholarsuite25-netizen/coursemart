@@ -129,6 +129,7 @@ export function EmailBroadcastPanel() {
         ok?: boolean;
         provider?: 'emailbump' | 'resend' | 'brevo' | 'none';
         sentCount?: number;
+        partial?: boolean;
         error?: string;
       };
 
@@ -150,8 +151,10 @@ export function EmailBroadcastPanel() {
 
       if (resp.ok && json.ok) {
         setStatusFeedback({
-          type: 'success',
-          text: `Live broadcast sent to ${campaign.recipientCount} opted-in recipient(s) via ${json.provider?.toUpperCase()}.`,
+          type: json.partial ? 'info' : 'success',
+          text: json.partial
+            ? `Partial broadcast: ${json.sentCount ?? 0} of ${recipients.length} recipient(s) delivered via ${json.provider?.toUpperCase()}. Remaining recipients failed and were not retried, so no duplicates were sent.`
+            : `Live broadcast sent to ${campaign.recipientCount} opted-in recipient(s) via ${json.provider?.toUpperCase()}.`,
         });
         setSubject('');
         setPreheader('');
