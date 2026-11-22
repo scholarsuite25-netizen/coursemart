@@ -259,8 +259,19 @@ export const storageService = {
   saveProgressList: (progress: CourseProgress[]): void =>
     writeStorage(STORAGE_KEYS.PROGRESS, progress),
 
-  getAppearance: (): StorefrontAppearance =>
-    readStorage(STORAGE_KEYS.APPEARANCE, DEFAULT_APPEARANCE),
+  getAppearance: (): StorefrontAppearance => {
+    const raw = readStorage(STORAGE_KEYS.APPEARANCE, DEFAULT_APPEARANCE);
+    if (!raw || !raw.brandName || raw.brandName === 'Coursemart') {
+      const refreshed: StorefrontAppearance = {
+        ...DEFAULT_APPEARANCE,
+        ...raw,
+        brandName: 'DIGITAL WEALTH CREATORS',
+      };
+      writeStorage(STORAGE_KEYS.APPEARANCE, refreshed);
+      return refreshed;
+    }
+    return raw;
+  },
   saveAppearance: (appearance: StorefrontAppearance): void =>
     writeStorage(STORAGE_KEYS.APPEARANCE, appearance),
 

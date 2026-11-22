@@ -228,7 +228,7 @@ export function EventsPage() {
 
   const handleDownloadPreEventBrief = (event: CoursemartEvent, reg: EventRegistration) => {
     const lines = [
-      `COURSEMART PRE-EVENT PREPARATION KIT`,
+      `DIGITAL WEALTH CREATORS (DWC) PRE-EVENT PREPARATION KIT`,
       `======================================`,
       `Event: ${event.title}`,
       `Format: ${EVENT_FORMAT_META[event.format].label}`,

@@ -103,14 +103,14 @@ export function PwaInstallPrompt() {
   return (
     <div
       role="region"
-      aria-label="Install CourseMart Web Application"
+      aria-label="Install Digital Wealth Creators (DWC) Web Application"
       className="fixed bottom-6 right-6 z-40 max-w-sm w-[calc(100vw-3rem)] bg-white dark:bg-[#112240] text-slate-900 dark:text-slate-100 p-4 rounded-2xl shadow-2xl border border-slate-200 dark:border-[#233554] animate-in fade-in slide-in-from-bottom-3 duration-200 print:hidden select-none"
       data-testid="pwa-install-prompt"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-[#d4af37] text-[#0a192f] flex items-center justify-center font-black text-sm shrink-0 shadow-md">
-            {appearance.brandName.charAt(0).toUpperCase()}
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f5c451] via-[#d4af37] to-[#b89728] text-[#0a192f] flex items-center justify-center font-black text-xs tracking-wider shrink-0 shadow-md border border-[#f5c451]/50">
+            DWC
           </div>
           <div className="min-w-0">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-tight">

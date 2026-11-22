@@ -22,7 +22,7 @@ export function EmailBroadcastPanel() {
   const [subject, setSubject] = useState('');
   const [preheader, setPreheader] = useState('');
   const [bodyText, setBodyText] = useState(
-    'Hello Builder,\n\nWe have new training releases, engineering playbooks, and upcoming live workshops waiting inside Coursemart.\n\nExplore the latest release today.'
+    'Hello Builder,\n\nWe have new training releases, wealth creation playbooks, and upcoming live masterclasses waiting inside Digital Wealth Creators (DWC).\n\nExplore the latest release today.'
   );
   const [sending, setSending] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState<{
@@ -47,7 +47,7 @@ export function EmailBroadcastPanel() {
     setSubject(post.title);
     setPreheader(post.excerpt);
     setBodyText(
-      `New Coursemart Guide: ${post.title}\n\n${post.excerpt}\n\nRead the full article at /blog/${post.slug}`
+      `New Digital Wealth Creators Guide: ${post.title}\n\n${post.excerpt}\n\nRead the full article at /blog/${post.slug}`
     );
   };
 
@@ -83,7 +83,7 @@ export function EmailBroadcastPanel() {
       <div style="padding:20px;">
         ${safeParagraphsHtml}
         <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;"/>
-        <p style="font-size:12px;color:#64748b;">You received this message because you opted in on Coursemart.</p>
+        <p style="font-size:12px;color:#64748b;">You received this message because you opted in on Digital Wealth Creators (DWC).</p>
       </div>
     </div>`;
 

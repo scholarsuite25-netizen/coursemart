@@ -100,7 +100,7 @@ export function BlogsPage({ activeCategory }: BlogsPageProps) {
                 Editorial Publication · Insights for Builders & Leaders
               </p>
               <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white text-balance">
-                {activeCategory ? `${activeCategory} Journal` : 'Coursemart Editorial Blogs'}
+                {activeCategory ? `${activeCategory} Journal` : 'Digital Wealth Creators Editorial Blogs'}
               </h1>
               <p className="text-sm sm:text-base text-slate-200 leading-relaxed">
                 {categoryMeta

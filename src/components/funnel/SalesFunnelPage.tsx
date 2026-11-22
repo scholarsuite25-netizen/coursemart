@@ -637,7 +637,7 @@ export function SalesFunnelPage({ slug }: SalesFunnelPageProps) {
 
                   {paymentMethod === 'gtb_whatsapp' && (
                     <div className="p-3 bg-amber-950/40 border border-amber-800/80 rounded-xl text-xs text-amber-200 leading-relaxed">
-                      <strong>GTBank Account:</strong> 0123456789 (CourseMart Digital). After completing checkout, send your transfer screenshot via WhatsApp to +234 803 471 0699 for instant admin activation.
+                      <strong>GTBank Account:</strong> 0123456789 (Digital Wealth Creators / DWC). After completing checkout, send your transfer screenshot via WhatsApp to +234 803 471 0699 for instant admin activation.
                     </div>
                   )}
                 </div>

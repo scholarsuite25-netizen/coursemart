@@ -247,7 +247,7 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   const handlePrintNotes = () => {
     if (!product || !activeLecture) return;
     const printWindow = window.open('', '_blank', 'width=850,height=700');
-    const student = currentUser?.name || 'CourseMart Student';
+    const student = currentUser?.name || 'Digital Wealth Creators Student';
     const notesContent = progress?.notesByLecture[activeLecture.id] || noteDraft || 'No general scratchpad notes entered.';
     const timestampNotes = (progress?.timestampedNotesByLecture?.[activeLecture.id] || [])
       .map((tn) => `<li style="margin-bottom:8px;"><strong>[${tn.timeLabel}]</strong> ${tn.text}</li>`)
@@ -276,7 +276,7 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
 <body>
   <div class="header">
     <div>
-      <div class="badge">CourseMart & Digital Wealth Creators</div>
+      <div class="badge">DIGITAL WEALTH CREATORS (DWC)</div>
       <div class="logo">Official Executive Study Notes</div>
     </div>
     <div style="text-align:right; font-size:12px; color:#64748b;">
@@ -298,7 +298,7 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   <div class="scratchpad">${notesContent}</div>
 
   <div class="footer">
-    Generated from CourseMart LMS Platform &bull; Endorsed by S. B. OMOTOSO &bull; coursemart.ng
+    Generated from Digital Wealth Creators (DWC) LMS Platform &bull; Endorsed by S. B. OMOTOSO
   </div>
   <script>window.onload = function() { setTimeout(function() { window.print(); }, 250); };</script>
 </body>
@@ -314,12 +314,12 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
 
   const handleDownloadNotesDoc = (format: 'doc' | 'txt' = 'doc') => {
     if (!product || !activeLecture) return;
-    const student = currentUser?.name || 'CourseMart Student';
+    const student = currentUser?.name || 'Digital Wealth Creators Student';
     const notesContent = progress?.notesByLecture[activeLecture.id] || noteDraft || 'No scratchpad notes entered.';
     const timestampNotes = progress?.timestampedNotesByLecture?.[activeLecture.id] || [];
 
     if (format === 'txt') {
-      const txt = `COURSEMART & DIGITAL WEALTH CREATORS - STUDY NOTES
+      const txt = `DIGITAL WEALTH CREATORS (DWC) - STUDY NOTES
 =====================================================
 Course:     ${product.title}
 Lecture:    ${activeLecture.title} (${activeLecture.moduleTitle})
@@ -338,7 +338,7 @@ ${notesContent}
 
 =====================================================
 Endorsed by S. B. OMOTOSO (FCIA, MILR, MSc, MNIM)
-coursemart.ng
+DIGITAL WEALTH CREATORS (DWC)
 `;
       const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -365,7 +365,7 @@ h2 { color: #555555; font-size: 13pt; }
 </head>
 <body>
 <div class='header'>
-  <div style='color:#d4af37; font-weight:bold; font-size:10pt;'>COURSEMART & DIGITAL WEALTH CREATORS</div>
+  <div style='color:#d4af37; font-weight:bold; font-size:10pt;'>DIGITAL WEALTH CREATORS (DWC)</div>
   <h1>${product.title}</h1>
   <h2>Lecture: ${activeLecture.title} (${activeLecture.moduleTitle})</h2>
   <div class='meta'>
@@ -376,7 +376,7 @@ h2 { color: #555555; font-size: 13pt; }
 ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.timeLabel}]</b> ${tn.text}</li>`).join('')}</ul>` : '<p>No timestamped notes.</p>'}
 <div class='section'>Scratchpad Notes</div>
 <div class='scratchpad'>${notesContent.replace(/\n/g, '<br/>')}</div>
-<p style='margin-top:20pt; font-size:9pt; color:#64748b;'>Endorsed by S. B. OMOTOSO &bull; CourseMart LMS</p>
+<p style='margin-top:20pt; font-size:9pt; color:#64748b;'>Endorsed by S. B. OMOTOSO &bull; Digital Wealth Creators (DWC) LMS</p>
 </body>
 </html>`;
       const blob = new Blob([docHtml], { type: 'application/msword;charset=utf-8' });

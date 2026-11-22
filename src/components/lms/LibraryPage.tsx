@@ -654,7 +654,7 @@ export function LibraryPage() {
                     Live Chat Channels & Technical Discussion Boards
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                    Access dedicated course cohorts, ask questions directly to instructors, share code snippets, and collaborate with fellow builders right inside Coursemart.
+                    Access dedicated course cohorts, ask questions directly to instructors, share code snippets, and collaborate with fellow builders right inside Digital Wealth Creators (DWC).
                   </p>
                 </div>
 

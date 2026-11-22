@@ -17,7 +17,7 @@ const QUICK_SUGGESTIONS = [
   'Can I request a refund if I am not satisfied?',
   'How do I receive my verified course certificate?',
   'How do I pay via GTB Transfer or Paystack?',
-  'What is included in the CourseMart Pro Membership?',
+  'What is included in the DWC Paid Membership?',
 ];
 
 export function EnquiryAssistantWidget() {
@@ -29,7 +29,7 @@ export function EnquiryAssistantWidget() {
     {
       id: 'welcome',
       sender: 'assistant',
-      text: 'Hi there! I am CourseMart’s AI Enquiry Assistant. How can I help you today with courses, payment options, certificates, or community discussions?',
+      text: 'Hi there! I am the Digital Wealth Creators (DWC) AI Enquiry Assistant. How can I help you today with courses, membership, payments, certificates, or masterclasses?',
       timestamp: 'Just now',
     },
   ]);
@@ -104,7 +104,7 @@ export function EnquiryAssistantWidget() {
   };
 
   const whatsappEscalationUrl = buildWhatsAppUrl(
-    'Hello CourseMart Support, I need human assistance with my enquiry.'
+    'Hello Digital Wealth Creators (DWC) Support, I need human assistance with my enquiry.'
   );
 
   return (
@@ -114,7 +114,7 @@ export function EnquiryAssistantWidget() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          aria-label="Open CourseMart AI Enquiry Assistant"
+          aria-label="Open Digital Wealth Creators AI Enquiry Assistant"
           className="fixed bottom-6 right-6 z-40 h-12 px-4 rounded-full bg-[#0a192f] text-white shadow-2xl border border-slate-700 flex items-center gap-2.5 hover:scale-105 transition-all duration-200 cursor-pointer group"
         >
           <div className="relative">
@@ -135,7 +135,7 @@ export function EnquiryAssistantWidget() {
                 <Bot className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-display text-sm font-bold leading-tight">CourseMart Assistant</h3>
+                <h3 className="font-display text-sm font-bold leading-tight">DWC Assistant</h3>
                 <p className="text-[11px] text-slate-300 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
                   Instant Automated Support

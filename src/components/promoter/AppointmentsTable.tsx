@@ -130,7 +130,7 @@ export function AppointmentsTable({
         ? `Congratulations! Your invitation has been accepted and scheduled on the executive calendar.`
         : `Thank you for your inquiry. Regrettably, this date cannot be accommodated.`,
       `--------------------------------------`,
-      `Digital Wealth Creators / CourseMart Promoter Portal`,
+      `DIGITAL WEALTH CREATORS (DWC) Promoter Portal`,
     ].join('\n');
 
     return buildWhatsAppUrl(message, phoneTarget);

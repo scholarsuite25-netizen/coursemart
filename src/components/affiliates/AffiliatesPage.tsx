@@ -124,7 +124,7 @@ export function AffiliatesPage() {
             Partner & Affiliate Program
           </p>
           <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white text-balance">
-            Earn 25% recurring & product commissions promoting Coursemart offers.
+            Earn 25% recurring & product commissions promoting Digital Wealth Creators (DWC) offers.
           </h1>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
             Join in one click, generate trackable referral links for any Course, Digital Product,
@@ -379,7 +379,7 @@ export function AffiliatesPage() {
                 <div className="p-4 rounded-lg border border-slate-200 bg-slate-50/70 space-y-2">
                   <p className="text-xs font-bold text-slate-800">Ready-to-Share Promo Copy</p>
                   <p className="text-xs text-slate-600 leading-relaxed select-all">
-                    Level up your engineering, AI workflows, and product delivery with Coursemart’s
+                    Level up your engineering, AI workflows, and wealth creation with Digital Wealth Creators (DWC)’s
                     curated courses, templates, and licensed tools. Use my partner link for instant
                     access: {generatedReferralUrl}
                   </p>

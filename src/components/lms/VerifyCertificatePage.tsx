@@ -140,7 +140,7 @@ export function VerifyCertificatePage({ certificateId }: VerifyCertificatePagePr
     <div class="item"><div class="label">Curriculum / Course</div><div class="value">${verificationResult.courseTitle}</div></div>
     <div class="item"><div class="label">Completion Date</div><div class="value">${verificationResult.completionDate}</div></div>
     <div class="item"><div class="label">Issuing Authority</div><div class="value">${verificationResult.authority}</div></div>
-    <div class="footer">Verified by CourseMart Global Registry Engine. Authenticity guarantee valid online at coursemart.ng.</div>
+    <div class="footer">Verified by Digital Wealth Creators (DWC) Global Registry Engine. Authenticity guarantee valid online.</div>
   </div>
   <script>window.onload = function() { setTimeout(function() { window.print(); }, 200); };</script>
 </body>
@@ -174,13 +174,13 @@ export function VerifyCertificatePage({ certificateId }: VerifyCertificatePagePr
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#b48a1c] dark:text-[#f5c451] text-xs font-bold tracking-wider uppercase">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>CourseMart Trust & Safety</span>
+            <span>Digital Wealth Creators Trust & Safety</span>
           </div>
           <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-[#0a192f] dark:text-white tracking-tight">
             Certificate & Credential Verification
           </h1>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Verify the authentic accreditation of any CourseMart digital certificate, issued by{' '}
+            Verify the authentic accreditation of any Digital Wealth Creators (DWC) digital certificate, issued by{' '}
             <strong className="text-slate-900 dark:text-white">{ISSUER_NAME}</strong> under the endorsement of{' '}
             <strong className="text-slate-900 dark:text-white">{ISSUING_AUTHORITY}</strong>.
           </p>
@@ -414,7 +414,7 @@ export function VerifyCertificatePage({ certificateId }: VerifyCertificatePagePr
             <ShieldCheck className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
             <div>
               <strong className="block text-slate-900 dark:text-white">Deterministic Registry</strong>
-              Every CourseMart certificate is cryptographically keyed to the graduate and curriculum ID.
+              Every Digital Wealth Creators certificate is cryptographically keyed to the graduate and curriculum ID.
             </div>
           </div>
           <div className="flex items-start gap-2.5">

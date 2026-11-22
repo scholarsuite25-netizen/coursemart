@@ -21,7 +21,7 @@ export interface ProviderHttpRequest {
 }
 
 const DEFAULT_EMAILBUMP_URL = 'https://emailbump.com/api/v1/emails';
-const DEFAULT_FROM_ADDRESS = 'Coursemart <onboarding@resend.dev>';
+const DEFAULT_FROM_ADDRESS = 'Digital Wealth Creators <onboarding@resend.dev>';
 
 function cleanKey(value: string | undefined): string | null {
   const trimmed = (value || '').trim();
@@ -106,12 +106,12 @@ export function parseSenderAddress(fromAddress: string): { name: string; email: 
   const match = fromAddress.match(/^(.*)<([^>]+)>$/);
   if (match) {
     return {
-      name: match[1].trim() || 'Coursemart',
+      name: match[1].trim() || 'Digital Wealth Creators',
       email: match[2].trim(),
     };
   }
   return {
-    name: 'Coursemart',
+    name: 'Digital Wealth Creators',
     email: fromAddress.trim(),
   };
 }

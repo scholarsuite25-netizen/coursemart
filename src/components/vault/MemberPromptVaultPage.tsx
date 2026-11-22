@@ -737,7 +737,7 @@ function PromptUpgradeModal({ onClose, onUpgrade }: PromptUpgradeModalProps) {
           </div>
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>All Coursemart online video courses included free</span>
+            <span>All Digital Wealth Creators online video courses included free</span>
           </div>
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-400 shrink-0" />

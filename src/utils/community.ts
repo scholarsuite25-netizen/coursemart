@@ -36,7 +36,7 @@ export const DEFAULT_COMMUNITY_CHANNELS: CommunityChannel[] = [
     id: 'chan-announcements',
     slug: 'announcements',
     name: 'Announcements',
-    description: 'Official Coursemart announcements and platform updates.',
+    description: 'Official Digital Wealth Creators (DWC) announcements and platform updates.',
     category: 'announcements',
     visibility: 'public',
     isReadOnly: true,

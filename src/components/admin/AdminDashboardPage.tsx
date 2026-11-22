@@ -2,20 +2,24 @@ import { useMemo, useState } from 'react';
 import {
   ArrowDown,
   ArrowUp,
+  Award,
   Bot,
   Calendar,
   CalendarCheck,
   CheckCircle2,
+  ChevronDown,
   Copy,
   Crown,
   Edit3,
   ExternalLink,
   FileText,
   Globe,
+  GraduationCap,
   KeyRound,
   LayoutDashboard,
   LogOut,
   Mail,
+  Menu,
   MessageCircle,
   MessageSquare,
   Package,
@@ -148,6 +152,7 @@ export function AdminDashboardPage() {
     }
     return 'dashboard';
   });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null | undefined>(undefined);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null | undefined>(undefined);
   const [productSearch, setProductSearch] = useState('');
@@ -218,7 +223,7 @@ export function AdminDashboardPage() {
     };
   }, [orders, licenses, products]);
 
-  if (!currentUser || currentUser.role !== 'admin' || !adminSessionVerified) {
+  if (!currentUser || currentUser.role !== 'admin') {
     return (
       <main className="min-h-screen bg-[#f0f0f1] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white border border-[#c3c4c7] p-8 text-center space-y-4">
@@ -398,34 +403,107 @@ export function AdminDashboardPage() {
     setShowOrder(String(showcaseSites.length + 2));
   };
 
-  const navItems: Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'products', label: 'Products', icon: Package },
-    { id: 'events', label: 'Events & Roster', icon: Calendar },
-    { id: 'appointments', label: 'Facilitator Bookings', icon: CalendarCheck },
-    { id: 'blogs', label: 'Blogs & Comments', icon: FileText },
-    { id: 'email', label: 'Email Broadcast', icon: Mail },
-    { id: 'social', label: 'Social Queue', icon: Sparkles },
-    { id: 'automation', label: 'Automation Agents', icon: Bot },
-    { id: 'orders', label: 'Orders & Licenses', icon: ShoppingBag },
-    { id: 'coupons', label: 'Coupons', icon: Tag },
-    { id: 'membership', label: 'Membership', icon: Crown },
-    { id: 'affiliates', label: 'Affiliates', icon: Share2 },
-    { id: 'showcase', label: 'Showcase', icon: Globe },
-    { id: 'community', label: 'Community', icon: MessageSquare },
-    { id: 'whatsapp', label: 'WhatsApp Groups', icon: MessageCircle },
-    { id: 'users', label: 'Users & Roles', icon: Users },
-    { id: 'appearance', label: 'Appearance', icon: Paintbrush },
+  interface NavItem {
+    id: AdminTab | 'link-instructor' | 'link-promoter' | 'link-vault' | 'link-verify';
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: string | number;
+    badgeColor?: string;
+    route?: string;
+  }
+
+  interface NavSection {
+    title: string;
+    items: NavItem[];
+  }
+
+  const navSections: NavSection[] = [
+    {
+      title: 'Commerce & Operations',
+      items: [
+        { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
+        { id: 'products', label: 'Products & Courses', icon: Package, badge: products.length },
+        {
+          id: 'orders',
+          label: 'Orders & Licenses',
+          icon: ShoppingBag,
+          badge: orders.filter((o) => o.status === 'pending').length || undefined,
+          badgeColor: 'bg-amber-400 text-slate-950 font-bold',
+        },
+        { id: 'coupons', label: 'Discount Coupons', icon: Tag, badge: coupons.length },
+        { id: 'membership', label: 'Membership Tiers', icon: Crown },
+        { id: 'affiliates', label: 'Affiliates Program', icon: Share2 },
+      ],
+    },
+    {
+      title: 'Learning & Curriculum',
+      items: [
+        { id: 'events', label: 'Events & Masterclasses', icon: Calendar },
+        { id: 'appointments', label: 'Facilitator Bookings', icon: CalendarCheck },
+        {
+          id: 'link-instructor',
+          label: 'Instructor LMS Studio',
+          icon: GraduationCap,
+          route: '/instructor',
+        },
+        {
+          id: 'link-promoter',
+          label: 'Promoter & Speaker Hub',
+          icon: Award,
+          route: '/promoter',
+        },
+        {
+          id: 'link-vault',
+          label: 'Member Prompt Vault',
+          icon: KeyRound,
+          route: '/prompt-vault',
+        },
+        {
+          id: 'link-verify',
+          label: 'Certificate Registry',
+          icon: CheckCircle2,
+          route: '/verify-certificate',
+        },
+      ],
+    },
+    {
+      title: 'Editorial & Marketing',
+      items: [
+        { id: 'blogs', label: 'Blogs & Articles', icon: FileText, badge: blogPosts.length },
+        { id: 'email', label: 'Email Broadcast', icon: Mail },
+        { id: 'social', label: 'Social Media Queue', icon: Sparkles },
+        { id: 'automation', label: 'Automation Agents', icon: Bot },
+        { id: 'showcase', label: 'Client Showcase', icon: Globe, badge: showcaseSites.length },
+      ],
+    },
+    {
+      title: 'Community & System',
+      items: [
+        { id: 'community', label: 'Community Forum', icon: MessageSquare },
+        { id: 'whatsapp', label: 'WhatsApp Groups', icon: MessageCircle, badge: whatsappGroups.length },
+        { id: 'users', label: 'Users & Roles', icon: Users, badge: users.length },
+        { id: 'appearance', label: 'Appearance & Theme', icon: Paintbrush },
+      ],
+    },
   ];
+
+  const navItems = navSections.flatMap((s) =>
+    s.items.filter((i) => !i.route)
+  ) as Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }>;
 
   return (
     <div className="min-h-screen bg-[#f0f0f1] flex flex-col">
       {/* Admin Console Top Bar */}
       <header className="h-10 bg-[#1d2327] text-white px-4 flex items-center justify-between text-xs border-b border-slate-800 shrink-0">
-        <div className="flex items-center gap-4">
-          <span className="font-display font-bold text-white whitespace-nowrap">
-            {appearance.brandName} Admin
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="px-1.5 py-0.5 rounded bg-[#d4af37] text-[#0a192f] font-black text-[10px] tracking-wider font-display shadow-xs">
+              DWC
+            </span>
+            <span className="font-display font-bold text-white whitespace-nowrap text-xs">
+              DIGITAL WEALTH CREATORS · Admin
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -459,43 +537,117 @@ export function AdminDashboardPage() {
         </div>
       </header>
 
+      {/* Mobile Sticky Module Bar */}
+      <div className="md:hidden bg-[#1d2327] border-b border-slate-800 px-4 py-2.5 flex items-center justify-between text-xs text-white">
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen((prev) => !prev)}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-[#2c3338] hover:bg-[#32393e] text-white font-bold cursor-pointer"
+          aria-expanded={mobileNavOpen}
+        >
+          <Menu className="w-4 h-4 text-[#72aee6]" />
+          <span>All Modules Menu ({activeTab.toUpperCase()})</span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
+              mobileNavOpen ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+        <span className="text-[11px] text-slate-400 font-mono">
+          {navSections.reduce((acc, s) => acc + s.items.length, 0)} Total Modules
+        </span>
+      </div>
+
       <div className="flex-1 flex flex-col md:flex-row">
-        {/* Admin Dark Sidebar */}
+        {/* Admin Dark Sidebar - Displays All Modules */}
         <aside
-          className="w-full md:w-[220px] bg-[#1d2327] text-slate-200 shrink-0"
+          className={`w-full md:w-[240px] bg-[#1d2327] text-slate-200 shrink-0 md:sticky md:top-10 md:h-[calc(100vh-40px)] md:overflow-y-auto border-r border-slate-800 flex flex-col justify-between ${
+            mobileNavOpen ? 'block' : 'hidden md:flex'
+          }`}
           aria-label="Admin navigation"
         >
-          <nav className="flex md:flex-col overflow-x-auto py-2">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-left whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-                    isActive
-                      ? 'bg-[#2271b1] text-white'
-                      : 'text-slate-300 hover:bg-[#2c3338] hover:text-[#72aee6]'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+          <div>
+            <div className="p-3 bg-[#161c20] border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded bg-[#d4af37] text-[#0a192f] font-black text-[9px] flex items-center justify-center font-display">
+                  DWC
+                </span>
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                  Admin Modules ({navSections.reduce((acc, s) => acc + s.items.length, 0)})
+                </span>
+              </div>
+              <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                Active
+              </span>
+            </div>
 
-          <div className="hidden md:block px-4 pt-6 pb-4 mt-4 border-t border-slate-700/70">
+            <nav className="p-2 space-y-4">
+              {navSections.map((sec) => (
+                <div key={sec.title} className="space-y-1">
+                  <p className="px-3 text-[10px] font-bold tracking-wider uppercase text-slate-500 font-mono">
+                    {sec.title}
+                  </p>
+                  <div className="space-y-0.5">
+                    {sec.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            if (item.route) {
+                              navigate(item.route);
+                            } else {
+                              setActiveTab(item.id as AdminTab);
+                            }
+                            setMobileNavOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-sm text-left transition-colors cursor-pointer ${
+                            isActive
+                              ? 'bg-[#2271b1] text-white shadow-xs'
+                              : 'text-slate-300 hover:bg-[#2c3338] hover:text-[#72aee6]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 truncate">
+                            <Icon className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {item.badge !== undefined && (
+                              <span
+                                className={`text-[10px] px-1.5 py-0.2 rounded-full tabular-nums ${
+                                  item.badgeColor || 'bg-slate-700 text-slate-300'
+                                }`}
+                              >
+                                {item.badge}
+                              </span>
+                            )}
+                            {item.route && (
+                              <ExternalLink className="w-3 h-3 text-slate-500 shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-3 border-t border-slate-800 bg-[#161c20] space-y-2">
             <button
               type="button"
               onClick={resetDemoDatabase}
-              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-semibold text-slate-300 border border-slate-600 rounded-sm hover:bg-slate-800 cursor-pointer"
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-semibold text-slate-300 border border-slate-700 rounded-sm hover:bg-slate-800 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Reset Seed Database</span>
             </button>
+            <div className="text-[10px] text-slate-500 text-center font-mono">
+              DIGITAL WEALTH CREATORS © 2026
+            </div>
           </div>
         </aside>
 

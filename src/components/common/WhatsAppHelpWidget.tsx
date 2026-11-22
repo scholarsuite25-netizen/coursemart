@@ -85,7 +85,7 @@ export function WhatsAppHelpWidget() {
                 <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0a192f]" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold truncate">CourseMart Instant Support</p>
+                <p className="text-xs font-bold truncate">DWC Instant Support</p>
                 <p className="text-[10px] text-emerald-400 font-medium">Online · Direct WhatsApp</p>
               </div>
             </div>

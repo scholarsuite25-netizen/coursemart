@@ -218,7 +218,7 @@ export function CertificateModal({
       <div class="authority-box">
         <div class="sign-line">${ISSUING_AUTHORITY}</div>
         <div class="sign-role">Lead Executive Chancellor & Founder</div>
-        <div class="sign-role">CourseMart Global Learning Academy</div>
+        <div class="sign-role">Digital Wealth Creators Global Learning Academy</div>
       </div>
       <div class="qr-box">
         <img src="${qrDataUri}" alt="Verification QR Code" />
@@ -256,7 +256,7 @@ export function CertificateModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CourseMart-Certificate-${certificateCode}.html`;
+    a.download = `DWC-Certificate-${certificateCode}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -372,7 +372,7 @@ export function CertificateModal({
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Verified Online</span>
               </div>
-              <p className="text-[10px] text-slate-400">coursemart.ng</p>
+              <p className="text-[10px] text-slate-400">digitalwealthcreators.vercel.app</p>
             </div>
           </div>
         </div>

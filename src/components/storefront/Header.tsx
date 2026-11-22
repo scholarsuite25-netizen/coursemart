@@ -142,12 +142,22 @@ export function Header() {
               setFilters((prev) => ({ ...prev, type: 'all', category: 'All', search: '' }));
               goToRoute('/');
             }}
-            className="flex items-center gap-2 font-display text-base sm:text-lg font-extrabold text-white hover:text-[#f5c451] transition-colors whitespace-nowrap cursor-pointer"
+            className="flex items-center gap-2 text-left group cursor-pointer select-none"
+            aria-label="DIGITAL WEALTH CREATORS (DWC) Home"
           >
-            <span className="w-8 h-8 rounded-lg bg-[#d4af37] text-[#0a192f] font-black text-sm flex items-center justify-center shadow-md">
-              {appearance.brandName.charAt(0).toUpperCase()}
+            {/* DWC Monogram Badge */}
+            <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-[#f5c451] via-[#d4af37] to-[#b89728] text-[#0a192f] font-black text-xs sm:text-sm tracking-wider flex items-center justify-center shadow-md shrink-0 border border-[#f5c451]/60 group-hover:scale-105 transition-transform">
+              DWC
             </span>
-            <span className="hidden sm:inline font-bold tracking-tight">{appearance.brandName}</span>
+            {/* Two-Line Brand Name */}
+            <div className="flex flex-col leading-none">
+              <span className="font-display text-[11px] sm:text-[13px] font-extrabold text-white tracking-wider uppercase group-hover:text-[#f5c451] transition-colors whitespace-nowrap">
+                DIGITAL WEALTH
+              </span>
+              <span className="font-display text-[9px] sm:text-[10px] font-bold text-[#f5c451] tracking-widest uppercase mt-0.5 whitespace-nowrap">
+                CREATORS
+              </span>
+            </div>
           </button>
         </div>
 

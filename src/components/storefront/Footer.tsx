@@ -62,13 +62,18 @@ export function Footer() {
       <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 text-sm">
         {/* Column 1: Brand + Direct Call/WhatsApp + Share (4 cols) */}
         <div className="lg:col-span-4 space-y-5">
-          <div className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-md bg-[#d4af37] text-[#0a192f] font-display font-black text-base flex items-center justify-center shrink-0">
-              {appearance.brandName.charAt(0).toUpperCase()}
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#f5c451] via-[#d4af37] to-[#b89728] text-[#0a192f] font-black text-sm tracking-wider flex items-center justify-center shrink-0 shadow-md border border-[#f5c451]/60">
+              DWC
             </span>
-            <p className="font-display text-xl font-extrabold text-white tracking-tight">
-              {appearance.brandName}
-            </p>
+            <div className="flex flex-col leading-tight select-none">
+              <span className="font-display text-base font-extrabold text-white tracking-wider uppercase">
+                DIGITAL WEALTH
+              </span>
+              <span className="font-display text-xs font-bold text-[#f5c451] tracking-widest uppercase">
+                CREATORS
+              </span>
+            </div>
           </div>
 
           <p className="text-slate-300 leading-relaxed max-w-sm">

@@ -134,7 +134,7 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({
                   <Sparkles className="w-5 h-5 text-[#f5c451]" />
                 </span>
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                  Coursemart Community Hub
+                  Digital Wealth Creators Community Hub
                 </h1>
               </div>
               <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">

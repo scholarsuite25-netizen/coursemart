@@ -80,9 +80,8 @@ export function PromoterProfilePage() {
 
               {/* Roles & Executive Summary */}
               <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed font-normal">
-                Chief Executive, Institution Builder, Pioneer AI Literacy Educator & Corporate Governance Specialist. Creator of{' '}
-                <strong className="text-white font-semibold">CourseMart</strong> &{' '}
-                <strong className="text-white font-semibold">Digital Wealth Creators</strong>.
+                Chief Executive, Institution Builder, Pioneer AI Literacy Educator & Corporate Governance Specialist. Visionary Leader of{' '}
+                <strong className="text-white font-semibold">DIGITAL WEALTH CREATORS (DWC)</strong>.
               </p>
 
               {/* Location */}
@@ -229,7 +228,7 @@ export function PromoterProfilePage() {
               Ecosystem Showcase
             </span>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-              CourseMart & Digital Wealth Creators Ecosystem
+              DIGITAL WEALTH CREATORS (DWC) Ecosystem
             </h2>
             <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
               Pioneering high-impact digital education, artificial intelligence literacy, and production software capabilities across Nigeria and West Africa.
@@ -594,7 +593,7 @@ export function PromoterProfilePage() {
               </span>
             </div>
             <div className="text-slate-500 text-[11px]">
-              CourseMart & Tintol Business Services · Executive Secretariat
+              DIGITAL WEALTH CREATORS & Tintol Business Services · Executive Secretariat
             </div>
           </div>
         </section>

@@ -2070,7 +2070,7 @@ export const SEED_PROGRESS: CourseProgress[] = [
 ];
 
 export const DEFAULT_APPEARANCE: StorefrontAppearance = {
-  brandName: 'Coursemart',
+  brandName: 'DIGITAL WEALTH CREATORS',
   accentTheme: 'indigo',
   announcementEnabled: true,
   announcementText:
@@ -2078,9 +2078,9 @@ export const DEFAULT_APPEARANCE: StorefrontAppearance = {
   announcementCoupon: 'LEARN20',
   announcementCountdownEnabled: true,
   announcementEndsAt: '2026-11-26T23:59:59Z',
-  heroTitle: 'Skills, digital products, and tools built for builders.',
+  heroTitle: 'Digital Wealth Creators — High-income skills, products & mastermind tools.',
   heroSubtitle:
-    'Master AI, Vibe Coding, Leadership, Mentorship, and Apps Deployment through structured courses, eBooks, templates, toolkits, and software.',
+    'Master AI, Vibe Coding, Leadership, Mentorship, and Apps Deployment through structured courses, eBooks, templates, toolkits, and software with Digital Wealth Creators (DWC).',
   heroCtaLabel: 'Explore Catalog',
   showFeaturedSection: true,
   showCatalogSection: true,
@@ -2091,7 +2091,7 @@ export const DEFAULT_APPEARANCE: StorefrontAppearance = {
 export const SEED_WHATSAPP_GROUPS: WhatsAppGroup[] = [
   {
     id: 'wag-1',
-    name: 'Coursemart Builders & VIP Announcements',
+    name: 'DIGITAL WEALTH CREATORS (DWC) VIP Announcements',
     description:
       'Public community for product launches, flash coupon codes, and live architecture Q&A.',
     inviteUrl: 'https://chat.whatsapp.com/CoursemartBuildersVIP01',
