@@ -70,7 +70,7 @@ const STORAGE_KEYS = {
   COUPONS: 'cm_db_coupons_ngn_v1',
   REVIEWS: 'cm_db_reviews_v1',
   PROGRESS: 'cm_db_progress_v2',
-  APPEARANCE: 'cm_db_appearance_v3',
+  APPEARANCE: 'cm_db_appearance_dwc_v1',
   WHATSAPP_GROUPS: 'cm_db_whatsapp_groups_v1',
   MEMBERSHIP_PLANS: 'cm_db_membership_plans_ngn_v1',
   USER_MEMBERSHIPS: 'cm_db_user_memberships_ngn_v1',
@@ -260,20 +260,45 @@ export const storageService = {
     writeStorage(STORAGE_KEYS.PROGRESS, progress),
 
   getAppearance: (): StorefrontAppearance => {
+    if (typeof window !== 'undefined') {
+      try {
+        ['cm_db_appearance_v1', 'cm_db_appearance_v2', 'cm_db_appearance_v3'].forEach((k) => {
+          const item = window.localStorage.getItem(k);
+          if (item && item.toLowerCase().includes('coursemart')) {
+            window.localStorage.removeItem(k);
+          }
+        });
+      } catch {
+        // Safe storage fallback
+      }
+    }
     const raw = readStorage(STORAGE_KEYS.APPEARANCE, DEFAULT_APPEARANCE);
-    if (!raw || !raw.brandName || raw.brandName === 'Coursemart') {
+    if (!raw || !raw.brandName || raw.brandName.toLowerCase().includes('coursemart')) {
       const refreshed: StorefrontAppearance = {
         ...DEFAULT_APPEARANCE,
         ...raw,
         brandName: 'DIGITAL WEALTH CREATORS',
+        heroTitle: (!raw?.heroTitle || raw.heroTitle.toLowerCase().includes('coursemart'))
+          ? DEFAULT_APPEARANCE.heroTitle
+          : raw.heroTitle,
+        heroSubtitle: (!raw?.heroSubtitle || raw.heroSubtitle.toLowerCase().includes('coursemart'))
+          ? DEFAULT_APPEARANCE.heroSubtitle
+          : raw.heroSubtitle,
       };
       writeStorage(STORAGE_KEYS.APPEARANCE, refreshed);
       return refreshed;
     }
     return raw;
   },
-  saveAppearance: (appearance: StorefrontAppearance): void =>
-    writeStorage(STORAGE_KEYS.APPEARANCE, appearance),
+  saveAppearance: (appearance: StorefrontAppearance): void => {
+    const sanitized: StorefrontAppearance = {
+      ...appearance,
+      brandName: (!appearance.brandName || appearance.brandName.toLowerCase().includes('coursemart'))
+        ? 'DIGITAL WEALTH CREATORS'
+        : appearance.brandName,
+    };
+    writeStorage(STORAGE_KEYS.APPEARANCE, sanitized);
+  },
 
   getWhatsAppGroups: (): WhatsAppGroup[] =>
     readStorage(STORAGE_KEYS.WHATSAPP_GROUPS, SEED_WHATSAPP_GROUPS),

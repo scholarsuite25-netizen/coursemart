@@ -196,8 +196,13 @@ export function AdminDashboardPage() {
   const [showOrder, setShowOrder] = useState('1');
   const [showError, setShowError] = useState<string | null>(null);
 
-  // Appearance draft state
-  const [appearanceDraft, setAppearanceDraft] = useState<StorefrontAppearance>(appearance);
+  // Appearance draft state (strictly sanitized to DIGITAL WEALTH CREATORS)
+  const [appearanceDraft, setAppearanceDraft] = useState<StorefrontAppearance>(() => ({
+    ...appearance,
+    brandName: (!appearance.brandName || appearance.brandName.toLowerCase().includes('coursemart'))
+      ? 'DIGITAL WEALTH CREATORS'
+      : appearance.brandName,
+  }));
 
   const analytics = useMemo(() => {
     const completedOrders = orders.filter((o) => o.status === 'completed');

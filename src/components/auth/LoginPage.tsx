@@ -486,7 +486,7 @@ export function LoginPage({ mode }: LoginPageProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="student@coursemart.io"
+                  placeholder="member@digitalwealthcreators.ng"
                   className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
                 />
                 {fieldErrors.email && (

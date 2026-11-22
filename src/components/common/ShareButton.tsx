@@ -32,7 +32,7 @@ export function ShareButton({
   }, []);
 
   const resolvedUrl =
-    url || (typeof window !== 'undefined' ? window.location.href : 'https://coursemart.app');
+    url || (typeof window !== 'undefined' ? window.location.href : 'https://digitalwealthcreators.vercel.app');
 
   const handleCopyLink = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {

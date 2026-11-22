@@ -361,7 +361,7 @@ export function SocialQueuePanel() {
         {visibleDrafts.map((draft) => {
           const meta = PLATFORM_META[draft.platform];
           const originUrl =
-            typeof window !== 'undefined' ? window.location.origin : 'https://coursemart.io';
+            typeof window !== 'undefined' ? window.location.origin : 'https://digitalwealthcreators.vercel.app';
           const shareUrl = buildPlatformShareIntentUrl(
             draft.platform,
             draft.content,

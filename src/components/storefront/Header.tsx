@@ -630,6 +630,26 @@ export function Header() {
       {/* Dynamic & Responsive Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t-2 border-[#d4af37] bg-[#0a192f] text-white shadow-2xl animate-in slide-in-from-top-2 max-h-[85vh] overflow-y-auto">
+          {/* Mobile Brand Monogram & Title Banner */}
+          <div className="px-3.5 py-2.5 border-b border-[#1b3155] bg-[#081528] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f5c451] via-[#d4af37] to-[#b89728] text-[#0a192f] font-black text-xs tracking-wider flex items-center justify-center shadow-md shrink-0 border border-[#f5c451]/60">
+                DWC
+              </span>
+              <div className="flex flex-col leading-none">
+                <span className="font-display text-xs font-extrabold text-white tracking-wider uppercase">
+                  DIGITAL WEALTH
+                </span>
+                <span className="font-display text-[10px] font-bold text-[#f5c451] tracking-widest uppercase mt-0.5">
+                  CREATORS
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded bg-[#112240] text-[#f5c451] border border-[#263d66] font-mono font-bold">
+              DWC
+            </span>
+          </div>
+
           {/* Mobile Search */}
           <div className="p-3 border-b border-[#1b3155]">
             <div className="relative">

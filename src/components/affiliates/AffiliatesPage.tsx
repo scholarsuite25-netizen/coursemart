@@ -67,7 +67,7 @@ export function AffiliatesPage() {
   );
 
   const origin =
-    typeof window !== 'undefined' ? window.location.origin : 'https://coursemart.io';
+    typeof window !== 'undefined' ? window.location.origin : 'https://digitalwealthcreators.vercel.app';
 
   const generatedReferralUrl = currentUserAffiliate
     ? selectedProductSlug === 'home'

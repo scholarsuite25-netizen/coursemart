@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { storageService } from '../services/storageService';
+import { DEFAULT_APPEARANCE } from '../data/seedData';
 import type {
   AffiliateConversion,
   AffiliatePayoutRequest,
@@ -427,9 +428,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [progressList, setProgressList] = useState<CourseProgress[]>(() =>
     storageService.getProgressList()
   );
-  const [appearance, setAppearance] = useState<StorefrontAppearance>(() =>
-    storageService.getAppearance()
-  );
+  const [appearance, setAppearance] = useState<StorefrontAppearance>(() => {
+    const app = storageService.getAppearance();
+    if (!app.brandName || app.brandName.toLowerCase().includes('coursemart')) {
+      return { ...app, brandName: 'DIGITAL WEALTH CREATORS' };
+    }
+    return app;
+  });
   const [whatsappGroups, setWhatsappGroups] = useState<WhatsAppGroup[]>(() =>
     storageService.getWhatsAppGroups()
   );
@@ -591,7 +596,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       coupons: (v) => { if (Array.isArray(v)) setCoupons(v as Coupon[]); },
       reviews: (v) => { if (Array.isArray(v)) setReviews(v as ProductReview[]); },
       progress: (v) => { if (Array.isArray(v)) setProgressList(v as CourseProgress[]); },
-      appearance: (v) => { if (v && typeof v === 'object' && !Array.isArray(v)) setAppearance(v as StorefrontAppearance); },
+      appearance: (v) => {
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          const app = v as StorefrontAppearance;
+          if (!app.brandName || app.brandName.toLowerCase().includes('coursemart')) {
+            app.brandName = 'DIGITAL WEALTH CREATORS';
+          }
+          if (!app.heroTitle || app.heroTitle.toLowerCase().includes('coursemart')) {
+            app.heroTitle = DEFAULT_APPEARANCE.heroTitle;
+          }
+          if (!app.heroSubtitle || app.heroSubtitle.toLowerCase().includes('coursemart')) {
+            app.heroSubtitle = DEFAULT_APPEARANCE.heroSubtitle;
+          }
+          setAppearance(app);
+          storageService.saveAppearance(app);
+        }
+      },
       whatsapp_groups: (v) => { if (Array.isArray(v)) setWhatsappGroups(v as WhatsAppGroup[]); },
       blog_posts: (v) => { if (Array.isArray(v)) setBlogPosts(v as BlogPost[]); },
       blog_bookmarks: (v) => { if (v && typeof v === 'object' && !Array.isArray(v)) setBlogBookmarksMap(v as Record<string, string[]>); },
@@ -1053,7 +1073,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           const localExisting = usersRef.current.find((u) => u.id === data.user!.id);
           const record: UserAccount = {
             id: data.user.id,
-            name: data.user.name || normalizedEmail.split('@')[0] || 'Coursemart User',
+            name: data.user.name || normalizedEmail.split('@')[0] || 'Digital Wealth Creators Member',
             email: data.user.email || normalizedEmail,
             // Keep the local verifier when we already have one; otherwise hash
             // the typed password so offline sign-in never stores plaintext.
@@ -1203,7 +1223,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       );
       showToast(
         optIn
-          ? 'Subscribed to Coursemart weekly updates & event invites'
+          ? 'Subscribed to DIGITAL WEALTH CREATORS weekly updates & event invites'
           : 'Unsubscribed from marketing emails'
       );
     },
@@ -2769,7 +2789,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const updateAppearance = useCallback(
     (nextAppearance: StorefrontAppearance) => {
-      setAppearance(nextAppearance);
+      const sanitized: StorefrontAppearance = {
+        ...nextAppearance,
+        brandName: (!nextAppearance.brandName || nextAppearance.brandName.toLowerCase().includes('coursemart'))
+          ? 'DIGITAL WEALTH CREATORS'
+          : nextAppearance.brandName,
+      };
+      setAppearance(sanitized);
+      storageService.saveAppearance(sanitized);
       showToast('Storefront appearance published');
     },
     [showToast]
@@ -3607,7 +3634,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         `*Audience Size:* ~${newBooking.audienceSize}`,
         `*Objectives:* ${newBooking.objectives}`,
         `--------------------------------------`,
-        `Sent from CourseMart Promoter Portal`,
+        `Sent from DIGITAL WEALTH CREATORS (DWC) Promoter Portal`,
       ];
 
       const whatsappUrl = buildWhatsAppUrl(messageLines.join('\n'), '2348034710699');

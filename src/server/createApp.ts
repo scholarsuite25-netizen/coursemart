@@ -451,6 +451,7 @@ const SYNC_KEYS = [
 const ALLOWED_STORE_KEYS = new Set<string>(SYNC_KEYS);
 
 async function readStoreKeyValue(key: string): Promise<unknown | undefined> {
+  let resVal: unknown | undefined;
   const supabase = createServerSupabaseClient();
   if (supabase) {
     try {
@@ -460,14 +461,24 @@ async function readStoreKeyValue(key: string): Promise<unknown | undefined> {
         .eq('key', key)
         .maybeSingle();
       if (!error && data?.value !== undefined && data.value !== null) {
-        return data.value;
+        resVal = data.value;
       }
     } catch {
       // Fall back to the local runtime store below.
     }
   }
-  const localData = readLocalRuntimeStore();
-  return key in localData ? localData[key] : undefined;
+  if (resVal === undefined) {
+    const localData = readLocalRuntimeStore();
+    resVal = key in localData ? localData[key] : undefined;
+  }
+  if (key === 'appearance' && resVal && typeof resVal === 'object' && !Array.isArray(resVal)) {
+    const rec = { ...(resVal as Record<string, unknown>) };
+    if (!rec.brandName || String(rec.brandName).toLowerCase().includes('coursemart')) {
+      rec.brandName = 'DIGITAL WEALTH CREATORS';
+    }
+    return rec;
+  }
+  return resVal;
 }
 
 const rateBucket = new Map<string, { count: number; resetAt: number }>();
@@ -1256,7 +1267,7 @@ export function createApiApp() {
         return;
       }
 
-      const prompt = `Create 3 concise, high-engagement social media drafts promoting this Coursemart ${sourceType}:
+      const prompt = `Create 3 concise, high-engagement social media drafts promoting this DIGITAL WEALTH CREATORS ${sourceType}:
 Title: "${sourceTitle}"
 Summary: "${String(summary || sourceTitle)}"
 Category: "${category}"
@@ -2135,7 +2146,7 @@ Requirements:
         try {
           const aiResponse = await ai.models.generateContent({
             model: GEMINI_MODEL,
-            contents: `You are an expert CourseMart academic tutor and customer support assistant. Provide a helpful, concise answer (maximum 3 sentences) to this user inquiry: "${cleanQ}". Context: ${JSON.stringify(context || {})}`,
+            contents: `You are an expert DIGITAL WEALTH CREATORS academic tutor and customer support assistant. Provide a helpful, concise answer (maximum 3 sentences) to this user inquiry: "${cleanQ}". Context: ${JSON.stringify(context || {})}`,
             config: {
               systemInstruction: 'Answer professionally and concisely in under 60 words. No hype.',
             },
@@ -2619,7 +2630,7 @@ Requirements:
 
       const bundleContent = [
         `================================================================================`,
-        `CourseMart Verified Digital Asset Delivery: ${product.title}`,
+        `DIGITAL WEALTH CREATORS Verified Digital Asset Delivery: ${product.title}`,
         `================================================================================`,
         `Product ID: ${product.id}`,
         `Slug: ${product.slug}`,

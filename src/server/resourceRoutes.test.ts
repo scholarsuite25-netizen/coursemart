@@ -295,9 +295,9 @@ describe('Resource Download Token & Gated Asset Delivery Routes (R3)', () => {
 
       // Verify deliverable content
       const body = await dlRes.text();
-      assert.match(body, /CourseMart Verified Digital/);
+      assert.match(body, /(CourseMart|DIGITAL WEALTH CREATORS) Verified Digital/);
       assert.match(body, /Product ID: prod-course-1/);
-      assert.match(body, /CourseMart LMS Anti-Copy Protection/);
+      assert.match(body, /(CourseMart|DIGITAL WEALTH CREATORS).*Anti-Copy Protection/);
     });
   });
 });

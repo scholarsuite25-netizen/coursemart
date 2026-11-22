@@ -105,7 +105,7 @@ export function buildDeterministicSocialDrafts(input: {
   category?: string;
 }): Array<Omit<SocialPostDraft, 'id' | 'status' | 'createdAt' | 'updatedAt'>> {
   const baseTag = (input.category || 'Engineering').replace(/[^a-zA-Z0-9]/g, '');
-  const nowHashtags = ['#Coursemart', `#${baseTag || 'Tech'}`, '#VibeCoding'];
+  const nowHashtags = ['#DigitalWealthCreators', `#${baseTag || 'Tech'}`, '#VibeCoding'];
 
   return [
     {
@@ -113,7 +113,7 @@ export function buildDeterministicSocialDrafts(input: {
       sourceId: input.sourceId,
       sourceTitle: input.sourceTitle,
       platform: 'linkedin',
-      content: `${input.sourceTitle}\n\n${input.summary}\n\nExplore full details and resources on Coursemart: ${input.targetPath}`,
+      content: `${input.sourceTitle}\n\n${input.summary}\n\nExplore full details and resources on DIGITAL WEALTH CREATORS: ${input.targetPath}`,
       hashtags: [...nowHashtags, '#SoftwareArchitecture'],
       generatedBy: 'template',
     },
@@ -122,7 +122,7 @@ export function buildDeterministicSocialDrafts(input: {
       sourceId: input.sourceId,
       sourceTitle: input.sourceTitle,
       platform: 'x',
-      content: `New on Coursemart: ${input.sourceTitle} — ${input.summary.slice(0, 140)} ${input.targetPath}`,
+      content: `New on DIGITAL WEALTH CREATORS: ${input.sourceTitle} — ${input.summary.slice(0, 140)} ${input.targetPath}`,
       hashtags: nowHashtags,
       generatedBy: 'template',
     },

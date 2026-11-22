@@ -801,6 +801,13 @@ export function filterStoreValueForRead(
   }
 
   if (PUBLIC_READ_KEYS.has(key)) {
+    if (key === 'appearance' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const rec = { ...(value as Record<string, unknown>) };
+      if (!rec.brandName || String(rec.brandName).toLowerCase().includes('coursemart')) {
+        rec.brandName = 'DIGITAL WEALTH CREATORS';
+      }
+      return rec;
+    }
     if (key === 'event_registrations' && !ctx.isAdmin) {
       // Attendee contact details are admin-only; everyone else gets a
       // capacity-safe, PII-stripped view (server enforces duplicate emails).
