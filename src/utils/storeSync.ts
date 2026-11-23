@@ -57,6 +57,7 @@ export const PUBLIC_READ_KEYS = new Set([
   'community_messages',
   'forum_threads',
   'forum_replies',
+  'tutorials',
 ]);
 
 /** Keys only an admin session may read. */
@@ -75,6 +76,7 @@ export const ADMIN_WRITE_KEYS = new Set([
   'blog_posts',
   'community_channels',
   'agent_incidents',
+  'tutorials',
 ]);
 
 /** Personal array keys: session-scoped, owner-filtered (admin sees/writes all). */

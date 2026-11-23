@@ -103,6 +103,7 @@ export function buildDeterministicSocialDrafts(input: {
   summary: string;
   targetPath: string;
   category?: string;
+  imageUrl?: string;
 }): Array<Omit<SocialPostDraft, 'id' | 'status' | 'createdAt' | 'updatedAt'>> {
   const baseTag = (input.category || 'Engineering').replace(/[^a-zA-Z0-9]/g, '');
   const nowHashtags = ['#DigitalWealthCreators', `#${baseTag || 'Tech'}`, '#VibeCoding'];
@@ -115,6 +116,8 @@ export function buildDeterministicSocialDrafts(input: {
       platform: 'linkedin',
       content: `${input.sourceTitle}\n\n${input.summary}\n\nExplore full details and resources on DIGITAL WEALTH CREATORS: ${input.targetPath}`,
       hashtags: [...nowHashtags, '#SoftwareArchitecture'],
+      targetUrl: input.targetPath,
+      imageUrl: input.imageUrl,
       generatedBy: 'template',
     },
     {
@@ -124,6 +127,41 @@ export function buildDeterministicSocialDrafts(input: {
       platform: 'x',
       content: `New on DIGITAL WEALTH CREATORS: ${input.sourceTitle} — ${input.summary.slice(0, 140)} ${input.targetPath}`,
       hashtags: nowHashtags,
+      targetUrl: input.targetPath,
+      imageUrl: input.imageUrl,
+      generatedBy: 'template',
+    },
+    {
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      sourceTitle: input.sourceTitle,
+      platform: 'instagram',
+      content: `${input.sourceTitle}\n\n${input.summary}\n\nLink in bio / visit: ${input.targetPath}\n\n${nowHashtags.join(' ')}`,
+      hashtags: nowHashtags,
+      targetUrl: input.targetPath,
+      imageUrl: input.imageUrl,
+      generatedBy: 'template',
+    },
+    {
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      sourceTitle: input.sourceTitle,
+      platform: 'facebook',
+      content: `${input.sourceTitle}\n\n${input.summary}\n\nRead more at DIGITAL WEALTH CREATORS: ${input.targetPath}`,
+      hashtags: nowHashtags,
+      targetUrl: input.targetPath,
+      imageUrl: input.imageUrl,
+      generatedBy: 'template',
+    },
+    {
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      sourceTitle: input.sourceTitle,
+      platform: 'youtube',
+      content: `${input.sourceTitle}\n\n${input.summary}\n\nOfficial tutorial & resources: ${input.targetPath}\n\nTimestamps:\n00:00 - Introduction\n01:30 - Core Concept\n05:00 - Implementation & Takeaways`,
+      hashtags: [...nowHashtags, '#YouTubeLearning'],
+      targetUrl: input.targetPath,
+      imageUrl: input.imageUrl,
       generatedBy: 'template',
     },
     {
@@ -133,6 +171,8 @@ export function buildDeterministicSocialDrafts(input: {
       platform: 'whatsapp_group',
       content: `*${input.sourceTitle}*\n\n${input.summary}\n\nOpen here: ${input.targetPath}\n\n_(Copy & paste manually into your official WhatsApp Community group — zero automated blasting)_`,
       hashtags: [],
+      targetUrl: input.targetPath,
+      imageUrl: input.imageUrl,
       generatedBy: 'template',
     },
   ];
@@ -149,6 +189,11 @@ export function buildPlatformShareIntentUrl(
   if (platform === 'linkedin') {
     return `https://www.linkedin.com/feed/?shareActive=true&mini=true&text=${encodeURIComponent(`${text}\n\n${url}`)}`;
   }
-  // WhatsApp group posts stay strictly manual copy/paste or user-initiated composer
-  return `https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`;
+  if (platform === 'facebook') {
+    return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+  }
+  if (platform === 'whatsapp_group') {
+    return `https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`;
+  }
+  return null;
 }

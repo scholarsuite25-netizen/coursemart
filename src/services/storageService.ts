@@ -52,6 +52,7 @@ import type {
   WhatsAppGroup,
 } from '../types/marketplace';
 import type { CalendarEngagement, FacilitatorBooking } from '../types/promoter';
+import type { DocumentTutorial } from '../types/tutorial';
 
 import {
   migrateLegacyTier,
@@ -88,6 +89,7 @@ const STORAGE_KEYS = {
   FORUM_REPLIES: 'cm_db_forum_replies_v1',
   FACILITATOR_BOOKINGS: 'cm_db_facilitator_bookings_v1',
   CALENDAR_ENGAGEMENTS: 'cm_db_calendar_engagements_v1',
+  TUTORIALS: 'cm_db_tutorials_v1',
   ACTIVE_REFERRAL_CODE: 'cm_session_ref_code_v1',
   CART: 'cm_session_cart_ngn_v1',
   WISHLIST: 'cm_session_wishlist_v1',
@@ -216,6 +218,139 @@ export const SEED_FACILITATOR_BOOKINGS: FacilitatorBooking[] = [
   },
 ];
 
+export const SEED_TUTORIALS: DocumentTutorial[] = [
+  {
+    id: 'tut-ai-agents-automation',
+    slug: 'building-autonomous-multi-model-ai-agents-with-typescript',
+    title: 'Building Autonomous Multi-Model AI Agents with TypeScript',
+    subtitle: 'From local semantic proxies to offline-deterministic test harnesses',
+    description:
+      'A comprehensive, production-grade guide to engineering autonomous multi-agent systems with loopback failover and zero token waste.',
+    category: 'AI & Engineering',
+    authorId: 'user-admin-1',
+    authorName: 'Chief AI Architect',
+    authorRole: 'Lead Systems Architect',
+    authorAvatar:
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&crop=faces',
+    coverImage:
+      'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=630&fit=crop',
+    difficulty: 'intermediate',
+    readTimeMinutes: 12,
+    estimatedMinutes: 12,
+    status: 'published',
+    featured: true,
+    publishedAt: '2026-11-20T10:00:00.000Z',
+    createdAt: '2026-11-20T10:00:00.000Z',
+    updatedAt: '2026-11-22T14:30:00.000Z',
+    tags: ['AI Agents', 'TypeScript', 'System Architecture', 'Automation'],
+    seoTitle: 'Building Autonomous Multi-Model AI Agents with TypeScript',
+    seoDescription:
+      'Master autonomous multi-model agent engineering with TypeScript, deterministic mocks, and zero-token semantic caching.',
+    steps: [
+      {
+        id: 'tut-step-1-1',
+        stepNumber: 1,
+        title: 'Architecting the Local Semantic AI Proxy',
+        description:
+          'Configure an HTTP reverse proxy that intercepts all model calls and evaluates deterministic SHA-256 prompt hashes to guarantee zero token leakage.',
+        codeSnippet: `import http from 'node:http';\nimport crypto from 'node:crypto';\n\nconst cache = new Map<string, string>();\n\nexport function createSemanticProxy(port = 8080) {\n  return http.createServer(async (req, res) => {\n    // Intercept and cache requests\n  }).listen(port);\n}`,
+        codeLanguage: 'ts',
+        calloutType: 'tip',
+        calloutNote: 'Always verify port 8080 availability before binding the proxy service.',
+        checklist: [
+          'Set GOOGLE_GEMINI_BASE_URL',
+          'Verify SHA-256 prompt hashing',
+          'Validate 4096 output token clamp',
+        ],
+        durationMinutes: 4,
+      },
+      {
+        id: 'tut-step-1-2',
+        stepNumber: 2,
+        title: 'Implementing Fallback Model Failover Matrix',
+        description:
+          'Establish a priority ladder cascading from high-speed Groq and OpenRouter free tiers to Gemini AI Studio to eliminate 429 rate limit outages.',
+        codeSnippet: `const MODEL_FALLBACK_CHAIN = [\n  'qwen/qwen3.8-27b',\n  'openai/gpt-oss-120b',\n  'gemini-3.8-flash'\n];`,
+        codeLanguage: 'ts',
+        calloutType: 'info',
+        calloutNote: 'Transparent failovers preserve caller state without triggering exception cascades.',
+        checklist: ['Map provider rate limit codes', 'Construct exponential backoff retry handler'],
+        durationMinutes: 4,
+      },
+      {
+        id: 'tut-step-1-3',
+        stepNumber: 3,
+        title: 'Offline Deterministic Test Isolation',
+        description:
+          'Ensure that all unit and integration test runners mock external network endpoints completely, maintaining zero API token consumption during test runs.',
+        codeSnippet: `import test from 'node:test';\nimport assert from 'node:assert/strict';\n\ntest('offline agent execution', async () => {\n  // Deterministic local mock\n});`,
+        codeLanguage: 'ts',
+        calloutType: 'warning',
+        calloutNote: 'Never allow CI or test processes to dial live billable API endpoints.',
+        checklist: ['Stub fetch in test suite setup', 'Run test runner offline with exit code 0'],
+        durationMinutes: 4,
+      },
+    ],
+  },
+  {
+    id: 'tut-seo-indexing-masterclass',
+    slug: 'automated-search-indexing-technical-seo-pipeline-architecture',
+    title: 'Automated Search Indexing & Technical SEO Pipeline Architecture',
+    subtitle: 'From dynamic sitemaps and JSON-LD schema to Google Indexing API automation',
+    description:
+      'Learn how to construct a fully automated, crawler-compliant technical SEO pipeline with dynamic XML feeds, WebSub notifications, and instant search engine pings.',
+    category: 'SEO & Growth',
+    authorId: 'user-admin-1',
+    authorName: 'Cephas Growth Lead',
+    authorRole: 'Platform Lead',
+    authorAvatar:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces',
+    coverImage:
+      'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=1200&h=630&fit=crop',
+    difficulty: 'beginner',
+    readTimeMinutes: 8,
+    estimatedMinutes: 8,
+    status: 'published',
+    featured: true,
+    publishedAt: '2026-11-21T08:00:00.000Z',
+    createdAt: '2026-11-21T08:00:00.000Z',
+    updatedAt: '2026-11-22T16:00:00.000Z',
+    tags: ['SEO', 'Search Indexing', 'JSON-LD', 'Google API'],
+    seoTitle: 'Automated Search Indexing & Technical SEO Pipeline Architecture',
+    seoDescription:
+      'Step-by-step guide to automated search indexing, dynamic XML sitemaps, JSON-LD Schema.org markup, and WebSub syndication.',
+    steps: [
+      {
+        id: 'tut-step-2-1',
+        stepNumber: 1,
+        title: 'Dynamic XML Sitemap and Robots.txt Generation',
+        description:
+          'Implement streaming XML sitemaps that aggregate published courses, blog posts, and tutorials with accurate lastmod dates and priority weights.',
+        codeSnippet: `export function generateSitemapXml(products, blogPosts, tutorials, baseUrl) {\n  // Build XML with valid namespaces and strict escaping\n}`,
+        codeLanguage: 'ts',
+        calloutType: 'info',
+        calloutNote:
+          'Always strictly escape XML entities (&, <, >, ", \') to avoid XML parsing errors.',
+        checklist: ['Set proper Content-Type header', 'Filter only published content items'],
+        durationMinutes: 4,
+      },
+      {
+        id: 'tut-step-2-2',
+        stepNumber: 2,
+        title: 'Automating Google Indexing API & WebSub Hub Notifications',
+        description:
+          'Dispatch URL_UPDATED and URL_DELETED payloads upon content publication so search crawlers index updates within minutes.',
+        codeSnippet: `await publishGoogleIndexingNotification(url, 'URL_UPDATED', credentials);`,
+        codeLanguage: 'ts',
+        calloutType: 'tip',
+        calloutNote: 'WebSub hub pings notify RSS readers and syndicators immediately.',
+        checklist: ['Configure service account credentials', 'Add rate limiting to dispatch endpoint'],
+        durationMinutes: 4,
+      },
+    ],
+  },
+];
+
 export const storageService = {
   getProducts: (): Product[] => {
     const list = readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
@@ -234,6 +369,10 @@ export const storageService = {
 
   getBlogPosts: (): BlogPost[] => readStorage(STORAGE_KEYS.BLOGS, SEED_BLOG_POSTS),
   saveBlogPosts: (posts: BlogPost[]): void => writeStorage(STORAGE_KEYS.BLOGS, posts),
+
+  getTutorials: (): DocumentTutorial[] => readStorage(STORAGE_KEYS.TUTORIALS, SEED_TUTORIALS),
+  saveTutorials: (tutorials: DocumentTutorial[]): void =>
+    writeStorage(STORAGE_KEYS.TUTORIALS, tutorials),
 
   getBlogBookmarksMap: (): Record<string, string[]> =>
     readStorage(STORAGE_KEYS.BLOG_BOOKMARKS, { 'user-student-1': ['blog-1'] }),

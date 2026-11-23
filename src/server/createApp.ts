@@ -51,11 +51,25 @@ import type {
   Order,
   Coupon,
   SocialPostDraft,
+  SocialPlatform,
   AgentIncident,
   UserMembership,
   UserAccount,
   EventItem,
 } from '../types/marketplace.ts';
+import type { DocumentTutorial } from '../types/tutorial.ts';
+import {
+  generateSitemapXml,
+  generateRobotsTxt,
+  generateRssFeedXml,
+} from '../utils/seoEngine.ts';
+import { dispatchSearchIndexing } from '../utils/indexingDispatcher.ts';
+import { publishSocialPost } from '../utils/socialSyndication.ts';
+import {
+  repurposeYouTubeToCourse,
+  generateYouTubeCourseSocialSnippets,
+  parseYouTubeVideoId,
+} from '../utils/youtubeRepurposer.ts';
 import {
   processScheduledBlogPosts,
   buildEnquiryResponse,
@@ -457,6 +471,7 @@ const SYNC_KEYS = [
   'forum_threads',
   'forum_replies',
   'agent_incidents',
+  'tutorials',
 ] as const;
 
 const ALLOWED_STORE_KEYS = new Set<string>(SYNC_KEYS);
@@ -593,6 +608,15 @@ export function createApiApp() {
       return false;
     }
     return true;
+  };
+
+  // Authorization helper for agent admin endpoints (accepts admin session or CRON_SECRET)
+  const isAgentAuthorized = (req: Request): boolean => {
+    if (readAdminSession(req)) return true;
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
+    if (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true') return true;
+    return false;
   };
 
   const setSessionCookie = (res: Response, name: string, token: string, maxAgeSec: number, req: Request) => {
@@ -857,6 +881,274 @@ export function createApiApp() {
       emailProvidersConfigured: emailState.configuredProviders,
       hasGeminiKey: Boolean(createGeminiClient()),
     });
+  });
+
+  function resolveBaseUrl(req: Request): string {
+    const host = req.get('x-forwarded-host') || req.get('host') || 'digitalwealthcreators.vercel.app';
+    const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+    return `${proto}://${host}`;
+  }
+
+  // --------------------------------------------------------------------------
+  // SEO & Syndication Routes (Sitemap, Robots, RSS, Indexing)
+  // --------------------------------------------------------------------------
+  const handleSitemap = async (req: Request, res: Response) => {
+    try {
+      const baseUrl = resolveBaseUrl(req);
+      const products = await getEffectiveProducts();
+      const rawPosts = await readStoreKeyValue('blog_posts');
+      const blogPosts = Array.isArray(rawPosts)
+        ? rawPosts.filter((p): p is BlogPost => Boolean(p && typeof p === 'object'))
+        : [];
+      const rawTutorials = await readStoreKeyValue('tutorials');
+      const tutorials = Array.isArray(rawTutorials)
+        ? rawTutorials.filter((t): t is DocumentTutorial => Boolean(t && typeof t === 'object'))
+        : [];
+
+      const xml = generateSitemapXml(products, blogPosts, tutorials, baseUrl);
+      res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+      res.send(xml);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to generate sitemap';
+      res.status(500).setHeader('Content-Type', 'text/plain').send(`Error generating sitemap: ${msg}`);
+    }
+  };
+
+  app.get('/sitemap.xml', handleSitemap);
+  app.get('/api/sitemap.xml', handleSitemap);
+
+  const handleRobots = (req: Request, res: Response) => {
+    try {
+      const baseUrl = resolveBaseUrl(req);
+      const robots = generateRobotsTxt(baseUrl);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.send(robots);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to generate robots.txt';
+      res.status(500).setHeader('Content-Type', 'text/plain').send(`Error generating robots: ${msg}`);
+    }
+  };
+
+  app.get('/robots.txt', handleRobots);
+  app.get('/api/robots.txt', handleRobots);
+
+  const handleRss = async (req: Request, res: Response) => {
+    try {
+      const baseUrl = resolveBaseUrl(req);
+      const products = await getEffectiveProducts();
+      const rawPosts = await readStoreKeyValue('blog_posts');
+      const blogPosts = Array.isArray(rawPosts)
+        ? rawPosts.filter((p): p is BlogPost => Boolean(p && typeof p === 'object'))
+        : [];
+
+      const feed = generateRssFeedXml(blogPosts, products, baseUrl);
+      res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
+      res.send(feed);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to generate RSS feed';
+      res.status(500).setHeader('Content-Type', 'text/plain').send(`Error generating feed: ${msg}`);
+    }
+  };
+
+  app.get('/api/feed.xml', handleRss);
+  app.get('/api/rss.xml', handleRss);
+  app.get('/feed.xml', handleRss);
+  app.get('/rss.xml', handleRss);
+
+  app.post('/api/indexing/submit', async (req, res) => {
+    if (!isAgentAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Administrator session or valid authorization required.' });
+      return;
+    }
+    if (!checkRateLimit(req.ip || 'unknown', 'indexing-submit', 30, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Indexing submission rate limit reached. Please wait a minute.' });
+      return;
+    }
+
+    try {
+      const { url, urls, feedUrl, sitemapUrl, type = 'URL_UPDATED', credentials } = req.body ?? {};
+      const targetUrls: string[] = Array.isArray(urls)
+        ? urls.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+        : typeof url === 'string' && url.trim().length > 0
+        ? [url.trim()]
+        : [];
+
+      const summary = await dispatchSearchIndexing({
+        urls: targetUrls,
+        feedUrl: typeof feedUrl === 'string' && feedUrl.trim() ? feedUrl.trim() : undefined,
+        sitemapUrl: typeof sitemapUrl === 'string' && sitemapUrl.trim() ? sitemapUrl.trim() : undefined,
+        type: type === 'URL_DELETED' ? 'URL_DELETED' : 'URL_UPDATED',
+        credentials,
+      });
+
+      await appendAutomationLog({
+        agent: 'blog-publisher',
+        title: 'Manual search indexing submission',
+        status: summary.ok ? 'success' : 'warning',
+        details: JSON.stringify({
+          submittedUrls: targetUrls,
+          summary,
+        }),
+      });
+
+      res.json({
+        ok: summary.ok,
+        result: summary,
+        summary,
+        timestamp: summary.timestamp,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to dispatch indexing';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Social Publishing Direct Dispatch (Feature 10: Immediate Social Publish)
+  // --------------------------------------------------------------------------
+  app.post('/api/social/publish', async (req, res) => {
+    if (!isAgentAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Unauthorized: Admin authentication required' });
+      return;
+    }
+    if (!checkRateLimit(req.ip || 'unknown', 'social-publish', 30, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Social publish rate limit reached. Please wait a minute.' });
+      return;
+    }
+
+    const {
+      content,
+      draftId,
+      platform,
+      targetUrl,
+      imageUrl,
+      title,
+      summary,
+      draft: inputDraft,
+      secret,
+      config,
+    } = req.body || {};
+
+    if (!content && !draftId && !inputDraft) {
+      res.status(400).json({ ok: false, error: 'Content or draftId is required to publish' });
+      return;
+    }
+
+    try {
+      const rawDrafts = await readStoreKeyValue('social_drafts');
+      const drafts = Array.isArray(rawDrafts)
+        ? rawDrafts.filter((d): d is SocialPostDraft => Boolean(d && typeof d === 'object'))
+        : [];
+      const existingDraft = draftId ? drafts.find((d) => d.id === draftId) : undefined;
+
+      const nowIso = new Date().toISOString();
+      if (existingDraft) {
+        existingDraft.status = 'posted';
+        existingDraft.updatedAt = nowIso;
+        if (content) existingDraft.content = content;
+        if (platform) existingDraft.platform = platform;
+        if (targetUrl) existingDraft.targetUrl = targetUrl;
+        if (imageUrl) existingDraft.imageUrl = imageUrl;
+      }
+
+      const draftToPublish: SocialPostDraft = inputDraft || existingDraft || {
+        id: draftId || `soc-${Date.now()}`,
+        sourceType: 'blog',
+        sourceId: 'manual',
+        sourceTitle: title || 'Immediate Social Post',
+        platform: (platform as SocialPlatform) || 'linkedin',
+        content: content || 'Test content',
+        hashtags: ['AI', 'Tech'],
+        status: 'posted',
+        generatedBy: 'template',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        targetUrl,
+        imageUrl,
+      };
+
+      const result = await publishSocialPost(draftToPublish, {
+        secret: secret || process.env.SOCIAL_WEBHOOK_SECRET,
+        ...(config?.linkedInConfig ? { linkedInConfig: config.linkedInConfig } : {}),
+        ...(config?.instagramConfig ? { instagramConfig: config.instagramConfig } : {}),
+        ...(config?.facebookConfig ? { facebookConfig: config.facebookConfig } : {}),
+        ...(config?.webhookUrl ? { webhookUrl: config.webhookUrl } : {}),
+      });
+
+      if (existingDraft) {
+        if (result.postId) existingDraft.externalPostId = result.postId;
+        existingDraft.dispatchedAt = nowIso;
+      }
+
+      if (existingDraft || drafts.length > 0) {
+        await writeStoreKeyValue('social_drafts', drafts);
+      }
+
+      await appendAutomationLog({
+        agent: 'blog-publisher',
+        title: `Social post published to ${draftToPublish.platform}`,
+        status: result.ok ? 'success' : 'warning',
+        details: JSON.stringify({
+          draftId: draftToPublish.id,
+          platform: draftToPublish.platform,
+          result,
+        }),
+      });
+
+      res.status(200).json({
+        ok: true,
+        status: 'posted',
+        platform: draftToPublish.platform,
+        result,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Social publishing failed';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // YouTube URL Repurposing Engine (Feature 19)
+  // --------------------------------------------------------------------------
+  app.post('/api/repurpose/youtube', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'repurpose-youtube', 30, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Rate limit exceeded for YouTube repurposing. Please wait a minute.' });
+      return;
+    }
+
+    const { youtubeUrl, customTitle, targetPrice, category, level } = req.body || {};
+    if (!youtubeUrl || typeof youtubeUrl !== 'string') {
+      res.status(400).json({ ok: false, error: 'youtubeUrl is required and must be a valid YouTube URL string' });
+      return;
+    }
+
+    const videoId = parseYouTubeVideoId(youtubeUrl);
+    if (!videoId) {
+      res.status(400).json({ ok: false, error: 'Invalid YouTube URL. Please provide a valid watch, embed, or shorts link.' });
+      return;
+    }
+
+    try {
+      const course = repurposeYouTubeToCourse({
+        youtubeUrl,
+        customTitle,
+        targetPrice,
+        category,
+        level,
+      });
+
+      const socialSnippets = generateYouTubeCourseSocialSnippets(course);
+
+      res.status(200).json({
+        ok: true,
+        videoId,
+        course,
+        socialSnippets,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to repurpose YouTube URL';
+      res.status(400).json({ ok: false, error: msg });
+    }
   });
 
   // Supabase KV State Sync + Local File Store Fallback (allowlisted keys, session-scoped)
@@ -1230,12 +1522,14 @@ export function createApiApp() {
           id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           email: cleanEmail,
           name: cleanName === 'Builder' ? cleanEmail.split('@')[0] : cleanName,
-          role: 'student',
+          role: 'customer',
           status: 'active',
           newsletterOptIn: true,
           newsletterOptedInAt: nowIso,
           purchasedProductIds: [],
           enrolledCourseIds: [],
+          password: '',
+          joinedAt: nowIso,
           createdAt: nowIso,
         };
         users.push(newSubscriber);
@@ -1388,7 +1682,7 @@ export function createApiApp() {
       : [];
 
     const topBlog = blogs[0];
-    const featuredCourses = products.filter((p) => p.isPublished !== false).slice(0, 3);
+    const featuredCourses = products.filter((p) => p.status === 'published').slice(0, 3);
     const upcomingEvents = events.slice(0, 2);
 
     const subject = 'Weekly Intelligence Briefing: New Playbooks, Courses & Masterclasses';
@@ -1941,20 +2235,12 @@ Requirements:
       return { due: 0, dispatched: 0, failed: 0, skipped: 0 };
     }
 
-    const webhookUrl = (process.env.SOCIAL_DISPATCH_WEBHOOK_URL || '').trim();
-    if (!webhookUrl) {
-      return {
-        due: due.length,
-        dispatched: 0,
-        failed: 0,
-        skipped: due.length,
-        reason: 'SOCIAL_DISPATCH_WEBHOOK_URL is not configured; drafts remain scheduled for manual copy/paste.',
-      };
-    }
-
     if (dryRun) {
       return { due: due.length, dispatched: 0, failed: 0, skipped: due.length, reason: 'dry run' };
     }
+
+    const webhookUrl = (process.env.SOCIAL_DISPATCH_WEBHOOK_URL || '').trim();
+    const webhookSecret = (process.env.SOCIAL_WEBHOOK_SECRET || '').trim();
 
     let dispatched = 0;
     let failed = 0;
@@ -1962,28 +2248,23 @@ Requirements:
 
     for (const draft of due) {
       try {
-        const response = await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(8_000),
-          body: JSON.stringify({
-            platform: draft.platform,
-            content: draft.content,
-            hashtags: draft.hashtags,
-            sourceType: draft.sourceType,
-            sourceId: draft.sourceId,
-            sourceTitle: draft.sourceTitle,
-            scheduledFor: draft.scheduledFor,
-          }),
+        const result = await publishSocialPost(draft, {
+          webhookUrl: webhookUrl || undefined,
+          secret: webhookSecret || undefined,
         });
-        if (response.ok) {
+
+        if (result.ok) {
           draft.status = 'posted';
           draft.updatedAt = updatedAt;
+          draft.dispatchedAt = updatedAt;
+          if (result.postId) draft.externalPostId = result.postId;
           dispatched += 1;
         } else {
+          draft.error = result.error;
           failed += 1;
         }
-      } catch {
+      } catch (err: unknown) {
+        draft.error = err instanceof Error ? err.message : 'Dispatch failed';
         failed += 1;
       }
     }
@@ -2307,14 +2588,33 @@ Requirements:
     });
   });
 
-  // Authorization helper for agent admin endpoints (accepts admin session or CRON_SECRET)
-  const isAgentAuthorized = (req: Request): boolean => {
-    if (readAdminSession(req)) return true;
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && req.headers.authorization === `Bearer ${cronSecret}`) return true;
-    if (process.env.NODE_ENV !== 'production' && req.headers['x-admin-test'] === 'true') return true;
-    return false;
-  };
+  // --------------------------------------------------------------------------
+  // Dedicated Weekly Newsletter Summary Cron (Vercel: 0 8 * * 1)
+  // --------------------------------------------------------------------------
+  app.get('/api/cron/weekly-newsletter', async (req, res) => {
+    if (!isCronAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Cron authorization required.' });
+      return;
+    }
+    const dryRun =
+      String(req.query.dryRun || '') === '1' ||
+      String(req.query.dryRun || '').toLowerCase() === 'true';
+
+    try {
+      const summaryResult = await dispatchWeeklyNewsletterSummary({ dryRun });
+      res.json({
+        ok: true,
+        timestamp: new Date().toISOString(),
+        dryRun,
+        result: summaryResult,
+      });
+    } catch (err: unknown) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Weekly newsletter summary failed',
+      });
+    }
+  });
 
   // --------------------------------------------------------------------------
   // Agent 1: Scheduled Blog Publisher
@@ -2361,6 +2661,28 @@ Requirements:
 
       if (publishedCount > 0) {
         await writeStoreKeyValue('blog_posts', updatedPosts);
+
+        // Automated search indexing notification dispatch
+        const baseUrl = resolveBaseUrl(req);
+        const publishedUrls = (publishedPosts || []).map((p) => `${baseUrl}/blog/${p.slug || p.id}`);
+        dispatchSearchIndexing({
+          urls: publishedUrls,
+          feedUrl: `${baseUrl}/api/feed.xml`,
+          sitemapUrl: `${baseUrl}/sitemap.xml`,
+          type: 'URL_UPDATED',
+        }).catch((err) => {
+          console.error('[SEO Indexing Dispatcher]', err);
+        });
+
+        await appendAutomationLog({
+          agent: 'blog-publisher',
+          title: 'Automated blog search indexing dispatch',
+          status: 'success',
+          details: JSON.stringify({
+            publishedCount,
+            publishedUrls,
+          }),
+        });
       }
 
       res.json({

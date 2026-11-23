@@ -1,4 +1,4 @@
-export type UserRole = 'customer' | 'instructor' | 'admin';
+export type UserRole = 'customer' | 'instructor' | 'admin' | 'student';
 
 export type ProductType = 'course' | 'ebook' | 'software';
 
@@ -98,6 +98,7 @@ export interface CourseLecture {
   lectureType?: 'video' | 'article' | 'exercise' | 'text' | 'mixed';
   summary: string;
   keyTakeaways: string[];
+  description?: string;
   resourceFileName?: string;
   chapters?: LectureChapterMarker[];
   transcript?: string;
@@ -110,6 +111,7 @@ export interface CourseModule {
   id: string;
   title: string;
   lectures: CourseLecture[];
+  durationMinutes?: number;
   quiz?: CourseQuiz;
 }
 
@@ -189,6 +191,7 @@ export interface Product {
   language: string;
   updatedAt: string;
   status: ProductStatus;
+  isPublished?: boolean;
   featured: boolean;
   bestseller?: boolean;
   isPremium?: boolean;
@@ -487,8 +490,12 @@ export interface UserAccount {
   role: UserRole;
   avatar?: string;
   title?: string;
+  status?: 'active' | 'suspended' | string;
   newsletterOptIn?: boolean;
   newsletterOptedInAt?: string;
+  purchasedProductIds?: string[];
+  enrolledCourseIds?: string[];
+  createdAt?: string;
   joinedAt: string;
 }
 
@@ -654,6 +661,8 @@ export interface CoursemartEvent {
   createdAt: string;
 }
 
+export type EventItem = CoursemartEvent;
+
 export interface EventRegistration {
   id: string;
   eventId: string;
@@ -675,7 +684,13 @@ export interface EventRegistration {
   registeredAt: string;
 }
 
-export type SocialPlatform = 'linkedin' | 'x' | 'whatsapp_group';
+export type SocialPlatform =
+  | 'linkedin'
+  | 'x'
+  | 'whatsapp_group'
+  | 'instagram'
+  | 'facebook'
+  | 'youtube';
 
 export interface SocialPostDraft {
   id: string;
@@ -690,6 +705,12 @@ export interface SocialPostDraft {
   generatedBy: 'gemini' | 'template';
   createdAt: string;
   updatedAt: string;
+  targetUrl?: string;
+  imageUrl?: string;
+  mediaUrl?: string;
+  error?: string;
+  dispatchedAt?: string;
+  externalPostId?: string;
 }
 
 export type EmailBroadcastAudience =

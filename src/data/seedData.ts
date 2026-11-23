@@ -1944,6 +1944,17 @@ export const SEED_REVIEWS: ProductReview[] = [
 
 export const SEED_COUPONS: Coupon[] = [
   {
+    id: 'coup-save85',
+    code: 'SAVE85',
+    discountType: 'percent',
+    value: 85,
+    minSpend: 0,
+    active: true,
+    usageCount: 78,
+    maxUses: 5000,
+    expiresAt: '2028-12-31T23:59:59Z',
+  },
+  {
     id: 'coup-1',
     code: 'LEARN20',
     discountType: 'percent',

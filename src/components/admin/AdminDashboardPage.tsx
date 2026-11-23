@@ -33,6 +33,7 @@ import {
   Trash2,
   Upload,
   Users,
+  Youtube,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import type {
@@ -65,6 +66,7 @@ import { BlogEditorModal } from '../blog/BlogEditorModal';
 import { EmailBroadcastPanel } from './EmailBroadcastPanel';
 import { EventsManagerPanel } from './EventsManagerPanel';
 import { ProductEditorModal } from './ProductEditorModal';
+import { YouTubeRepurposerModal } from './YouTubeRepurposerModal';
 import { SocialQueuePanel } from './SocialQueuePanel';
 import { CommunityModerationPanel } from './CommunityModerationPanel';
 import { AutomationAgentsPanel } from './AutomationAgentsPanel';
@@ -154,6 +156,7 @@ export function AdminDashboardPage() {
   });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null | undefined>(undefined);
+  const [isYouTubeRepurposerOpen, setIsYouTubeRepurposerOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null | undefined>(undefined);
   const [productSearch, setProductSearch] = useState('');
   const [productTypeFilter, setProductTypeFilter] = useState<ProductType | 'all'>('all');
@@ -787,14 +790,24 @@ export function AdminDashboardPage() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h1 className="font-display text-2xl font-bold text-[#1d2327]">Products</h1>
-                <button
-                  type="button"
-                  onClick={() => setEditingProduct(null)}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#2271b1] hover:bg-[#135e96] rounded-sm inline-flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add New</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsYouTubeRepurposerOpen(true)}
+                    className="px-3.5 py-2 text-xs font-semibold text-white bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 rounded-sm inline-flex items-center gap-1.5 cursor-pointer shadow-sm transition"
+                  >
+                    <Youtube className="w-3.5 h-3.5" />
+                    <span>Repurpose YouTube Video</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingProduct(null)}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#2271b1] hover:bg-[#135e96] rounded-sm inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add New</span>
+                  </button>
+                </div>
               </div>
 
               <div className="bg-white border border-[#c3c4c7] p-3 rounded-sm flex flex-wrap items-center justify-between gap-3">
@@ -2557,6 +2570,13 @@ export function AdminDashboardPage() {
             setEditingProduct(undefined);
           }}
           onClose={() => setEditingProduct(undefined)}
+        />
+      )}
+
+      {isYouTubeRepurposerOpen && (
+        <YouTubeRepurposerModal
+          isOpen={isYouTubeRepurposerOpen}
+          onClose={() => setIsYouTubeRepurposerOpen(false)}
         />
       )}
 

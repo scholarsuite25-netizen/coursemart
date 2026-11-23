@@ -285,6 +285,8 @@ export type ParsedAppRoute =
   | { page: 'learn'; productId: string }
   | { page: 'funnel'; slug: string }
   | { page: 'vault' }
+  | { page: 'tutorials-hub' }
+  | { page: 'tutorial-detail'; slug: string }
   | {
       page: 'community';
       subView?: 'chat' | 'forums' | 'thread';
@@ -342,6 +344,15 @@ export function parseAppRoute(route: string): ParsedAppRoute {
   if (cleanPath === '/admin-login') return { page: 'admin-login' };
   if (cleanPath === '/admin' || cleanPath.startsWith('/admin/')) return { page: 'admin' };
   if (cleanPath === '/vault' || cleanPath.startsWith('/vault/')) return { page: 'vault' };
+  if (cleanPath === '/tutorials') return { page: 'tutorials-hub' };
+  if (cleanPath.startsWith('/tutorials/')) {
+    const slug = cleanPath.replace('/tutorials/', '').trim();
+    return slug ? { page: 'tutorial-detail', slug } : { page: 'tutorials-hub' };
+  }
+  if (cleanPath.startsWith('/tutorial/')) {
+    const slug = cleanPath.replace('/tutorial/', '').trim();
+    return slug ? { page: 'tutorial-detail', slug } : { page: 'tutorials-hub' };
+  }
   if (cleanPath.startsWith('/funnel/')) {
     const slug = cleanPath.replace('/funnel/', '').trim();
     return { page: 'funnel', slug: slug || 'ai-saas-accelerator' };

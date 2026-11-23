@@ -30,7 +30,17 @@ export const YouTubeCourseConverterModal: React.FC<YouTubeCourseConverterModalPr
   isOpen,
   onClose,
 }) => {
-  const { currentUser, upsertProduct, showToast, categories } = useStore();
+  const { currentUser, upsertProduct, showToast } = useStore();
+  const categories: string[] = [
+    'Vibe Coding & AI',
+    'Apps Deployment',
+    'Software Engineering',
+    'Developer Tools',
+    'Business & Product',
+    'Leadership',
+    'Mentorship',
+    'Design & UI Systems',
+  ];
 
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [customTitle, setCustomTitle] = useState('');

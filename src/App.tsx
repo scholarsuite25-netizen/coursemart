@@ -8,6 +8,8 @@ import { StorefrontPage } from './components/storefront/StorefrontPage';
 import { EnquiryAssistantWidget } from './components/storefront/EnquiryAssistantWidget';
 import { WhatsAppHelpWidget } from './components/common/WhatsAppHelpWidget';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
+import { TripwireWelcomeModal } from './components/storefront/TripwireWelcomeModal';
+import { ExitIntentModal } from './components/storefront/ExitIntentModal';
 import { parseAppRoute } from './utils/catalogAndBlogs';
 
 // Route-level code splitting: only the shell and the default landing page load
@@ -66,6 +68,11 @@ const SalesFunnelPage = lazy(() =>
 const MemberPromptVaultPage = lazy(() =>
   import('./components/vault/MemberPromptVaultPage').then((m) => ({
     default: m.MemberPromptVaultPage,
+  }))
+);
+const TutorialDetailPage = lazy(() =>
+  import('./components/tutorials/TutorialDetailPage').then((m) => ({
+    default: m.TutorialDetailPage,
   }))
 );
 
@@ -210,6 +217,12 @@ function AppRouter() {
     case 'vault':
       content = <MemberPromptVaultPage />;
       break;
+    case 'tutorials-hub':
+      content = <TutorialDetailPage />;
+      break;
+    case 'tutorial-detail':
+      content = <TutorialDetailPage key={parsed.slug} slug={parsed.slug} />;
+      break;
     case 'promoter':
       content = <PromoterProfilePage />;
       break;
@@ -243,6 +256,8 @@ function AppRouter() {
       <PwaInstallPrompt />
 
       <CartDrawer />
+      <TripwireWelcomeModal />
+      <ExitIntentModal />
 
       {toastMessage && (
         <div

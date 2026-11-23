@@ -51,8 +51,38 @@ const REGISTRATIONS: EventRegistration[] = [
     eventId: 'evt-1',
     eventTitle: 'Seminar A',
     confirmationCode: 'EVT-222222',
-    fullName: 'Carol EventOptIn',
+    fullName: 'Carol Conference',
     email: 'carol@example.com',
+    roleTitle: 'Director',
+    experienceLevel: 'Advanced',
+    attendanceMode: 'Live Virtual',
+    paymentStatus: 'free',
+    newsletterOptIn: true,
+    acknowledgementEmailStatus: 'in_app_ready',
+    registeredAt: '2026-02-01T12:00:00Z',
+  },
+  {
+    id: 'r3',
+    eventId: 'evt-2',
+    eventTitle: 'Seminar B',
+    confirmationCode: 'EVT-333333',
+    fullName: 'David OptedOut',
+    email: 'david@example.com',
+    roleTitle: 'Founder',
+    experienceLevel: 'Beginner',
+    attendanceMode: 'Live Virtual',
+    paymentStatus: 'free',
+    newsletterOptIn: false,
+    acknowledgementEmailStatus: 'in_app_ready',
+    registeredAt: '2026-02-02T00:00:00Z',
+  },
+  {
+    id: 'r4',
+    eventId: 'evt-1',
+    eventTitle: 'Seminar A',
+    confirmationCode: 'EVT-444444',
+    fullName: 'Alice Upper',
+    email: 'ALICE@EXAMPLE.COM',
     roleTitle: 'Founder',
     experienceLevel: 'Beginner',
     attendanceMode: 'Live Virtual',
@@ -104,7 +134,7 @@ test('resolveBroadcastRecipients filters event attendees cleanly', () => {
   assert.equal(missingEventAudience.length, 0);
 });
 
-test('buildDeterministicSocialDrafts generates LinkedIn, X, and strictly manual WhatsApp Group copy', () => {
+test('buildDeterministicSocialDrafts generates drafts for all 6 platforms', () => {
   const drafts = buildDeterministicSocialDrafts({
     sourceType: 'event',
     sourceId: 'evt-1',
@@ -112,15 +142,19 @@ test('buildDeterministicSocialDrafts generates LinkedIn, X, and strictly manual 
     summary: 'Learn full-stack Vercel + Supabase deployment.',
     targetPath: '/events',
     category: 'Apps Deployment',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe',
   });
 
-  assert.equal(drafts.length, 3);
+  assert.equal(drafts.length, 6);
   assert.deepEqual(
     drafts.map((d) => d.platform),
-    ['linkedin', 'x', 'whatsapp_group']
+    ['linkedin', 'x', 'instagram', 'facebook', 'youtube', 'whatsapp_group']
   );
-  assert.match(drafts[2].content, /manual/i);
+  assert.match(drafts[5].content, /manual/i);
 
   const waUrl = buildPlatformShareIntentUrl('whatsapp_group', 'Hello', 'https://coursemart.io');
   assert.match(waUrl || '', /^https:\/\/wa\.me\/\?text=/);
+
+  const fbUrl = buildPlatformShareIntentUrl('facebook', 'Hello', 'https://coursemart.io');
+  assert.equal(fbUrl, 'https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fcoursemart.io');
 });

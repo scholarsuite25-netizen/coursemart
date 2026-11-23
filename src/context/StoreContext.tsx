@@ -42,6 +42,7 @@ import type {
   FacilitatorBooking,
   FacilitatorBookingInput,
 } from '../types/promoter';
+import type { DocumentTutorial } from '../types/tutorial';
 import { buildWhatsAppUrl } from '../utils/whatsapp';
 import {
   buildPreEventAcknowledgementHtml,
@@ -255,6 +256,12 @@ export interface StoreContextValue {
   addBlogComment: (postId: string, body: string) => { ok: boolean; error?: string };
   deleteBlogComment: (postId: string, commentId: string) => void;
 
+  // Document Tutorials & AI Video Guides
+  tutorials: DocumentTutorial[];
+  upsertTutorial: (tutorial: DocumentTutorial) => void;
+  deleteTutorial: (tutorialId: string) => void;
+  toggleTutorialStatus: (tutorialId: string) => void;
+
   // Event Management System
   events: CoursemartEvent[];
   eventRegistrations: EventRegistration[];
@@ -439,6 +446,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     storageService.getWhatsAppGroups()
   );
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => storageService.getBlogPosts());
+  const [tutorials, setTutorials] = useState<DocumentTutorial[]>(() =>
+    storageService.getTutorials()
+  );
   const [blogBookmarksMap, setBlogBookmarksMap] = useState<Record<string, string[]>>(() =>
     storageService.getBlogBookmarksMap()
   );
@@ -557,6 +567,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       community_messages: communityMessages,
       forum_threads: forumThreads,
       forum_replies: forumReplies,
+      tutorials,
     }),
     [
       products,
@@ -584,6 +595,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       communityMessages,
       forumThreads,
       forumReplies,
+      tutorials,
     ]
   );
 
@@ -614,6 +626,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
       whatsapp_groups: (v) => { if (Array.isArray(v)) setWhatsappGroups(v as WhatsAppGroup[]); },
       blog_posts: (v) => { if (Array.isArray(v)) setBlogPosts(v as BlogPost[]); },
+      tutorials: (v) => { if (Array.isArray(v)) setTutorials(v as DocumentTutorial[]); },
       blog_bookmarks: (v) => { if (v && typeof v === 'object' && !Array.isArray(v)) setBlogBookmarksMap(v as Record<string, string[]>); },
       membership_plans: (v) => { if (Array.isArray(v)) setMembershipPlans(v as MembershipPlan[]); },
       user_memberships: (v) => { if (Array.isArray(v)) setUserMemberships(v as UserMembership[]); },
@@ -949,6 +962,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => storageService.saveAppearance(appearance), [appearance]);
   useEffect(() => storageService.saveWhatsAppGroups(whatsappGroups), [whatsappGroups]);
   useEffect(() => storageService.saveBlogPosts(blogPosts), [blogPosts]);
+  useEffect(() => storageService.saveTutorials(tutorials), [tutorials]);
   useEffect(() => storageService.saveBlogBookmarksMap(blogBookmarksMap), [blogBookmarksMap]);
   useEffect(() => storageService.saveMembershipPlans(membershipPlans), [membershipPlans]);
   useEffect(() => storageService.saveUserMemberships(userMemberships), [userMemberships]);
@@ -2900,6 +2914,44 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [showToast]
   );
 
+  const upsertTutorial = useCallback(
+    (tutorial: DocumentTutorial) => {
+      setTutorials((prev) => {
+        const exists = prev.some((t) => t.id === tutorial.id);
+        return exists ? prev.map((t) => (t.id === tutorial.id ? tutorial : t)) : [tutorial, ...prev];
+      });
+      showToast(`Saved tutorial "${tutorial.title}"`);
+    },
+    [showToast]
+  );
+
+  const deleteTutorial = useCallback(
+    (tutorialId: string) => {
+      setTutorials((prev) => prev.filter((t) => t.id !== tutorialId));
+      showToast('Tutorial deleted');
+    },
+    [showToast]
+  );
+
+  const toggleTutorialStatus = useCallback(
+    (tutorialId: string) => {
+      setTutorials((prev) =>
+        prev.map((t) =>
+          t.id === tutorialId
+            ? {
+                ...t,
+                status: t.status === 'published' ? 'draft' : 'published',
+                publishedAt: t.status === 'published' ? undefined : new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }
+            : t
+        )
+      );
+      showToast('Updated tutorial publication status');
+    },
+    [showToast]
+  );
+
   // Event Management actions
   const upsertEvent = useCallback(
     (event: CoursemartEvent) => {
@@ -3788,6 +3840,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     toggleBlogPostStatus,
     addBlogComment,
     deleteBlogComment,
+    tutorials,
+    upsertTutorial,
+    deleteTutorial,
+    toggleTutorialStatus,
     upsertProduct,
     deleteProduct,
     duplicateProduct,

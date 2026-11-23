@@ -36,6 +36,21 @@ const PLATFORM_META: Record<
     badgeClass: 'bg-emerald-100 text-emerald-900',
     helper: 'Safe human copy-paste message (zero automated blasting)',
   },
+  facebook: {
+    label: 'Facebook Post',
+    badgeClass: 'bg-blue-100 text-blue-900',
+    helper: 'Page feed post via Meta Graph API',
+  },
+  instagram: {
+    label: 'Instagram Media',
+    badgeClass: 'bg-pink-100 text-pink-900',
+    helper: 'Media post via Instagram Graph API',
+  },
+  youtube: {
+    label: 'YouTube Video Meta',
+    badgeClass: 'bg-red-100 text-red-900',
+    helper: 'Video upload metadata and chapters',
+  },
 };
 
 export function SocialQueuePanel() {

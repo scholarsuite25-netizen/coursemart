@@ -35,9 +35,29 @@
     {
       "path": "/api/cron/daily-maintenance",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-newsletter",
+      "schedule": "0 8 * * 1"
     }
   ],
   "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/feed.xml",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/rss.xml",
+      "destination": "/api/index"
+    },
     {
       "source": "/api(/.*)?",
       "destination": "/api/index"

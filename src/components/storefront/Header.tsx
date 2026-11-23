@@ -7,6 +7,7 @@ import {
   Code2,
   Crown,
   FileText,
+  Film,
   Globe,
   GraduationCap,
   Heart,
@@ -298,6 +299,21 @@ export function Header() {
                   </span>
                   <span className="text-[9px] font-bold uppercase bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
                     Editorial
+                  </span>
+                </button>
+
+                {/* Document Tutorials & Video Guides */}
+                <button
+                  type="button"
+                  onClick={() => goToRoute('/tutorials')}
+                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer border-b border-slate-100"
+                >
+                  <span className="flex items-center gap-2">
+                    <Film className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Tutorials & Video Guides</span>
+                  </span>
+                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                    Guides
                   </span>
                 </button>
 
@@ -892,6 +908,14 @@ export function Header() {
                   >
                     <span>Member Prompt Vault</span>
                     <span className="text-[9px] bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded">VIP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToRoute('/tutorials')}
+                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-amber-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
+                  >
+                    <span>Tutorials & Video Guides</span>
+                    <span className="text-[9px] bg-amber-900/60 text-amber-200 px-1.5 py-0.5 rounded">AI Video</span>
                   </button>
                   <button
                     type="button"

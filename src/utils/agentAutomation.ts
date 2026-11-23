@@ -72,6 +72,7 @@ export function processScheduledBlogPosts(
             summary: published.excerpt || published.title,
             category: published.category,
             targetPath: `/blog/${published.slug}`,
+            imageUrl: published.coverImage,
           });
           allSocialDrafts.push(...drafts);
         }
