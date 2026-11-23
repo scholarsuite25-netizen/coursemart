@@ -167,7 +167,7 @@ To achieve the executive mandate that **every visitor and free registrant conver
 
 # Section 2: Complete Environment Variables Inventory
 
-The platform relies on 36 environment variables across 8 functional domains. The table below catalogs each variable, its runtime behavior, secret classification, and verified fallback behavior:
+The platform relies on 39 environment variables across 9 functional domains. The table below catalogs each variable, its runtime behavior, secret classification, and verified fallback behavior:
 
 | Variable Name | Purpose & Description | Format & Example | Classification | Fallback / Offline Behavior |
 | :--- | :--- | :--- | :--- | :--- |
@@ -203,10 +203,13 @@ The platform relies on 36 environment variables across 8 functional domains. The
 | `INSTAGRAM_ACCESS_TOKEN` | Meta Graph API Long-Lived Page Access Token for Instagram. | Token: `EAA...` | Secret (Server) | Defaults to `'mock_token'` (offline simulation mode). |
 | `FACEBOOK_PAGE_ID` | Numeric Facebook Page ID used for feed syndication. | Numeric ID: `100293847562918` | Public / Config | Defaults to `'fb_page_1'`. |
 | `FACEBOOK_PAGE_ACCESS_TOKEN` | Meta Graph API Page Access Token with `pages_manage_posts`. | Token: `EAA...` | Secret (Server) | Defaults to `'fb_token'` (offline simulation mode). |
-| `SOCIAL_DISPATCH_WEBHOOK_URL` | Destination webhook URL for post drafts (Zapier/Make/n8n). | HTTPS URL: `https://api.domain.com/webhook/social` | Public / Config | Defaults to `'https://api.site.org/webhook/social'`. |
+| `SOCIAL_DISPATCH_WEBHOOK_URL` | Destination webhook URL for post drafts (Zapier/Make/n8n). Supported alias: `SOCIAL_WEBHOOK_URL`. | HTTPS URL: `https://api.domain.com/webhook/social` | Public / Config | Defaults to `'https://api.site.org/webhook/social'`. |
 | `SOCIAL_WEBHOOK_SECRET` | Secret key used to compute `X-Social-Signature` HMAC header. | 32+ char secret string | Secret (Server) | If unset, webhook payload dispatches without signature. |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | GCP Service Account email delegated as Search Console Owner. | Email: `dwc-indexing@project.iam.gserviceaccount.com` | Public / Config | Passed in request credentials or simulated offline. |
-| `GOOGLE_PRIVATE_KEY` | GCP Service Account RSA Private Key in PEM format. | PEM string: `-----BEGIN PRIVATE KEY-----\n...\n-----END...` | Secret (Server) | Passed in request credentials or simulated offline. |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | GCP Service Account email delegated as Search Console Owner. Supported alias: `GOOGLE_INDEXING_CLIENT_EMAIL`. | Email: `dwc-indexing@project.iam.gserviceaccount.com` | Public / Config | Passed in request credentials or simulated offline. |
+| `GOOGLE_PRIVATE_KEY` | GCP Service Account RSA Private Key in PEM format. Supported alias: `GOOGLE_INDEXING_PRIVATE_KEY`. | PEM string: `-----BEGIN PRIVATE KEY-----\n...\n-----END...` | Secret (Server) | Passed in request credentials or simulated offline. |
+| `GEMINI_API_KEY` | Google Gemini API Studio key for automated AI article drafts and content creation. | Secret key: `AIzaSy...` | Secret (Server) | Optional fallback if using permanent local AI proxy. Offline mock drafts generated in UI if unset. |
+| `GEMINI_MODEL` | Gemini AI model identifier for content generation and student assistant pipelines. | Model name: `gemini-2.5-flash` or `gemini-4-hydrogen` | Public / Config | Defaults to `gemini-2.5-flash` (`gemini-4-hydrogen` in server fallback). |
+| `GOOGLE_GEMINI_BASE_URL` | Permanent local multi-model AI proxy base URL running on port 8080. | HTTP URL: `http://localhost:8080` | Public / Config | Defaults to `http://localhost:8080`. Inherits multi-model pool and auto-failover. |
 
 ---
 
@@ -290,6 +293,14 @@ Follow this step-by-step setup procedure:
 ## 3.4 Google Search Console Property Verification & Owner Delegation
 
 The Google Indexing API requires that the service account email is verified as an **Owner** of the property in Google Search Console. A "Full" or "Restricted" permission level will fail with HTTP 403.
+
+### Architectural Rationale: Why Search Console Strictly Requires Owner Status
+The Google Indexing API provides privileged, real-time write-access to Google's indexing pipelines, enabling near-instant crawling, re-indexing, or immediate purge (`URL_DELETED`) of domain URLs without the safety buffer of standard crawler discovery schedules. Because erroneous or malicious API submissions could instantly poison search results or unindex critical domain pages, Google enforces strict domain verification architecture:
+1. When a notification request reaches `POST https://indexing.googleapis.com/v3/urlNotifications:publish`, Google extracts the service account client email from the signed OAuth 2.0 Bearer JWT token.
+2. The Indexing API backend queries Google Search Console's site ownership verification system to verify whether the requesting entity possesses verified administrative ownership of the target URL's domain or prefix.
+3. In Search Console's role hierarchy, only **Owner** (or Delegated Owner) accounts possess cryptographic authority over domain index mutations. "Full" or "Restricted" permissions grant read-only reporting and performance analysis access inside the Search Console web interface, but do NOT grant ownership-level authority.
+4. If a service account is configured with "Full" or "Restricted" permissions instead of "Owner", the Indexing API rejects the call with:
+   `HTTP 403 Forbidden: Permission denied. Failed to verify the URL ownership.`
 
 1. **Open Google Search Console**:
    - Navigate to [Google Search Console](https://search.google.com/search-console).
@@ -576,12 +587,30 @@ The `author` field in the LinkedIn Posts API requires an authoritative Universal
 
 ## 4.6 Testing & Immediate Dispatch via Platform API
 
-Test your LinkedIn credentials immediately using the in-app publishing endpoint:
+Test your LinkedIn credentials immediately using the in-app publishing endpoint `POST /api/social/publish`.
 
+### Supported Administrative Authentication Mechanisms (`isAgentAuthorized`)
+The server protects `/api/social/publish` through `isAgentAuthorized` (`src/server/createApp.ts`). Requests must supply one of the following 3 valid authentication mechanisms:
+1. **Admin Token Header (`x-admin-token`)** *(Recommended for cURL, CLI automation, and external scripts)*:
+   ```http
+   x-admin-token: <COURSEMART_ADMIN_TOKEN>
+   ```
+2. **Admin Session Cookie** *(Used automatically by browser dashboard sessions)*:
+   ```http
+   Cookie: coursemart_admin_session=<ADMIN_SESSION_TOKEN>; coursemart_admin_role=admin
+   ```
+3. **Cron Secret Bearer Token** *(Used by automated cron jobs and server-to-server webhooks)*:
+   ```http
+   Authorization: Bearer <CRON_SECRET>
+   ```
+
+> ⚠️ **Authentication Warning**: Passing a generic `-H "Authorization: Bearer <ADMIN_TOKEN>"` returns `HTTP 401 Unauthorized`. The server specifically inspects `x-admin-token`, session cookies, or the exact `CRON_SECRET`. In non-production testing, `-H "x-admin-test: true"` is also accepted.
+
+### Executable Test Command
 ```bash
 curl -X POST https://digitalwealthcreators.org.ng/api/social/publish \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <ADMIN_SESSION_TOKEN>" \
+  -H "x-admin-token: <COURSEMART_ADMIN_TOKEN>" \
   -d '{
     "platform": "linkedin",
     "content": "Digital Wealth Creators production syndication test. 🚀",
@@ -687,14 +716,12 @@ The platform integrates directly with **Meta Graph API v21.0** to publish update
 
 Tokens generated in Graph API Explorer expire after 1–2 hours. Production requires a **Permanent Page Access Token**:
 
+> ⚠️ **Critical Production Caveat — Error Code 190**: Never configure short-lived user tokens in production environment variables (`FACEBOOK_PAGE_ACCESS_TOKEN` / `INSTAGRAM_ACCESS_TOKEN`). Once expired (within 60–120 minutes), all automated publishing hooks and background syndication jobs will crash with `OAuthException` error code 190 (`Error validating access token: Session has expired`). Production requires a permanent Page Access Token obtained through the 2-step exchange below.
+
 1. **Step 1: Obtain 60-Day Long-Lived User Token**:
-   Make a GET request replacing `{APP_ID}`, `{APP_SECRET}`, and `{SHORT_LIVED_TOKEN}`:
+   Make a GET request replacing `{APP_ID}`, `{APP_SECRET}`, and `{SHORT_LIVED_TOKEN}`. Keep the URL query string on a single clean line to ensure no leading whitespace corrupts parameter names:
    ```bash
-   curl -X GET "https://graph.facebook.com/v21.0/oauth/access_token?\
-   grant_type=fb_exchange_token\
-   &client_id={APP_ID}\
-   &client_secret={APP_SECRET}\
-   &fb_exchange_token={SHORT_LIVED_TOKEN}"
+   curl -X GET "https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id={APP_ID}&client_secret={APP_SECRET}&fb_exchange_token={SHORT_LIVED_TOKEN}"
    ```
    Response returns `access_token` and `expires_in: 5184000` (60 days).
 
@@ -737,8 +764,19 @@ Content-Type: application/json
 ```
 - **Response**: `{ "id": "18034829105928374" }` (Published Instagram Post ID).
 
-### Media Constraints
+### Media Constraints & Edge Ingestion Architecture
 - **Protocol**: Media URL **must** use public `https://` (`publishToInstagram` enforces `/^https:\/\//i.test(imageUrl)`).
+- **Format**: JPEG or PNG.
+- **Aspect Ratio**: 4:5 to 1.91:1.
+- **Maximum File Size**: 8MB.
+- **Rate Limit**: 100 API-published posts per 24 hours per Instagram account.
+
+#### Why Instagram Media Containers Strictly Require Public HTTPS URLs (Edge Ingestion Architecture)
+When `POST /{ig_user_id}/media` is invoked, Meta does not accept multipart binary payloads or local file attachments. Instead, you supply an `image_url`:
+1. **Asynchronous Edge Ingestion**: Meta's distributed edge ingestion workers process container creation asynchronously. Upon receiving the API call, Meta's edge servers dispatch an outbound HTTP `GET` request directly to your public image host to download the image binary.
+2. **Public Reachability**: If the URL points to `localhost`, an internal network IP (e.g., `10.x.x.x` or `192.168.x.x`), or requires authentication/cookies that Meta's edge crawlers cannot supply, Meta cannot fetch the binary, triggering an immediate container creation failure (`OAuthException: Failed to fetch image from URL`).
+3. **Transport Security (HTTPS)**: Meta strictly enforces public TLS/HTTPS encryption to guarantee data integrity and authenticity during server-to-server asset transfer, preventing intermediate proxy tampering of published brand assets.
+4. **Content-Type Validation**: The hosting server must return an HTTP `200 OK` status with an explicit `Content-Type: image/jpeg` or `image/png` header within Meta's ingestion timeout.
 - **Format**: JPEG or PNG.
 - **Aspect Ratio**: 4:5 to 1.91:1.
 - **Maximum File Size**: 8MB.
@@ -769,12 +807,23 @@ INSTAGRAM_ACCOUNT_ID=17841400123456789
 INSTAGRAM_ACCESS_TOKEN=EAABw...
 ```
 
+### Supported Administrative Authentication Mechanisms (`isAgentAuthorized`)
+As with LinkedIn publishing, `POST /api/social/publish` enforces administrative authorization via `isAgentAuthorized` (`src/server/createApp.ts`). The endpoint accepts:
+1. **Admin Token Header (`x-admin-token`)** *(Recommended for cURL and automated API tests)*:
+   `-H "x-admin-token: <COURSEMART_ADMIN_TOKEN>"`
+2. **Admin Session Cookie** *(Browser console sessions)*:
+   `-H "Cookie: coursemart_admin_session=<ADMIN_SESSION_TOKEN>; coursemart_admin_role=admin"`
+3. **Cron Secret Bearer Token** *(Automated cron and webhook triggers)*:
+   `-H "Authorization: Bearer <CRON_SECRET>"`
+
+> ⚠️ **Authentication Warning**: Passing `-H "Authorization: Bearer <ADMIN_TOKEN>"` fails with `401 Unauthorized` because the server specifically checks `x-admin-token`, session cookies, or the exact `CRON_SECRET`.
+
 Trigger an immediate live test via `POST /api/social/publish`:
 ```bash
 # Test Facebook Page Feed
 curl -X POST https://digitalwealthcreators.org.ng/api/social/publish \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -H "x-admin-token: <COURSEMART_ADMIN_TOKEN>" \
   -d '{
     "platform": "facebook",
     "content": "Digital Wealth Creators automated syndication active on Facebook!",
@@ -784,7 +833,7 @@ curl -X POST https://digitalwealthcreators.org.ng/api/social/publish \
 # Test Instagram Feed Post
 curl -X POST https://digitalwealthcreators.org.ng/api/social/publish \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -H "x-admin-token: <COURSEMART_ADMIN_TOKEN>" \
   -d '{
     "platform": "instagram",
     "content": "Master AI with Digital Wealth Creators. Link in bio! 🇳🇬",
@@ -1163,16 +1212,22 @@ To ensure production and preview environments match local runtime configuration:
 npx vercel env pull .env.local
 
 # Supply key operational secrets to Vercel Production & Preview
-npx vercel env add GOOGLE_INDEXING_CLIENT_EMAIL production preview
-npx vercel env add GOOGLE_INDEXING_PRIVATE_KEY production preview
+npx vercel env add GOOGLE_SERVICE_ACCOUNT_EMAIL production preview
+# Note: Alternate alias GOOGLE_INDEXING_CLIENT_EMAIL is also supported
+npx vercel env add GOOGLE_PRIVATE_KEY production preview
+# Note: Alternate alias GOOGLE_INDEXING_PRIVATE_KEY is also supported
 npx vercel env add LINKEDIN_ACCESS_TOKEN production preview
 npx vercel env add LINKEDIN_AUTHOR_URN production preview
 npx vercel env add FACEBOOK_PAGE_ID production preview
 npx vercel env add FACEBOOK_PAGE_ACCESS_TOKEN production preview
 npx vercel env add INSTAGRAM_ACCOUNT_ID production preview
 npx vercel env add INSTAGRAM_ACCESS_TOKEN production preview
-npx vercel env add SOCIAL_WEBHOOK_URL production preview
+npx vercel env add SOCIAL_DISPATCH_WEBHOOK_URL production preview
+# Note: Alternate alias SOCIAL_WEBHOOK_URL is supported for backward compatibility
 npx vercel env add SOCIAL_WEBHOOK_SECRET production preview
+npx vercel env add GEMINI_API_KEY production preview
+npx vercel env add GEMINI_MODEL production preview
+npx vercel env add GOOGLE_GEMINI_BASE_URL production preview
 npx vercel env add SUPABASE_URL production preview
 npx vercel env add SUPABASE_SECRET_KEY production preview
 npx vercel env add PAYSTACK_SECRET_KEY production preview
