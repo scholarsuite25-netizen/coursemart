@@ -3047,4 +3047,4 @@ export const SEED_SALES_FUNNELS: SalesFunnelConfig[] = [
   },
 ];
 
-export { SEED_PROMPT_VAULT_ITEMS } from './promptVaultCatalog';
+export { SEED_PROMPT_VAULT_ITEMS } from './promptVaultCatalog.ts';
