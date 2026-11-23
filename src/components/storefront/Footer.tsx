@@ -15,7 +15,6 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
-  Users,
   Zap,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -32,8 +31,6 @@ export function Footer() {
     appearance,
     navigate,
     setFilters,
-    whatsappGroups,
-    joinWhatsAppGroup,
     showToast,
     blogPosts,
   } = useStore();
@@ -50,9 +47,7 @@ export function Footer() {
       .slice(0, 4);
   }, [blogPosts]);
 
-  const publicGroups = whatsappGroups.filter(
-    (g) => g.active && g.visibility === 'public'
-  );
+
 
   const handleBrowseType = (type: 'all' | 'course' | 'ebook' | 'software') => {
     setFilters((prev) => ({ ...prev, type, category: 'All' }));
@@ -509,66 +504,12 @@ export function Footer() {
         </div>
       </div>
 
-      {/* WhatsApp Communities Directory Strip */}
-      {publicGroups.length > 0 && (
-        <div className="border-t border-[#1e3557] bg-[#081427]">
-          <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <Users className="w-4 h-4 text-[#f5c451] shrink-0" />
-              <div>
-                <p className="font-display text-xs font-bold uppercase tracking-wider text-[#f5c451]">
-                  Official WhatsApp Learning & Buyer Communities
-                </p>
-                <p className="text-xs text-slate-400">
-                  Join active cohorts, receive software updates, and connect with mentors.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              <a
-                href={TELEGRAM_DETAILS.channelUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#112240] border border-[#2a436e] hover:border-[#38bdf8] rounded-md transition-colors"
-              >
-                <Send className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                <span>Official Telegram Hub</span>
-                <span className="text-[11px] text-[#38bdf8] font-bold">
-                  {TELEGRAM_DETAILS.handle}
-                </span>
-                <ExternalLink className="w-3 h-3 text-slate-400" />
-              </a>
-
-              {publicGroups.map((group) => (
-                <a
-                  key={group.id}
-                  href={group.inviteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => joinWhatsAppGroup(group.id)}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#112240] border border-[#2a436e] hover:border-[#d4af37] rounded-md transition-colors"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>{group.name}</span>
-                  <span className="text-[11px] text-[#f5c451] tabular-nums">
-                    ({group.membersCount})
-                  </span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Bottom Legal & Contact Bar */}
       <div className="border-t border-[#1e3557] bg-[#06101f]">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-5 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span>
-              © 2026 {appearance.brandName} · {TINTOL_PAYMENT_DETAILS.accountName}. All rights
-              reserved.
+              © 2026 DIGITAL WEALTH CREATORS. All rights reserved.
             </span>
             <span className="text-[#d4af37]/60">·</span>
             <span>GTB Settlement · Instant Course & License Delivery</span>

@@ -420,7 +420,76 @@ export function buildEnquiryResponse(
     };
   }
 
-  // 6. General Support Fallback
+  // 6. Vibe Coding & AI Software Engineering
+  if (/\b(vibe\s*coding|vibe\s*code|specification[\s-]first|ai\s*engineering|ai\s*developer|prompt\s*engineering|autonomous\s*agents?)\b/i.test(cleanQ)) {
+    return {
+      answer:
+        'Vibe coding is a modern specification-first development approach where builders use natural language prompts and clear architectural requirements to direct AI coding agents, focusing on rapid iteration, automated verification, and end-to-end execution rather than manual syntax.',
+      matchedTopics: ['vibe-coding', 'ai-engineering'],
+      confidence: 0.95,
+      suggestedForumThreadSlug: 'getting-started-with-vibe-coding-and-ai',
+    };
+  }
+
+  // 7. Affiliate Marketing, Promoters & Commissions
+  if (/\b(affiliates?|promoter|referrals?|commission|earn\s*money|make\s*money|monetiz\w*)\b/i.test(cleanQ)) {
+    return {
+      answer:
+        'Digital Wealth Creators features a high-earning affiliate promoter program offering 20% to 50% commission per referral. Each promoter gets a unique tracking link, automated sales attribution, real-time analytics, and weekly payouts to their bank account.',
+      matchedTopics: ['affiliate', 'monetization'],
+      confidence: 0.94,
+      suggestedForumThreadSlug: 'how-affiliate-commissions-and-payouts-work',
+    };
+  }
+
+  // 8. Prompt Vault & 105 VIP Blueprints
+  if (/\b(prompts?|vault|100\s*prompts?|105\s*prompts?|blueprints?)\b/i.test(cleanQ)) {
+    return {
+      answer:
+        'The DWC VIP Prompt Vault contains 105 battle-tested executive AI prompts and blueprints for business growth, sales copy, social syndication, and vibe coding. VIP members enjoy full instant access, and individual prompt packs can be downloaded in the Digital Store.',
+      matchedTopics: ['prompt-vault', 'digital-products'],
+      confidence: 0.94,
+      suggestedForumThreadSlug: 'how-to-use-the-105-prompt-vault',
+    };
+  }
+
+  // 9. Digital Products, eBooks & Templates
+  if (/\b(digital\s*products?|ebooks?|handbooks?|notion\s*templates?|engineering\s*toolkits?|digital\s*downloads?)\b/i.test(cleanQ)) {
+    return {
+      answer:
+        'Our Digital Products hub includes actionable eBooks, Notion templates, PRD specifications, and software starter kits. Purchases feature instant file downloads and perpetual updates in your personal library.',
+      matchedTopics: ['digital-products', 'ebooks'],
+      confidence: 0.92,
+      suggestedForumThreadSlug: 'accessing-digital-product-downloads',
+    };
+  }
+
+  // 10. Video Studio & YouTube Course Repurposer
+  if (/\b(video\s*(generator|studio)|canvas\s*studio|youtube\s*(repurpos\w*|to\s*course)|slides?\s*to\s*video)\b/i.test(cleanQ)) {
+    return {
+      answer:
+        'The DWC Canvas Video Studio enables 1-click in-browser 1280x720 video slide creation with synchronized speech and WebM export. Our YouTube Course Repurposer takes any video URL and converts it into a full interactive course curriculum with quizzes and summaries.',
+      matchedTopics: ['video-generation', 'ai-tools'],
+      confidence: 0.93,
+      suggestedForumThreadSlug: 'generating-videos-and-repurposing-youtube-courses',
+    };
+  }
+
+  // 11. General "Explain" / "What is" queries for the platform
+  if (
+    /\b(explain|what\s+is|tell\s+me\s+about|overview\s+of)\s+(digital\s*wealth\s*creators|dwc|coursemart|this\s*platform|the\s*platform|your\s*services?)\b/i.test(cleanQ) ||
+    /\b(how\s+does\s+this\s+platform\s+work|what\s+does\s+dwc\s+offer)\b/i.test(cleanQ)
+  ) {
+    return {
+      answer:
+        'Digital Wealth Creators (DWC) is a unified platform combining digital commerce, technical education, and AI automation. We empower creators and developers to master vibe coding, deploy software, sell digital assets, and monetize through high-ticket masterclasses and affiliate partnerships.',
+      matchedTopics: ['general-explanation', 'dwc-platform'],
+      confidence: 0.9,
+      suggestedForumThreadSlug: 'digital-wealth-creators-platform-overview',
+    };
+  }
+
+  // 12. General Support Fallback
   return {
     answer:
       'Thank you for contacting CourseMart support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions.',
