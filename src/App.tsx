@@ -6,7 +6,6 @@ import { Footer } from './components/storefront/Footer';
 import { Header } from './components/storefront/Header';
 import { StorefrontPage } from './components/storefront/StorefrontPage';
 import { EnquiryAssistantWidget } from './components/storefront/EnquiryAssistantWidget';
-import { WhatsAppHelpWidget } from './components/common/WhatsAppHelpWidget';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { TripwireWelcomeModal } from './components/storefront/TripwireWelcomeModal';
 import { ExitIntentModal } from './components/storefront/ExitIntentModal';
@@ -252,7 +251,6 @@ function AppRouter() {
 
       {!isStandaloneShell && <EnquiryAssistantWidget />}
 
-      <WhatsAppHelpWidget />
       <PwaInstallPrompt />
 
       <CartDrawer />
