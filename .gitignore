@@ -9,6 +9,7 @@ coverage/
 .coursemart-runtime.json
 .aistudio/credentials/
 *.txt
+!public/robots.txt
 public/assets/aistudio/*.txt
 
 .vercel
