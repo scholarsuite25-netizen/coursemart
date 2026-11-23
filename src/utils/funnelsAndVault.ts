@@ -398,9 +398,25 @@ export function filterPromptVault(
     .filter((item) => {
       if (!item) return false;
 
-      // Category filter
+      // Category filter with alias normalization
       if (category && category !== 'All') {
-        if (!item.category || item.category.toLowerCase() !== category.toLowerCase()) {
+        const normalizeCategory = (c: string): string => {
+          const l = c.trim().toLowerCase();
+          if (l.includes('vibe') || l.includes('coding') || l.includes('engineering')) return 'ai engineering & coding';
+          if (l.includes('leadership') || l.includes('strategy') || l.includes('business')) return 'business & strategy';
+          if (l.includes('social') || l.includes('content')) return 'content creation';
+          if (l.includes('architecture') || l.includes('productivity')) return 'productivity';
+          if (l.includes('lms') || l.includes('education')) return 'lms & education';
+          return l;
+        };
+
+        const targetNorm = normalizeCategory(category);
+        const itemNorm = normalizeCategory(item.category || '');
+
+        const exactMatch = Boolean(item.category && item.category.toLowerCase() === category.toLowerCase());
+        const aliasMatch = Boolean(targetNorm === itemNorm);
+
+        if (!exactMatch && !aliasMatch) {
           return false;
         }
       }
@@ -430,4 +446,53 @@ export function filterPromptVault(
       const titleB = b.title || '';
       return titleA.localeCompare(titleB);
     });
+}
+
+export interface SynthesizeStandardPromptInput {
+  idea: string;
+  persona?: string;
+  audience?: string;
+  tone?: string;
+  constraints?: string;
+  outputFormat?: string;
+}
+
+/**
+ * Standard Prompt Engineering Synthesizer (CO-STAR / CREATE framework).
+ * Transforms vague requirements into a production-grade prompt with variable brackets.
+ */
+export function synthesizeStandardPrompt(input: SynthesizeStandardPromptInput): string {
+  const role = input.persona?.trim() || 'Principal Domain Strategist & Master Execution Assistant';
+  const task = (input.idea || '').trim();
+  const audience = input.audience?.trim() || '{{target_audience}}';
+  const tone = input.tone?.trim() || 'authoritative, structured, concise, and conversion-focused';
+  const constraints = input.constraints?.trim() || 'Zero conversational filler, concrete actionable steps, strict verification checks';
+  const format = input.outputFormat?.trim() || 'Structured Markdown with numbered sections, checklist, and key metrics';
+
+  return `# ROLE & PERSONA
+Act as an elite ${role} with 15+ years of verified production experience.
+
+# PRIMARY OBJECTIVE
+Execute the following directive with high precision:
+"${task}"
+
+# CONTEXT & TARGET AUDIENCE
+- Target Audience: ${audience}
+- Business Domain: {{business_domain}}
+- Primary Value Proposition: {{primary_value_prop}}
+
+# CONSTRAINTS & QUALITY GUARDRAILS
+1. Communication Tone: ${tone}.
+2. Quality Boundaries: ${constraints}.
+3. Reusability: Strictly retain bracketed variable tokens {{variable_name}} for dynamic customization.
+4. Completeness: Ensure all recommendations are immediately executable without ambiguity.
+
+# STEP-BY-STEP WORKFLOW
+1. Discovery & Analysis: Assess {{current_baseline}} against industry best practices.
+2. Formulation: Construct a multi-tier solution addressing {{primary_pain_point}}.
+3. Execution Blueprint: Detail concrete implementation steps, timelines, and deliverables.
+4. Validation & Auditing: Provide a verification rubric to validate successful outcomes.
+
+# OUTPUT FORMAT & DELIVERABLES
+Deliver the final response in ${format}, concluding with a concrete action item and measurable KPI.`;
 }

@@ -47,6 +47,8 @@ import type {
   ShowcaseSite,
   SocialPostDraft,
   StorefrontAppearance,
+  PromptVaultItem,
+  SavedCustomizedPrompt,
   UserAccount,
   UserMembership,
   WhatsAppGroup,
@@ -90,6 +92,9 @@ const STORAGE_KEYS = {
   FACILITATOR_BOOKINGS: 'cm_db_facilitator_bookings_v1',
   CALENDAR_ENGAGEMENTS: 'cm_db_calendar_engagements_v1',
   TUTORIALS: 'cm_db_tutorials_v1',
+  PROMPT_VAULT_CATEGORIES: 'cm_db_prompt_categories_v1',
+  PROMPT_VAULT_ITEMS: 'cm_db_prompt_vault_items_v1',
+  STUDENT_SAVED_PROMPTS: 'cm_db_student_saved_prompts_v1',
   ACTIVE_REFERRAL_CODE: 'cm_session_ref_code_v1',
   CART: 'cm_session_cart_ngn_v1',
   WISHLIST: 'cm_session_wishlist_v1',
@@ -607,6 +612,28 @@ export const storageService = {
     const updated = current.filter((b) => b.id !== id && b.reference !== id);
     writeStorage(STORAGE_KEYS.FACILITATOR_BOOKINGS, updated);
   },
+
+  getPromptVaultCategories: (): string[] =>
+    readStorage(STORAGE_KEYS.PROMPT_VAULT_CATEGORIES, [
+      'Copywriting & Marketing',
+      'AI Engineering & Coding',
+      'Business & Strategy',
+      'Content Creation',
+      'Productivity',
+      'LMS & Education',
+    ]),
+  savePromptVaultCategories: (list: string[]): void =>
+    writeStorage(STORAGE_KEYS.PROMPT_VAULT_CATEGORIES, list),
+
+  getCustomPromptVaultItems: (): PromptVaultItem[] =>
+    readStorage(STORAGE_KEYS.PROMPT_VAULT_ITEMS, []),
+  saveCustomPromptVaultItems: (list: PromptVaultItem[]): void =>
+    writeStorage(STORAGE_KEYS.PROMPT_VAULT_ITEMS, list),
+
+  getStudentSavedPrompts: (): SavedCustomizedPrompt[] =>
+    readStorage(STORAGE_KEYS.STUDENT_SAVED_PROMPTS, []),
+  saveStudentSavedPrompts: (list: SavedCustomizedPrompt[]): void =>
+    writeStorage(STORAGE_KEYS.STUDENT_SAVED_PROMPTS, list),
 
   resetAllDemoData: (): void => {
     if (typeof window === 'undefined') return;

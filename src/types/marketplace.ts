@@ -960,5 +960,16 @@ export interface PromptVaultAccessResult {
   reason?: string;
 }
 
+export interface SavedCustomizedPrompt {
+  id: string;
+  originalPromptId?: string;
+  title: string;
+  category: string;
+  customizedPrompt: string;
+  formValues?: Record<string, string>;
+  savedAt: string;
+  notes?: string;
+}
+
 
 

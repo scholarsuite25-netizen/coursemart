@@ -94,6 +94,7 @@ import {
   migrateLegacyTier,
   migrateUserMemberships,
 } from '../utils/commerce.ts';
+import { synthesizeStandardPrompt } from '../utils/funnelsAndVault.ts';
 
 export { migrateLegacyTier, migrateUserMemberships };
 
@@ -2828,6 +2829,137 @@ Requirements:
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Enquiry processing error';
+      res.status(500).json({ ok: false, error: msg });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // Agent 2B: AI Prompt Engineering & Enhancer Studio
+  // --------------------------------------------------------------------------
+  app.post('/api/agents/prompt-enhancer', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'prompt-enhancer', 30, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Prompt Enhancer rate limit reached. Please wait a minute.' });
+      return;
+    }
+
+    try {
+      const { idea, persona, audience, tone, constraints, outputFormat, category } = req.body ?? {};
+      const cleanIdea = typeof idea === 'string' ? idea.trim() : '';
+
+      if (!cleanIdea) {
+        res.status(400).json({ ok: false, error: 'Raw idea or task description is required.' });
+        return;
+      }
+
+      const rolePersona = (typeof persona === 'string' && persona.trim()) ? persona.trim() : 'Principal Domain Expert & AI Workflow Architect';
+      const targetAudience = (typeof audience === 'string' && audience.trim()) ? audience.trim() : 'Digital entrepreneurs, engineers, and decision-makers';
+      const selectedTone = (typeof tone === 'string' && tone.trim()) ? tone.trim() : 'Authoritative, concise, high-converting, and actionable';
+      const rulesConstraints = (typeof constraints === 'string' && constraints.trim()) ? constraints.trim() : 'Zero fluff, practical implementation steps, bracketed variable placeholders for user customization';
+      const expectedFormat = (typeof outputFormat === 'string' && outputFormat.trim()) ? outputFormat.trim() : 'Structured Markdown with clear numbered directives, bracketed variables {{like_this}}, and practical checklist';
+
+      const isTestEnv =
+        process.env.NODE_ENV === 'test' ||
+        Boolean(process.env.VITEST) ||
+        Boolean(process.env.npm_lifecycle_event === 'test');
+
+      if (!isTestEnv) {
+        // 1. Try local multi-model AI proxy (port 8080)
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 4000);
+          const prompt = `You are an elite prompt engineer following the CO-STAR framework. Transform this raw/vague user idea into a professional, production-grade AI prompt with {{variable_name}} placeholders.
+User Idea: "${cleanIdea}"
+Role/Persona: "${rolePersona}"
+Audience/Context: "${targetAudience}"
+Tone: "${selectedTone}"
+Constraints: "${rulesConstraints}"
+Output Format: "${expectedFormat}"
+
+Format the enhanced prompt clearly with:
+# ROLE & PERSONA
+# PRIMARY OBJECTIVE
+# CONTEXT & TARGET AUDIENCE
+# CONSTRAINTS & QUALITY GUARDRAILS
+# STEP-BY-STEP WORKFLOW
+# OUTPUT SPECIFICATIONS
+Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customization. Output strictly the full enhanced prompt text.`;
+
+          const proxyResp = await fetch('http://localhost:8080/v1/models/gemini-3-8-flash-free:generateContent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+            }),
+          });
+          clearTimeout(timeout);
+          if (proxyResp.ok) {
+            const pData = (await proxyResp.json()) as any;
+            const text = pData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (text) {
+              res.json({
+                ok: true,
+                enhancedPrompt: text,
+                suggestedTitle: `${cleanIdea.slice(0, 42).replace(/[^\w\s-]/g, '')} Master Directive`,
+                suggestedCategory: category || 'AI Engineering & Coding',
+                recommendedModel: 'Claude 3.5 Sonnet / Gemini 2.5 Flash',
+                generatedBy: 'proxy-ai',
+              });
+              return;
+            }
+          }
+        } catch {
+          // Try Gemini client
+        }
+
+        const ai = createGeminiClient();
+        if (ai) {
+          try {
+            const aiResp = await ai.models.generateContent({
+              model: GEMINI_MODEL,
+              contents: `Transform this raw idea into a production-grade, variable-interpolated prompt with {{variables}}: "${cleanIdea}". Role: "${rolePersona}". Audience: "${targetAudience}". Tone: "${selectedTone}". Rules: "${rulesConstraints}". Format: "${expectedFormat}".`,
+              config: {
+                systemInstruction: 'Output strictly the production prompt formatted with standard markdown headings (# ROLE, # OBJECTIVE, # CONTEXT, # CONSTRAINTS, # WORKFLOW, # OUTPUT).',
+              },
+            });
+            const text = (aiResp.text || '').trim();
+            if (text) {
+              res.json({
+                ok: true,
+                enhancedPrompt: text,
+                suggestedTitle: `${cleanIdea.slice(0, 42).replace(/[^\w\s-]/g, '')} Blueprint`,
+                suggestedCategory: category || 'AI Engineering & Coding',
+                recommendedModel: 'Gemini 2.5 Flash',
+                generatedBy: 'gemini',
+              });
+              return;
+            }
+          } catch {
+            // Fall through to deterministic synthesizer
+          }
+        }
+      }
+
+      // Offline deterministic prompt synthesizer
+      const enhancedPrompt = synthesizeStandardPrompt({
+        idea: cleanIdea,
+        persona: rolePersona,
+        audience: targetAudience,
+        tone: selectedTone,
+        constraints: rulesConstraints,
+        outputFormat: expectedFormat,
+      });
+
+      res.json({
+        ok: true,
+        enhancedPrompt,
+        suggestedTitle: `${cleanIdea.slice(0, 42).replace(/[^\w\s-]/g, '')} Blueprint`,
+        suggestedCategory: category || 'AI Engineering & Coding',
+        recommendedModel: 'Gemini 2.5 Flash / Claude 3.5 Sonnet',
+        generatedBy: 'deterministic',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Prompt enhancer processing error';
       res.status(500).json({ ok: false, error: msg });
     }
   });

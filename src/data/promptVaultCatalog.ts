@@ -870,7 +870,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'full-stack-typescript-react-19-feature-scaffold',
     title: "Full-Stack TypeScript & React 19 Feature Scaffold",
     description: "Generates complete component, types, custom hooks, and mock unit tests in strict TypeScript.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["React 19","TypeScript","Tailwind","Frontend"],
     template: "Act as a principal frontend architect. Generate a complete React 19 component for {{feature_name}} using TypeScript and Tailwind CSS. State management: {{state_pattern}}. Include accessible ARIA roles, clean interface definitions, and 3 Vitest/Jest unit tests.",
     variables: [
@@ -898,7 +898,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'fastapi-python-async-agentic-microservice',
     title: "FastAPI & Python Async Agentic Microservice",
     description: "Production-ready async REST microservice with Pydantic validation, structured logging, and caching.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Python","FastAPI","AI Agent","Backend"],
     template: "Build a production-grade FastAPI microservice for {{service_purpose}}. Endpoints required: {{endpoints}}. Implement Pydantic v2 schemas, async HTTP calls, in-memory semantic caching, and error handling for 429 rate limits.",
     variables: [
@@ -926,7 +926,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'zero-cost-semantic-cache-layer-with-sha-256',
     title: "Zero-Cost Semantic Cache Layer with SHA-256",
     description: "Deterministic caching layer that saves 90% of LLM token spend on duplicate prompts.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["AI Optimization","Semantic Caching","Token Reduction","Architecture"],
     template: "Implement an in-memory or Redis-backed deterministic semantic cache in {{language}} for LLM prompts. Hash normalized prompts using SHA-256. If cache hit, return cached completion with {{ttl_hours}} hour TTL. Include eviction policy.",
     variables: [
@@ -954,7 +954,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'next-js-app-router-server-actions-route-handlers',
     title: "Next.js App Router Server Actions & Route Handlers",
     description: "Secure server actions with Zod schema validation, optimistic UI updates, and revalidation.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Next.js","Server Actions","Full-Stack","Vercel"],
     template: "Create a Next.js 15 App Router Server Action for {{action_purpose}}. Use Zod to validate input payload. Perform authorization check for role {{required_role}}, execute DB operation, revalidate path {{revalidate_path}}, and return typed ActionResponse.",
     variables: [
@@ -988,7 +988,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'postgres-prisma-drizzle-schema-architect',
     title: "Postgres & Prisma / Drizzle Schema Architect",
     description: "Normalizes complex domain models with foreign keys, indexes, and soft-delete conventions.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Database","PostgreSQL","Drizzle","Prisma"],
     template: "Design a clean relational database schema using {{orm_choice}} for a {{platform_type}}. Entities required: {{entity_list}}. Include proper indexes on query filters, timestamps, UUID primary keys, and cascade rules.",
     variables: [
@@ -1022,7 +1022,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'hmac-sha256-token-delivery-dynamic-watermark-system',
     title: "HMAC-SHA256 Token Delivery & Dynamic Watermark System",
     description: "Time-limited signed download tokens and viewer email overlay to deter pirated screen recording.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Security","DRM","Anti-Piracy","Tokenization"],
     template: "Write a secure digital asset protection utility in {{language}}. 1. Function `generateDownloadToken(assetId, userId, ttlSeconds)` creating HMAC-SHA256 signature. 2. Function `verifyDownloadToken(token)` validating expiry and signature. 3. Dynamic viewer watermark overlay showing student name, email, and IP.",
     variables: [
@@ -1044,7 +1044,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'paystack-flutterwave-webhook-verifier-reconciler',
     title: "Paystack & Flutterwave Webhook Verifier & Reconciler",
     description: "Idempotent webhook handler verifying signature headers, transaction reference, and kobo amounts.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Payment","Fintech","Paystack","Webhooks"],
     template: "Build an idempotent payment webhook handler for {{gateway_name}} in {{runtime_env}}. Verify header signature {{signature_header}} with secret key. Extract transaction reference, verify expected amount in kobo, check if order is already fulfilled, update status to completed, and unlock access.",
     variables: [
@@ -1078,7 +1078,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'openai-gemini-structured-output-function-caller',
     title: "OpenAI / Gemini Structured Output Function Caller",
     description: "Guarantees 100% type-safe JSON returns matching a strict Zod schema with zero hallucinations.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["LLM","Structured Output","Zod","Function Calling"],
     template: "Implement structured JSON extraction using {{llm_provider}} and Zod schema. Target domain: {{domain_schema}}. Define the schema, pass response_format or tool definition, handle parse errors with retry, and return verified TypeScript object.",
     variables: [
@@ -1106,7 +1106,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'multi-agent-swarm-coordinator-shared-board-architecture',
     title: "Multi-Agent Swarm Coordinator & Shared Board Architecture",
     description: "Orchestrates 3+ autonomous worker agents with role delegation, lock management, and aggregated outputs.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Multi-Agent","Autonomous Agents","Swarm","Architecture"],
     template: "Architect a multi-agent workflow in {{language}} where a Coordinator agent decomposes a high-level task into 3 specialized sub-tasks: 1. Researcher. 2. Author. 3. Verifier/Linter. Manage message passing via a shared event queue and synthesize a final verified artifact.",
     variables: [
@@ -1128,7 +1128,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'edge-tts-voiceover-generator-subtitle-aligner',
     title: "Edge-TTS Voiceover Generator & Subtitle Aligner",
     description: "Zero-cost Python / Node script tapping Microsoft neural voices to generate MP3s and .srt files.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["TTS","Audio","Subtitles","Open Source"],
     template: "Write a script using `edge-tts` to convert lesson markdown into an MP3 voiceover. Voice: {{voice_name}}. Output synchronized `.srt` subtitle file with word-boundary timestamps. Include CLI command and programmatic Node/Python function.",
     variables: [
@@ -1150,7 +1150,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'webassembly-ffmpeg-video-canvas-slide-stitcher',
     title: "WebAssembly FFmpeg Video Canvas Slide Stitcher",
     description: "Stitches SVG/PNG presentation slides and an audio track into an MP4 video directly in the browser.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["FFmpeg","WebAssembly","Video","Browser"],
     template: "Write a client-side JavaScript utility using `@ffmpeg/ffmpeg` v0.12+. Load slide images and an MP3 voiceover from URLs, render them into an MP4 video at {{resolution}} resolution at {{fps}} FPS, and return an object URL Blob.",
     variables: [
@@ -1178,7 +1178,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'websub-indexnow-search-engine-auto-pinger',
     title: "WebSub & IndexNow Search Engine Auto-Pinger",
     description: "Automates instant pinging of Bing, Yandex, and Google upon new article/product publishing.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["SEO","IndexNow","Googlebot","Automation"],
     template: "Implement an automated indexing dispatcher in {{language}}. When a new URL is published: 1. Send POST to `https://api.indexnow.org/indexnow` with host, key, and urlList. 2. Ping Google Sitemaps ping endpoint. 3. Dispatch WebSub hub notification. Log status codes.",
     variables: [
@@ -1200,7 +1200,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'linkedin-rest-api-oauth-2-0-ugc-post-dispatcher',
     title: "LinkedIn REST API OAuth 2.0 & UGC Post Dispatcher",
     description: "Generates secure 3-legged OAuth 2.0 flow and posts commentary + rich links to `/rest/posts`.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["LinkedIn API","Social Automation","OAuth","Integration"],
     template: "Write a complete LinkedIn sharing module in {{language}}. Include token exchange with refresh mechanism, header formatting (`Linkedin-Version: 202610`, `X-Restli-Protocol-Version: 2.0.0`), and `POST https://api.linkedin.com/rest/posts` payload for text and URL shares.",
     variables: [
@@ -1222,7 +1222,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'instagram-graph-api-container-carousel-uploader',
     title: "Instagram Graph API Container & Carousel Uploader",
     description: "Uploads images/reels to media container and dispatches `media_publish` within Meta limits.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Instagram API","Meta Graph","Social","Reels"],
     template: "Write a Meta Instagram Graph API publisher in {{language}}. Steps: 1. Create media container `POST /{ig_user_id}/media` with `image_url` and `caption`. 2. Poll container status until ready. 3. Call `POST /{ig_user_id}/media_publish`. Handle 100 post daily moving limit.",
     variables: [
@@ -1244,7 +1244,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'real-time-webrtc-screen-mic-video-recorder',
     title: "Real-Time WebRTC Screen & Mic Video Recorder",
     description: "In-browser Loom alternative capturing desktop screen, webcam bubble, and mic audio to WebM/MP4.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["WebRTC","MediaRecorder","Screen Recording","Browser API"],
     template: "Build a standalone React hook `useScreenRecorder` using `navigator.mediaDevices.getDisplayMedia` and `getUserMedia`. Combine audio tracks into single MediaStream, record chunks with `MediaRecorder` at high bitrate, provide Pause/Resume/Stop controls, and export Blob.",
     variables: [
@@ -1260,7 +1260,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'automated-test-suite-architect-vitest-jest',
     title: "Automated Test Suite Architect (Vitest & Jest)",
     description: "Generates comprehensive unit, integration, and edge-case test suites with 100% coverage.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Testing","Vitest","TDD","Quality Assurance"],
     template: "Generate a robust Vitest test suite for the module {{module_code}}. Write unit tests covering: 1. Happy path. 2. Edge cases (null, empty, negative, special characters). 3. Error states and throws. Use deterministic offline mocks with zero external network calls.",
     variables: [
@@ -1282,7 +1282,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'vite-pwa-workbox-offline-service-worker-suite',
     title: "Vite PWA & Workbox Offline Service Worker Suite",
     description: "Configures precaching, background sync, dynamic watermarked asset caching, and manifest.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["PWA","Workbox","Offline","Mobile"],
     template: "Configure a Vite Progressive Web App (PWA) with `@vite-pwa/vite-plugin`. Set up manifest for {{app_name}} with icons, theme color, and offline fallback page. Cache static fonts and assets with CacheFirst, and API routes with NetworkFirst.",
     variables: [
@@ -1304,7 +1304,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'tailwind-css-v4-dark-mode-modern-component-system',
     title: "Tailwind CSS v4 Dark-Mode Modern Component System",
     description: "Accessible, polished dark/light mode UI components with luxury gold and deep navy theme.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Tailwind CSS","Dark Mode","Design System","UI"],
     template: "Build a reusable design system card and button set using Tailwind CSS v4. Palette: Deep Navy (`#0a192f`, `#112240`), Radiant Gold (`#d4af37`, `#f5c451`), Emerald (`#10b981`). Include subtle glassmorphism, responsive states, and focus rings.",
     variables: [
@@ -1320,7 +1320,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'graphql-rest-api-rate-limiter-token-bucket',
     title: "GraphQL / REST API Rate Limiter & Token Bucket",
     description: "In-memory sliding window rate limiter middleware protecting public routes from DDoS and brute-force.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Security","Rate Limiting","Token Bucket","Middleware"],
     template: "Create a lightweight sliding-window rate limiting middleware in {{language}} for Express/Vercel functions. Allow max {{max_requests}} requests per {{window_seconds}} seconds per IP. Return HTTP 429 with `Retry-After` header when limit exceeded.",
     variables: [
@@ -1354,7 +1354,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'csv-json-bulk-data-importer-with-zod-validation',
     title: "CSV & JSON Bulk Data Importer with Zod Validation",
     description: "Robust streaming parser that ingests messy CSV/Excel records, cleans fields, and reports validation errors.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Importer","CSV","Zod","Data Processing"],
     template: "Write a client-side CSV and JSON bulk product importer in TypeScript. Parse file using PapaParse or native streams, validate every row against Zod schema {{zod_schema}}, collect row-by-row error diagnostics, and output clean typed array.",
     variables: [
@@ -1376,7 +1376,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'automated-incident-audit-log-anomaly-detector',
     title: "Automated Incident Audit & Log Anomaly Detector",
     description: "Audits access logs for suspicious burst downloads, multi-IP credential sharing, and brute force.",
-    category: "AI Engineering & Vibe Coding",
+    category: "AI Engineering & Coding",
     tags: ["Security","Anomaly Detection","Auditing","Logging"],
     template: "Write an automated security scanning utility that analyzes access and download logs. Detect: 1. Multiple IP addresses accessing the same user token within 10 minutes. 2. Burst downloads exceeding 20 files/hour. 3. Failed payment attempts. Generate structured incident report.",
     variables: [
@@ -1392,7 +1392,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'institutional-keynote-address-on-emerging-tech-ai',
     title: "Institutional Keynote Address on Emerging Tech & AI",
     description: "30-minute keynote address script for bank executives, university convocations, and summits.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Keynote","Speech","Executive","Leadership"],
     template: "Write a powerful 30-minute keynote address for {{speaker_name}} delivering the opening address at {{event_name}}. Audience: {{audience_demographic}}. Central thesis: {{central_thesis}}. Weave in African economic realities, practical case studies, and a visionary call to action.",
     variables: [
@@ -1432,7 +1432,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'boardroom-strategic-memo-on-ai-governance-risk',
     title: "Boardroom Strategic Memo on AI Governance & Risk",
     description: "Executive memorandum outlining policy guardrails, data sovereignty, and compliance for corporate boards.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Governance","Boardroom","Risk Management","Compliance"],
     template: "Draft an executive briefing memorandum from the Chief Strategy Advisor to the Board of Directors of {{organization_name}}. Topic: Adoption of Generative AI and Autonomous Agents. Outline 3 strategic opportunities, 4 operational risks (data privacy, copyright, compliance), and a 5-step phased rollout roadmap.",
     variables: [
@@ -1454,7 +1454,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: '90-day-digital-transformation-master-blueprint',
     title: "90-Day Digital Transformation Master Blueprint",
     description: "Comprehensive 3-phase strategic roadmap for modernizing traditional institutional workflows.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Strategy","Transformation","Roadmap","Consulting"],
     template: "Develop a 90-day digital transformation execution framework for {{industry_sector}}. Phase 1 (Days 1-30): Audit & Discovery. Phase 2 (Days 31-60): High-Impact Pilot Deployment. Phase 3 (Days 61-90): Institutional Scale & KPI Measurement.",
     variables: [
@@ -1476,7 +1476,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'high-level-organizational-okrs-kpi-cascade',
     title: "High-Level Organizational OKRs & KPI Cascade",
     description: "Translates annual revenue goals into quarter-by-quarter departmental Objectives & Key Results.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["OKRs","KPIs","Management","Operations"],
     template: "Formulate Q1-Q4 OKRs for an educational technology and digital marketplace company targeting {{annual_revenue_target}} in annual revenue. Define 3 company-wide Objectives, each with 3 quantifiable Key Results covering Product, Marketing, and Operations.",
     variables: [
@@ -1498,7 +1498,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'executive-facilitator-masterclass-curriculum-design',
     title: "Executive Facilitator Masterclass Curriculum Design",
     description: "Designs an interactive 2-day executive leadership retreat with breakout exercises and debriefs.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Facilitation","Masterclass","Training","Pedagogy"],
     template: "Design an intensive 2-day executive retreat agenda on {{retreat_theme}} for {{attendee_profile}}. Break down each day into 90-minute modules with icebreakers, case studies, interactive group simulations, and measurable action commitments.",
     variables: [
@@ -1526,7 +1526,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'crisis-management-public-relations-response-playbook',
     title: "Crisis Management & Public Relations Response Playbook",
     description: "Structured response templates and internal holding statements for unforeseen corporate incidents.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["PR","Crisis Management","Communications"],
     template: "Write a crisis communications response plan for a tech/education platform facing {{crisis_scenario}}. Provide: 1. Immediate internal staff holding statement. 2. Public customer notice. 3. Social media FAQ. Tone: transparent, accountable, and reassuring.",
     variables: [
@@ -1548,7 +1548,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'executive-succession-talent-mentorship-framework',
     title: "Executive Succession & Talent Mentorship Framework",
     description: "Establishes a 12-month mentorship track to groom senior managers into autonomous leaders.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Mentorship","HR","Succession","Leadership Development"],
     template: "Create a 12-month executive mentorship program charter for {{org_name}}. Define mentor-mentee pairing criteria, monthly discussion milestones, leadership competency benchmarks, and graduation evaluation metrics.",
     variables: [
@@ -1570,7 +1570,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'institutional-grant-endowment-application-dossier',
     title: "Institutional Grant & Endowment Application Dossier",
     description: "Detailed grant proposal tailored for international development banks and educational foundations.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Grants","Funding","Non-Profit","Education"],
     template: "Draft a grant application executive summary for {{project_name}} seeking {{grant_amount}} from {{funding_body}}. Highlight the developmental impact: {{impact_metrics}}, sustainability model, and alignment with UN Sustainable Development Goals.",
     variables: [
@@ -1610,7 +1610,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'corporate-partnership-memorandum-of-understanding-mou',
     title: "Corporate Partnership Memorandum of Understanding (MOU)",
     description: "Standard institutional MOU defining mutual obligations, revenue sharing, and IP ownership.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Legal","MOU","Partnerships","Contracts"],
     template: "Draft a formal Memorandum of Understanding between Party A: {{party_a}} and Party B: {{party_b}}. Purpose: {{collaboration_purpose}}. Outline Party A responsibilities, Party B responsibilities, revenue share split: {{rev_split}}, term duration, and termination clause.",
     variables: [
@@ -1650,7 +1650,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'high-performance-culture-core-values-manifest',
     title: "High-Performance Culture & Core Values Manifest",
     description: "Crafts an inspiring internal operating philosophy that eliminates bureaucracy and fuels excellence.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Culture","Core Values","Human Capital"],
     template: "Write an inspiring company culture manifesto for {{company_name}}. Core principles: Excellence, Radical Ownership, Speed of Execution, and Integrity. Articulate how team members make decisions, handle disagreements, and serve customers.",
     variables: [
@@ -1672,7 +1672,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'executive-time-audit-delegation-operating-system',
     title: "Executive Time-Audit & Delegation Operating System",
     description: "Eliminates low-value admin busywork to refocus CEO hours on strategy, revenue, and vision.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Productivity","Delegation","Executive Routine"],
     template: "Develop a personal executive time-management and delegation matrix for a founder/CEO. Categorize daily activities into 4 quadrants: $10/hr tasks (automate/delegate), $100/hr tasks, $1,000/hr tasks, and $10,000/hr visionary tasks. Provide weekly calendar template.",
     variables: [
@@ -1688,7 +1688,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'mergers-acquisitions-asset-valuation-primer',
     title: "Mergers, Acquisitions & Asset Valuation Primer",
     description: "Prepares founders and equity holders for institutional valuations, multiples, and due diligence.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["M&A","Finance","Valuation","Exit Strategy"],
     template: "Create a strategic exit and valuation advisory brief for an online education and digital product marketplace generating {{annual_ebitda}} in annual EBITDA. Explain standard valuation multiples, key value drivers, and the 10-point due diligence checklist.",
     variables: [
@@ -1710,7 +1710,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'thought-leadership-ghostwriting-matrix-for-ceos',
     title: "Thought Leadership Ghostwriting Matrix for CEOs",
     description: "Converts raw voice notes and founder opinions into polished, high-engagement LinkedIn articles.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Ghostwriting","LinkedIn","Personal Brand","Executive"],
     template: "Act as an executive ghostwriter for {{leader_name}}, a prominent {{industry_role}}. Take the core opinion: \"{{core_opinion}}\". Structure it into an influential 800-word LinkedIn article with a captivating hook, 3 real-world examples, and an empowering conclusion.",
     variables: [
@@ -1744,7 +1744,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'corporate-innovation-lab-hackathon-playbook',
     title: "Corporate Innovation Lab & Hackathon Playbook",
     description: "Blueprint for running 48-hour internal hackathons that produce working revenue-generating prototypes.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Innovation","Hackathon","R&D","Agile"],
     template: "Write a complete operational playbook for hosting a 48-hour internal corporate hackathon on {{hackathon_theme}}. Detail team formation rules, mentoring checkpoints, judging rubric (Technical Feasibility, Market Impact, Execution), and prize structure.",
     variables: [
@@ -1766,7 +1766,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'advisory-board-charter-compensation-structure',
     title: "Advisory Board Charter & Compensation Structure",
     description: "Recruit seasoned industry titans to an advisory council with clear equity/cash vesting rules.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Advisors","Board of Advisors","Governance","Equity"],
     template: "Draft an Advisory Board Charter and Engagement Agreement for {{startup_name}}. Outline advisor responsibilities (quarterly advisory sessions, investor introductions), confidentiality terms, and compensation structure: {{comp_details}}.",
     variables: [
@@ -1794,7 +1794,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'institutional-accreditation-quality-assurance-framework',
     title: "Institutional Accreditation & Quality Assurance Framework",
     description: "Ensures online courses and certificates meet national and global vocational standards.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Accreditation","Quality Assurance","Education Standards"],
     template: "Design an internal Quality Assurance & Course Accreditation Framework for our LMS platform. Establish measurable criteria for instructor qualifications, video production quality, curriculum depth, peer review, and passing scores for certificates.",
     variables: [
@@ -1810,7 +1810,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'strategic-pricing-power-price-increase-playbook',
     title: "Strategic Pricing Power & Price Increase Playbook",
     description: "Execute a 30% price increase on existing courses and memberships without triggering churn.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Pricing","Revenue Optimization","Strategy"],
     template: "Draft a price increase rollout plan for {{product_line}} raising rates from {{old_price}} to {{new_price}}. Write the grandfathering announcement email giving existing members 7 days to lock in the old rate, framing the increase around value additions: {{value_additions}}.",
     variables: [
@@ -1850,7 +1850,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'investor-quarterly-shareholder-update-letter',
     title: "Investor Quarterly Shareholder Update Letter",
     description: "Crisp quarterly update detailing MRR growth, user acquisition, CAC, LTV, and strategic priorities.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Investor Relations","Shareholders","Reporting"],
     template: "Write a quarterly shareholder update for {{company_name}} for Q{{quarter_number}}. Highlight: Highlights (MRR reached {{mrr_metric}}), Lowlights & Challenges, Product Milestones, Financials (Revenue, Burn Rate, Runway), and Asks for the Board.",
     variables: [
@@ -1884,7 +1884,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'strategic-vendor-negotiation-procurement-script',
     title: "Strategic Vendor Negotiation & Procurement Script",
     description: "Cut cloud hosting, software licenses, and API provider costs by 30% using anchor leverage.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Negotiation","Procurement","Cost Optimization"],
     template: "Write a strategic vendor re-negotiation email to our cloud infrastructure provider requesting volume enterprise discounting for {{service_name}}. Reference our growing traffic: {{traffic_volume}}, competitor pricing alternatives, and multi-year commitment leverage.",
     variables: [
@@ -1912,7 +1912,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'organizational-restructuring-change-management-memo',
     title: "Organizational Restructuring & Change Management Memo",
     description: "Guides staff through organizational restructuring, new reporting lines, and platform pivots.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Change Management","HR","Internal Comms"],
     template: "Draft an internal leadership town-hall speech and change management memo announcing our transition to {{strategic_pivot}}. Address employee anxieties, explain the strategic imperative, outline support systems, and reinforce our vision.",
     variables: [
@@ -1934,7 +1934,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'annual-strategic-planning-offsite-agenda-facilitator-guide',
     title: "Annual Strategic Planning Offsite Agenda & Facilitator Guide",
     description: "Structured 3-day strategic retreat agenda aligning founders and executives for the fiscal year.",
-    category: "Executive Leadership & Strategy",
+    category: "Business & Strategy",
     tags: ["Offsite","Strategy","Annual Planning","Workshops"],
     template: "Design a complete 3-day annual strategic offsite agenda for the executive team of {{company_name}}. Day 1: Year in Review & Brutal Truths. Day 2: 3-Year Vision, BHAG, and Competitive Moats. Day 3: Departmental OKRs, Resource Allocation, and Execution Commitments.",
     variables: [
@@ -1956,7 +1956,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'comprehensive-product-requirement-document-prd',
     title: "Comprehensive Product Requirement Document (PRD)",
     description: "Full product specification with user personas, user stories, functional specs, and KPIs.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["PRD","Product Management","Specs","Agile"],
     template: "Write an exhaustive Product Requirement Document (PRD) for {{feature_name}}. Include: 1. Executive Summary & Problem Statement. 2. User Personas & Jobs To Be Done (JTBD). 3. Functional Requirements with Priority (P0, P1, P2). 4. Non-Functional Requirements (Latency, Security, Mobile). 5. Success Metrics / KPIs.",
     variables: [
@@ -1978,7 +1978,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'system-architecture-decision-record-adr',
     title: "System Architecture Decision Record (ADR)",
     description: "Formal architectural record documenting trade-offs, context, decisions, and consequences.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["Architecture","ADR","System Design","Engineering"],
     template: "Write an Architecture Decision Record (ADR) for {{decision_title}}. Status: Accepted. Context: {{context_background}}. Decision: {{chosen_solution}} vs Alternatives considered ({{alternatives_considered}}). Consequences: Positive and negative operational trade-offs.",
     variables: [
@@ -2018,7 +2018,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'user-story-acceptance-criteria-gherkin-bdd-generator',
     title: "User Story & Acceptance Criteria (Gherkin / BDD) Generator",
     description: "Breaks complex epics into sprint-ready user stories with Given-When-Then criteria.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["User Stories","Gherkin","BDD","Jira"],
     template: "Decompose the epic {{epic_title}} into 5 granular user stories. For each story, write the user story format (\"As a [user], I want to [action] so that [benefit]\") followed by 3 Gherkin BDD test scenarios (Given... When... Then...).",
     variables: [
@@ -2040,7 +2040,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'competitive-feature-gap-moat-analysis-matrix',
     title: "Competitive Feature Gap & Moat Analysis Matrix",
     description: "Compares your platform against Udemy, Teachable, and Gumroad to identify unique wedges.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["Competition","Strategy","Moat Analysis","Product"],
     template: "Perform a comprehensive competitive feature matrix comparing {{my_platform}} against major competitors: {{competitors}}. Analyze: Pricing & Payouts, Local African Settlement, Course DRM Protection, AI Generation Tools, and VIP Community. Highlight our 3 key unfair advantages.",
     variables: [
@@ -2068,7 +2068,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'rest-openapi-swagger-specification-builder',
     title: "REST & OpenAPI / Swagger Specification Builder",
     description: "Generates valid OpenAPI 3.1 YAML specifications with request bodies, auth headers, and response schemas.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["API","OpenAPI","Swagger","REST"],
     template: "Create a complete OpenAPI 3.1 specification in YAML for {{api_scope}}. Include path definitions, query parameters, JSON request payloads with schema types, Bearer token authorization, and 200/400/401/429 responses.",
     variables: [
@@ -2090,7 +2090,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'product-launch-checklist-go-to-market-gtm-matrix',
     title: "Product Launch Checklist & Go-To-Market (GTM) Matrix",
     description: "7-phase pre-launch, launch-day, and post-launch checklist ensuring zero broken links or missed bugs.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["GTM","Launch","Checklist","Operations"],
     template: "Generate a comprehensive GTM Launch Checklist for launching {{product_release}}. Group by: 1. Code & Security Readiness. 2. Payment & Checkout Verification. 3. Legal & Terms. 4. Marketing & Social Assets. 5. Customer Support & WhatsApp Desk.",
     variables: [
@@ -2112,7 +2112,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'customer-feedback-sentiment-analysis-feature-prioritization',
     title: "Customer Feedback Sentiment Analysis & Feature Prioritization",
     description: "Analyzes user complaints and feature requests, scoring them with the RICE framework.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["Feedback","RICE Score","Prioritization","Product"],
     template: "Analyze the following customer feedback items: {{feedback_snippets}}. Group into common pain point themes, formulate 4 potential product features, and score them using the RICE framework (Reach, Impact, Confidence, Effort) to determine roadmap rank.",
     variables: [
@@ -2134,7 +2134,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'microservices-vs-monolith-architecture-evaluation',
     title: "Microservices vs Monolith Architecture Evaluation",
     description: "Evaluates when to split a monolithic Next.js/Vite app into specialized worker microservices.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["Architecture","System Design","Scalability"],
     template: "Evaluate the architectural trade-offs between maintaining a Modular Monolith vs distributed Microservices for {{app_scale}}. Detail impacts on developer velocity, deployment complexity, latency, infrastructure cost, and database consistency.",
     variables: [
@@ -2156,7 +2156,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'database-indexing-query-performance-optimization-audit',
     title: "Database Indexing & Query Performance Optimization Audit",
     description: "Identifies slow N+1 queries, missing composite indexes, and optimizes SQL queries for high traffic.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["Database","SQL","Performance","Indexing"],
     template: "Conduct a database query optimization audit for the slow endpoint: {{slow_query_endpoint}}. Explain potential causes (table scans, unindexed foreign keys, redundant joins). Propose specific composite indexes and refactored SQL query with `EXPLAIN ANALYZE` considerations.",
     variables: [
@@ -2178,7 +2178,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'mobile-first-ux-ui-user-journey-wireframe-spec',
     title: "Mobile-First UX/UI User Journey Wireframe Spec",
     description: "Step-by-step screen layout specification optimized for Nigerian mobile learners on low-bandwidth 4G.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["UX","UI","Wireframes","Mobile"],
     template: "Design a mobile-first user journey wireframe specification for {{user_flow}}. Specify screen by screen: Hero section, tap targets (minimum 48px), sticky bottom checkout CTA, loading skeleton states, and offline cached indicator.",
     variables: [
@@ -2200,7 +2200,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'saas-churn-reduction-retention-strategy-blueprint',
     title: "SaaS Churn Reduction & Retention Strategy Blueprint",
     description: "Tactical mechanisms to increase monthly membership stickiness from 65% to 92%+.",
-    category: "Product Management & Architecture",
+    category: "Productivity",
     tags: ["Churn","Retention","SaaS","Engagement"],
     template: "Develop a 5-pillar churn reduction framework for our paid membership pass. Address: 1. Day 1 Activation. 2. Weekly habit formation. 3. Gamification (streaks, certificate badges). 4. In-app community involvement. 5. Offboarding friction & pause options.",
     variables: [
@@ -2216,7 +2216,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'disaster-recovery-business-continuity-plan-bcp',
     title: "Disaster Recovery & Business Continuity Plan (BCP)",
     description: "RTO and RPO benchmarks with automated database backup replication and failover routines.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["DevOps","Security","Disaster Recovery","Backups"],
     template: "Draft a Business Continuity and Disaster Recovery Plan for {{platform_name}}. Define Recovery Time Objective (RTO < 1 hour) and Recovery Point Objective (RPO < 15 minutes). Document automated backup schedule, DNS failover protocol, and incident roles.",
     variables: [
@@ -2238,7 +2238,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'gamification-learning-badge-progression-system',
     title: "Gamification & Learning Badge Progression System",
     description: "Increases course completion rates by 3x through XP points, milestone badges, and leaderboards.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["Gamification","LMS","Badges","Motivation"],
     template: "Design a gamification reward progression for our LMS students. Outline 5 unlockable achievement badges (e.g. \"First Lesson Done\", \"Fast Learner\", \"Quiz Champion\", \"Certified Creator\"). Define XP points awarded per activity and student leaderboard mechanics.",
     variables: [
@@ -2254,7 +2254,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'api-versioning-deprecation-policy-specification',
     title: "API Versioning & Deprecation Policy Specification",
     description: "Clean breaking-change migration strategy using semantic versioning and sunset headers.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["API Governance","Versioning","Engineering"],
     template: "Draft an API Versioning and Deprecation Policy for our public developer and affiliate endpoints. Define rules for URI versioning (`/api/v1` vs `/api/v2`), sunset header timeline (`Sunset: Wed, 11 Nov 2026`), and migration developer guides.",
     variables: [
@@ -2270,7 +2270,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'multi-tenant-data-isolation-rbac-security-model',
     title: "Multi-Tenant Data Isolation & RBAC Security Model",
     description: "Prevents horizontal privilege escalation across students, instructors, facilitators, and admins.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["Security","RBAC","Multi-Tenancy","Authorization"],
     template: "Design an enterprise Role-Based Access Control (RBAC) matrix for {{system_name}}. Roles: Visitor, Free Member, Paid Member, Instructor, Promoter/Facilitator, Super Admin. Detail permissions for CRUD operations across Products, Orders, Prompts, and Financial Reports.",
     variables: [
@@ -2292,7 +2292,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'content-delivery-network-cdn-asset-caching-strategy',
     title: "Content Delivery Network (CDN) & Asset Caching Strategy",
     description: "Optimizes video chunks, PDF downloads, and static images for instant load times across West Africa.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["CDN","Performance","Caching","Edge"],
     template: "Formulate an edge caching strategy for Vercel and Cloudflare CDN. Specify cache headers (`Cache-Control`, `stale-while-revalidate`) for: 1. Static HTML/JS bundles. 2. Immutable image assets. 3. Video lecture previews. 4. Dynamic user cart and checkout.",
     variables: [
@@ -2308,7 +2308,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'developer-documentation-quick-start-sdk-guide',
     title: "Developer Documentation & Quick-Start SDK Guide",
     description: "Clear, engaging documentation that gets external developers up and running in under 5 minutes.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["Docs","SDK","Developer Experience","API"],
     template: "Write a comprehensive Quickstart Developer Guide for the {{api_name}}. Include authentication instructions, 3 curl copy-paste examples, TypeScript code snippet, and troubleshooting guide for common error codes.",
     variables: [
@@ -2330,7 +2330,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'product-sunset-feature-deprecation-communications',
     title: "Product Sunset & Feature Deprecation Communications",
     description: "Gracefully retires legacy tools or outdated course editions while maintaining customer goodwill.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["Product Life Cycle","Deprecation","Customer Care"],
     template: "Write a customer-friendly deprecation announcement for retiring {{legacy_feature}}. Provide 30-day notice, explain why we are upgrading to {{modern_alternative}}, and offer an automated 1-click migration path.",
     variables: [
@@ -2358,7 +2358,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'technical-debt-inventory-refactoring-prioritization',
     title: "Technical Debt Inventory & Refactoring Prioritization",
     description: "Systematizes code smells, legacy dependencies, and slow components into an actionable sprint backlog.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["Tech Debt","Refactoring","Code Quality"],
     template: "Create a Technical Debt Audit framework for our codebase. Categorize debt into: Architecture Debt, Test Coverage Gaps, Outdated Dependencies, and CSS Bloat. Establish a rule allocating 20% of every development sprint to paying down debt.",
     variables: [
@@ -2374,7 +2374,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'a-b-test-experimentation-hypothesis-success-metric-card',
     title: "A/B Test Experimentation Hypothesis & Success Metric Card",
     description: "Scientific hypothesis framework for testing checkout buttons, pricing cards, and hero copy.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["Experimentation","A/B Testing","Growth","CRO"],
     template: "Design an A/B testing experiment card for {{experiment_idea}}. Formulate the Hypothesis: \"If we [change], then [metric] will increase by [target] because [reason]\". Define sample size, duration, primary metric, guardrail metric, and rollback criteria.",
     variables: [
@@ -2396,7 +2396,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'sla-service-level-agreement-uptime-warranty-charter',
     title: "SLA (Service Level Agreement) & Uptime Warranty Charter",
     description: "Formal 99.9% uptime commitment, maintenance windows, and penalty rebate schedules for B2B buyers.",
-    category: "Product Management & Architecture",
+    category: "LMS & Education",
     tags: ["SLA","Uptime","Compliance","Enterprise"],
     template: "Draft an enterprise Service Level Agreement (SLA) charter for {{service_title}}. Guarantee 99.9% monthly availability, define scheduled maintenance notice periods (minimum 48 hours), and outline service credit tiers for downtime.",
     variables: [
@@ -2418,7 +2418,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'viral-linkedin-carousel-slide-by-slide-architect',
     title: "Viral LinkedIn Carousel Slide-by-Slide Architect",
     description: "8-slide high-retention PDF carousel breaking down complex tech concepts for maximum reposts.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["LinkedIn","Carousel","Viral Content","Personal Brand"],
     template: "Write an 8-slide viral LinkedIn carousel on {{carousel_topic}}. Slide 1: High-curiosity hook. Slides 2-6: Step-by-step breakdown with zero fluff. Slide 7: Summary checklist. Slide 8: Strong CTA directing readers to our platform: {{cta_url}}.",
     variables: [
@@ -2446,7 +2446,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'instagram-reels-tiktok-60-second-hook-scriptwriter',
     title: "Instagram Reels & TikTok 60-Second Hook Scriptwriter",
     description: "High-energy short-form video script with 3-second visual pattern interrupt and audio cues.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Instagram Reels","TikTok","Short-form Video","Growth"],
     template: "Write a high-retention 60-second video script for Instagram Reels / TikTok on {{video_topic}}. Format: [0-3s] Hook with on-screen text and physical action. [4-15s] The Agitation. [16-45s] The 3-step solution. [46-60s] Clear CTA to comment {{keyword}} for the link.",
     variables: [
@@ -2474,7 +2474,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'x-twitter-high-engagement-7-tweet-authority-thread',
     title: "X / Twitter High-Engagement 7-Tweet Authority Thread",
     description: "Compelling educational thread designed to attract thousands of bookmarks and profile clicks.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Twitter","X","Threads","Audience Growth"],
     template: "Write a 7-tweet educational thread on {{thread_topic}}. Tweet 1: Provocative hook with compelling stats. Tweets 2-5: Practical frameworks and screenshots breakdown. Tweet 6: The #1 mistake to avoid. Tweet 7: Recap and link to our flagship course: {{course_link}}.",
     variables: [
@@ -2502,7 +2502,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'whatsapp-community-daily-value-engagement-broadcast',
     title: "WhatsApp Community Daily Value & Engagement Broadcast",
     description: "Keeps active WhatsApp learning groups engaged with morning insights and discussion prompts.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["WhatsApp Groups","Community","Broadcast","Daily Routine"],
     template: "Write a daily value broadcast for our official WhatsApp student group. Today’s theme: {{daily_theme}}. Include an inspiring thought, a practical 2-minute actionable tip, and a discussion question that encourages members to reply.",
     variables: [
@@ -2524,7 +2524,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'youtube-long-form-video-outline-retention-blueprint',
     title: "YouTube Long-Form Video Outline & Retention Blueprint",
     description: "15-minute tutorial script structure with retention anchors every 90 seconds to maximize watch time.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["YouTube","Video","Retention","Long-Form"],
     template: "Create a 15-minute YouTube video structure for {{video_title}}. Include: 1. 0-30s Hook (visual preview of final result). 2. Story setup. 3. Three core tutorial chapters. 4. Visual B-roll and screen recording cues. 5. End-screen CTA for {{lead_magnet}}.",
     variables: [
@@ -2552,7 +2552,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'automated-social-media-weekly-content-calendar-matrix',
     title: "Automated Social Media Weekly Content Calendar Matrix",
     description: "Generates 7 days of synchronized posts across LinkedIn, X, Instagram, and WhatsApp.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Content Calendar","Social Media","Scheduling","Strategy"],
     template: "Create a 7-day multi-platform social media calendar around the central theme: {{weekly_theme}}. For each day (Mon-Sun), specify the Content Pillar (Educate, Inspire, Entertain, Sell), Platform, Core Hook, and Image/Slide concept.",
     variables: [
@@ -2574,7 +2574,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'cold-outreach-dm-script-for-instagram-linkedin-influencers',
     title: "Cold Outreach DM Script for Instagram & LinkedIn Influencers",
     description: "High-response direct message pitching micro-influencers to partner on course launches.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Influencers","Partnerships","DMs","Outreach"],
     template: "Write a non-spammy, relationship-first DM to reach out to {{influencer_niche}} creators on {{platform}}. Compliment specific recent work, propose a win-win partnership promoting {{offer_name}}, and offer a {{commission_split}} rev share.",
     variables: [
@@ -2614,7 +2614,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'viral-quiz-poll-generator-for-audience-engagement',
     title: "Viral Quiz & Poll Generator for Audience Engagement",
     description: "Generates high-curiosity interactive polls that drive thousands of votes and algorithmic reach.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Polls","Interactive","LinkedIn Polls","Twitter Polls"],
     template: "Write 3 provocative, debate-sparking polls for LinkedIn and X on {{industry_debate}}. For each poll: Provide the question, 4 compelling voting options, and the follow-up commentary we will post in the comments to steer discussion to {{our_solution}}.",
     variables: [
@@ -2642,7 +2642,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'podcast-guest-pitch-email-soundbite-sheet',
     title: "Podcast Guest Pitch Email & Soundbite Sheet",
     description: "Pitches top technology and business podcast hosts to interview your founder.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Podcast","PR","Guest Pitch","Authority"],
     template: "Draft a pitch email to the host of {{podcast_name}}. Pitch {{speaker_name}} as a guest. Present 3 controversial soundbites on {{topic_soundbites}} and explain why their audience of {{podcast_audience}} will be glued to the episode.",
     variables: [
@@ -2682,7 +2682,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'case-study-client-transformation-social-spotlight',
     title: "Case Study & Client Transformation Social Spotlight",
     description: "Transforms student milestones into narrative story posts that sell without feeling salesy.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Social Proof","Case Study","Storytelling"],
     template: "Write a narrative LinkedIn and Facebook post celebrating our student {{student_name}}. Highlight their starting point: {{starting_point}}, the specific DWC course they took: {{course_taken}}, and their tangible breakthrough: {{breakthrough_result}}. End with enrollment link.",
     variables: [
@@ -2722,7 +2722,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'automated-content-repurposing-multi-format-matrix',
     title: "Automated Content Repurposing Multi-Format Matrix",
     description: "Takes 1 long-form blog post and repurposes it into 10 multi-platform social assets.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Repurposing","Content Strategy","Efficiency"],
     template: "Take the core thesis from our blog post: \"{{blog_post_thesis}}\". Repurpose it into: 1. A 3-bullet X thread. 2. A LinkedIn narrative post. 3. An Instagram Reel visual concept. 4. A WhatsApp daily tip. 5. An email newsletter summary.",
     variables: [
@@ -2744,7 +2744,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'social-proof-screenshot-review-hype-post',
     title: "Social Proof Screenshot & Review Hype Post",
     description: "Frames positive WhatsApp feedback and five-star reviews into high-converting social posts.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Hype","Social Proof","Testimonials"],
     template: "Write an enthusiastic social media post showcasing 3 real customer WhatsApp feedback messages praising {{product_title}}. Emphasize the authentic community sentiment, thank the students, and provide the direct purchase link: {{product_url}}.",
     variables: [
@@ -2772,7 +2772,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'controversial-industry-stance-contrarian-take-post',
     title: "Controversial Industry Stance & Contrarian Take Post",
     description: "Polarizing, intelligent opinions that stand out in crowded feeds and drive massive comment threads.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Contrarian","Viral","Thought Leadership"],
     template: "Write a contrarian thought-leadership post for LinkedIn challenging the popular myth: \"{{popular_myth}}\". Argue the opposite truth: \"{{unpopular_truth}}\". Support with 3 grounded industry observations and invite readers to debate respectfully in comments.",
     variables: [
@@ -2800,7 +2800,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'free-resource-lead-magnet-give-away-viral-post',
     title: "Free Resource / Lead Magnet Give-Away Viral Post",
     description: "The classic \"Comment [KEYWORD] and I will DM you the free cheat sheet\" viral reach multiplier.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Lead Magnet","Giveaway","Viral Loop","List Building"],
     template: "Write a viral give-away post for LinkedIn and X offering {{free_resource}}. Describe the 40+ hours it took to create it, summarize the 3 most valuable components inside, and set the simple condition: \"Like, Retweet/Repost, and comment {{trigger_word}} to get instant access\".",
     variables: [
@@ -2828,7 +2828,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'live-event-behind-the-scenes-speaker-highlights',
     title: "Live Event Behind-the-Scenes & Speaker Highlights",
     description: "Captures the raw energy of live Zoom/hall masterclasses to drive registration for the next cohort.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Behind the Scenes","Events","Masterclass"],
     template: "Write an exciting behind-the-scenes recap post following our live cohort session on {{session_topic}}. Highlight the attendee energy ({{attendee_count}} leaders live), quote a memorable insight dropped by {{speaker_name}}, and announce registration opening for Cohort 2.",
     variables: [
@@ -2862,7 +2862,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'new-feature-major-platform-release-social-announcement',
     title: "New Feature / Major Platform Release Social Announcement",
     description: "Announces new website capabilities (e.g. Instant Certificate Verification, Prompt Vault).",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Product Update","Release","Announcement","SaaS"],
     template: "Craft an exciting product update announcement for {{platform_name}} launching our brand new feature: {{new_feature_name}}. Detail the problem it solves for students: {{problem_solved}}, how to access it immediately, and invite community feedback.",
     variables: [
@@ -2896,7 +2896,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'weekly-q-a-crowd-sourcing-post',
     title: "Weekly Q&A Crowd-Sourcing Post",
     description: "Crowd-sources student questions on Wednesday for the Friday live breakdown.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Q&A","Community","Engagement"],
     template: "Write an open Q&A invitation post on social media. Topic of the week: {{qa_topic}}. Invite followers to drop their toughest burning questions in the comments, promising that {{expert_name}} will answer the top 5 in this Friday’s live masterclass.",
     variables: [
@@ -2924,7 +2924,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'milestone-celebration-gratitude-post-social-proof',
     title: "Milestone Celebration & Gratitude Post (Social Proof)",
     description: "Celebrates hitting community milestones (e.g. 10,000 students, 500 completed certificates).",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Milestone","Celebration","Gratitude","Brand"],
     template: "Write a humble and inspiring milestone celebration post for {{brand_name}} achieving {{milestone_achievement}}. Reflect on the early days of starting with zero students, thank the community, and reaffirm our mission to build digital wealth creators across Africa.",
     variables: [
@@ -2952,7 +2952,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'interactive-skill-assessment-quiz-social-post',
     title: "Interactive Skill Assessment & Quiz Social Post",
     description: "Diagnostic question post that assesses reader knowledge and directs them to the beginner course.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Quiz","Assessment","Lead Gen"],
     template: "Write an interactive technical assessment post: \"Rate your AI Engineering readiness from 1 to 5\". Provide 5 self-evaluation criteria. If they score < 3, direct them to our Foundation Course. If they score 4-5, direct them to our Advanced Masterclass.",
     variables: [
@@ -2968,7 +2968,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'founder-monday-motivation-vision-alignment',
     title: "Founder Monday Motivation & Vision Alignment",
     description: "Ignites energy on Monday morning with philosophical depth on ownership, freedom, and craft.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Motivation","Founder","Inspiration","Monday"],
     template: "Write a Monday morning founder essay from {{founder_name}}. Theme: The discipline of building digital assets that compound while you sleep. Draw a contrast between trading hours for wages vs owning digital products. End with an empowering challenge for the week.",
     variables: [
@@ -2990,7 +2990,7 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     slug: 'affiliate-leaderboard-monthly-prize-announcement',
     title: "Affiliate Leaderboard & Monthly Prize Announcement",
     description: "Sparks competitive promotion among affiliates with monthly prize pool updates.",
-    category: "Social Media Automation & Growth",
+    category: "Content Creation",
     tags: ["Affiliates","Leaderboard","Contest","Gamification"],
     template: "Write an exciting affiliate contest announcement for the month of {{contest_month}}. Announce top cash prizes for the top 3 affiliates: 1st Place: {{first_prize}}, 2nd Place: {{second_prize}}, 3rd Place: {{third_prize}}, plus the standard 20% recurring commission on all sales.",
     variables: [
@@ -3025,4 +3025,375 @@ export const SEED_PROMPT_VAULT_ITEMS: PromptVaultItem[] = [
     copyCount: 511,
     createdAt: '2026-11-01T00:00:00Z',
   },
+  {
+    id: 'vault-106',
+    slug: 'executive-weekly-time-blocking-prioritizer',
+    title: "Executive Weekly Time Blocking & High-Leverage Task Prioritizer",
+    description: "Transforms overwhelming to-do lists into an Eisenhower matrix with dedicated focus blocks.",
+    category: "Productivity",
+    tags: ["Time Management", "Prioritization", "Deep Work", "Executive"],
+    template: "Act as an executive productivity coach. Review this list of tasks: {{task_list}}. Organize them into the Eisenhower Matrix (Urgent/Important). Assign {{focus_hours_per_day}} hours of deep work daily and create a 5-day structured schedule with buffer zones.",
+    variables: [
+      { name: 'task_list', label: 'Tasks', defaultValue: 'Review Q4 financials, Ship AI prompt vault, Draft investor memo, Hire senior developer', placeholder: 'Enter tasks...' },
+      { name: 'focus_hours_per_day', label: 'Focus Hours', defaultValue: '4', placeholder: 'e.g. 4' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet / GPT-4o',
+    membershipTierRequired: 'free',
+    isFeatured: true,
+    copyCount: 840,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-107',
+    slug: 'meeting-transcript-decision-matrix-generator',
+    title: "Meeting Transcript to Decision Matrix & Action Items",
+    description: "Extracts key takeaways, owner assignments, and hard deadlines from meeting notes.",
+    category: "Productivity",
+    tags: ["Meetings", "Action Items", "Decisions", "Minutes"],
+    template: "Analyze the following meeting transcript/notes: {{meeting_notes}}. Extract: 1. Core Decisions Made. 2. Action Items table (Task, Owner, Deadline). 3. Unresolved Blockers for {{meeting_title}}.",
+    variables: [
+      { name: 'meeting_notes', label: 'Notes', defaultValue: 'Agreed on ₦250k affiliate bonus. John to deploy API by Friday. Sarah to send design mocks.', placeholder: 'Paste notes...' },
+      { name: 'meeting_title', label: 'Title', defaultValue: 'Weekly Engineering & Monetization Standup', placeholder: 'Meeting title...' }
+    ],
+    recommendedModel: 'Gemini 2.5 Flash',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 620,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-108',
+    slug: 'engineering-sprint-velocity-estimator',
+    title: "Agile Sprint Planning & Engineering Velocity Estimator",
+    description: "Breaks down roadmap features into story points, dependencies, and PR sizes.",
+    category: "Productivity",
+    tags: ["Agile", "Sprint", "Scrum", "Engineering"],
+    template: "Break down the feature {{feature_name}} into granular engineering user stories. Assign Fibonacci story points (1, 2, 3, 5, 8), identify technical risks, and propose an optimal {{sprint_length_weeks}}-week delivery sequence.",
+    variables: [
+      { name: 'feature_name', label: 'Feature', defaultValue: 'One-Click Bank Verification & Webhook Dispatch', placeholder: 'Feature...' },
+      { name: 'sprint_length_weeks', label: 'Weeks', defaultValue: '2', placeholder: 'e.g. 2' }
+    ],
+    recommendedModel: 'Claude 3.7 Sonnet',
+    membershipTierRequired: 'paid',
+    isFeatured: false,
+    copyCount: 450,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-109',
+    slug: 'standard-operating-procedure-sop-synthesizer',
+    title: "Standard Operating Procedure (SOP) Synthesizer",
+    description: "Creates crystal-clear, repeatable operating procedures for team delegation.",
+    category: "Productivity",
+    tags: ["SOP", "Operations", "Delegation", "Workflows"],
+    template: "Write an enterprise-standard Standard Operating Procedure (SOP) for {{process_name}}. Include Purpose, Scope, Required Tools, Step-by-Step Execution with screenshots/verification criteria, and Troubleshooting Steps for common failures.",
+    variables: [
+      { name: 'process_name', label: 'Process', defaultValue: 'Manual GTB Bank Payment Verification and Account Activation', placeholder: 'Process...' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 710,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-110',
+    slug: 'daily-async-standup-blocker-resolver',
+    title: "Daily Async Standup & Cross-Functional Blocker Resolver",
+    description: "Structures async standups that eliminate redundant meetings and unblock teams.",
+    category: "Productivity",
+    tags: ["Standup", "Async", "Remote", "Communication"],
+    template: "Format a clean async daily standup report for team {{team_name}}. Document: Yesterday's Accomplishments, Today's High-Leverage Commitments, and Urgent Blockers requiring help from {{stakeholder_role}}.",
+    variables: [
+      { name: 'team_name', label: 'Team', defaultValue: 'Growth & Platform Engineering', placeholder: 'Team...' },
+      { name: 'stakeholder_role', label: 'Stakeholder', defaultValue: 'Lead Architect or Product Owner', placeholder: 'Role...' }
+    ],
+    recommendedModel: 'Gemini 2.5 Flash',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 390,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-111',
+    slug: 'executive-inbox-zero-email-batcher',
+    title: "Executive Inbox Zero & Batch Email Responder",
+    description: "Triages 50+ emails into Respond, Delegate, Defer, or Archive with draft replies.",
+    category: "Productivity",
+    tags: ["Email", "Inbox Zero", "Communication", "Efficiency"],
+    template: "Triage these incoming communication snippets: {{inbox_dump}}. Categorize each into: 1. Action Needed Now. 2. Delegation to {{assistant_name}}. 3. Archive/FYI. For items needing my response, provide a crisp 2-sentence draft in an {{executive_tone}} tone.",
+    variables: [
+      { name: 'inbox_dump', label: 'Email Snippets', defaultValue: 'Partner wanting rev-share call; Customer asking for invoice; Hosting invoice notice', placeholder: 'Paste snippets...' },
+      { name: 'assistant_name', label: 'Assistant', defaultValue: 'Operations Manager', placeholder: 'Name...' },
+      { name: 'executive_tone', label: 'Tone', defaultValue: 'polite, direct, decisive', placeholder: 'Tone...' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet',
+    membershipTierRequired: 'paid',
+    isFeatured: false,
+    copyCount: 520,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-112',
+    slug: 'zapier-n8n-automation-flow-architect',
+    title: "Zapier & n8n Multi-Step Automation Flow Architect",
+    description: "Designs bulletproof webhook triggers, data mapping, and error retry logic.",
+    category: "Productivity",
+    tags: ["Automation", "n8n", "Zapier", "No-Code"],
+    template: "Architect an automated webhook pipeline between {{trigger_platform}} and {{destination_platform}}. Define: Trigger Event, Data Schema Parsing, Conditional Filter Rules, Error Handling & Fallback Notification to {{alert_channel}}.",
+    variables: [
+      { name: 'trigger_platform', label: 'Trigger App', defaultValue: 'Paystack Successful Charge Webhook', placeholder: 'App...' },
+      { name: 'destination_platform', label: 'Destination App', defaultValue: 'Digital Wealth Creators LMS & Brevo Email Campaign', placeholder: 'App...' },
+      { name: 'alert_channel', label: 'Alert Channel', defaultValue: 'Admin Telegram Group', placeholder: 'Channel...' }
+    ],
+    recommendedModel: 'GPT-4o',
+    membershipTierRequired: 'paid',
+    isFeatured: true,
+    copyCount: 960,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-113',
+    slug: 'notion-database-relational-schema-designer',
+    title: "Notion Team Workspace & Relational Database Designer",
+    description: "Builds unified knowledge hubs with interconnected projects, tasks, and client databases.",
+    category: "Productivity",
+    tags: ["Notion", "Databases", "Organization", "Workspace"],
+    template: "Design a comprehensive Notion workspace schema for a {{business_type}}. Detail relational properties between 3 core databases: Projects, Tasks, and Client Engagements. Include Rollups, Formulas, and Kanban board views.",
+    variables: [
+      { name: 'business_type', label: 'Business Type', defaultValue: 'Digital Product Studio & Consulting Firm', placeholder: 'e.g. Consulting Firm' }
+    ],
+    recommendedModel: 'Claude 3.7 Sonnet',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 680,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-114',
+    slug: 'virtual-assistant-task-delegation-brief',
+    title: "Virtual Assistant (VA) Delegation Brief & Acceptance Criteria",
+    description: "Eliminates back-and-forth by creating foolproof delegation briefs with clear definitions of done.",
+    category: "Productivity",
+    tags: ["Delegation", "VA", "Outsourcing", "Management"],
+    template: "Draft a high-clarity delegation brief for a Virtual Assistant to execute {{task_title}}. Specify Context, Expected Output, Tools Access (login requirements), Step-by-Step Instructions, and strict Definition of Done (DoD).",
+    variables: [
+      { name: 'task_title', label: 'Task Title', defaultValue: 'Scraping and verifying 50 target e-commerce contacts from LinkedIn', placeholder: 'Task...' }
+    ],
+    recommendedModel: 'Gemini 2.5 Flash',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 430,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-115',
+    slug: 'deep-work-distraction-blocker-routine',
+    title: "Deep Work Schedule & Digital Distraction Blocker",
+    description: "Daily protocol to eliminate context switching and protect four 90-minute hyper-focus cycles.",
+    category: "Productivity",
+    tags: ["Deep Work", "Focus", "Habits", "Performance"],
+    template: "Create an optimal daily flow for {{profession}} balancing 4 hours of intense problem-solving with administrative tasks. Include morning warmup ritual, notification-blocking rules, physical ergonomics, and evening shutdown review.",
+    variables: [
+      { name: 'profession', label: 'Profession', defaultValue: 'Solo Software Founder & Technical Creator', placeholder: 'e.g. Software Founder' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 510,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-116',
+    slug: 'interactive-course-curriculum-syllabus-architect',
+    title: "Interactive Course Curriculum & Module Syllabus Architect",
+    description: "Designs a 6-module transformation curriculum with learning outcomes and exercises.",
+    category: "LMS & Education",
+    tags: ["Curriculum", "Course Creation", "Syllabus", "Pedagogy"],
+    template: "Act as an instructional designer. Create a comprehensive 6-module curriculum for a masterclass on {{course_topic}} targeting {{student_level}}. For each module, provide: 1. Core Concept. 2. Three 10-minute video lecture titles. 3. Practical Coding/Hands-on Exercise. 4. Milestone Quiz.",
+    variables: [
+      { name: 'course_topic', label: 'Topic', defaultValue: 'Vibe Coding with Autonomous AI Agents & Cloud Deployment', placeholder: 'Topic...' },
+      { name: 'student_level', label: 'Level', defaultValue: 'Intermediate developers and digital builders', placeholder: 'Level...' }
+    ],
+    recommendedModel: 'Claude 3.7 Sonnet',
+    membershipTierRequired: 'paid',
+    isFeatured: true,
+    copyCount: 1120,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-117',
+    slug: 'masterclass-lecture-script-slide-breakdown',
+    title: "Masterclass Lecture Script & Slide-by-Slide Narration",
+    description: "Writes word-for-word spoken narration scripts synchronized with slide visual cues.",
+    category: "LMS & Education",
+    tags: ["Lectures", "Video Script", "Slides", "Teaching"],
+    template: "Write a word-for-word lecture script for a 12-minute video lesson on {{lesson_title}}. Structure it into 5 distinct slides: Slide Visual Concept, Speaker Narration (warm, instructive tone), and Call-to-Action for the next lesson in {{course_name}}.",
+    variables: [
+      { name: 'lesson_title', label: 'Lesson Title', defaultValue: 'Building Resilient AI Tool-Calling Loops with TypeScript', placeholder: 'Lesson...' },
+      { name: 'course_name', label: 'Course Name', defaultValue: 'Production Vibe Coding Masterclass', placeholder: 'Course...' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet',
+    membershipTierRequired: 'paid',
+    isFeatured: false,
+    copyCount: 780,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-118',
+    slug: 'comprehension-quiz-multiple-choice-builder',
+    title: "Student Comprehension Quiz & Multiple-Choice Exam Builder",
+    description: "Generates 5 rigorous questions with correct answers, distractor rationales, and explanations.",
+    category: "LMS & Education",
+    tags: ["Quizzes", "Exams", "Assessment", "Evaluation"],
+    template: "Generate a 5-question multiple-choice assessment for {{subject_module}}. For each question provide: 4 options (A, B, C, D), the verified correct answer, and an in-depth pedagogical explanation explaining why the distractors are incorrect.",
+    variables: [
+      { name: 'subject_module', label: 'Module', defaultValue: 'React State Synchronization & Server Actions Security', placeholder: 'Module...' }
+    ],
+    recommendedModel: 'Gemini 2.5 Flash',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 650,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-119',
+    slug: 'hands-on-coding-lab-capstone-project-rubric',
+    title: "Hands-on Practical Coding Lab & Capstone Rubric",
+    description: "Designs a real-world student capstone with starter code, milestone rubrics, and grading scale.",
+    category: "LMS & Education",
+    tags: ["Capstone", "Lab", "Grading", "Rubric"],
+    template: "Design an end-of-course Capstone Project for {{course_title}}. Detail: Project Brief, Tech Stack Requirements, Starter Architecture, 4 Milestone Submissions, and a 100-point Grading Rubric across Functionality, Code Cleanliness, and Security.",
+    variables: [
+      { name: 'course_title', label: 'Course', defaultValue: 'Full-Stack Autonomous SaaS Deployment', placeholder: 'Course...' }
+    ],
+    recommendedModel: 'Claude 3.7 Sonnet',
+    membershipTierRequired: 'paid',
+    isFeatured: true,
+    copyCount: 890,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-120',
+    slug: 'verifiable-certificate-accredited-outcomes',
+    title: "Verifiable Certificate Accredited Learning Outcomes",
+    description: "Formulates accredited institutional competencies for verifiable CM-CERT certificates.",
+    category: "LMS & Education",
+    tags: ["Certificates", "Accreditation", "Competencies", "Outcomes"],
+    template: "Formulate 5 verifiable institutional learning outcomes for the {{certification_name}} certificate. Align with professional industry standards (e.g. FCIA/MNIM/IEEE) and state verifiable competencies a graduate has demonstrated upon completing 100% of the program.",
+    variables: [
+      { name: 'certification_name', label: 'Certificate Name', defaultValue: 'Executive AI Systems Engineer (CM-CERT-EAIS)', placeholder: 'Certificate...' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 540,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-121',
+    slug: 'lms-gamification-retention-streak-engine',
+    title: "LMS Gamification & Student Streak Retention Engine",
+    description: "Boosts course completion rates from 12% to 68%+ using daily streaks and badge incentives.",
+    category: "LMS & Education",
+    tags: ["Gamification", "Retention", "Streaks", "Engagement"],
+    template: "Design a gamified retention mechanics system for our online learning platform {{platform_name}}. Specify: Daily Streak Rewards, Milestone Badges (First Lesson, 50% Milestone, Capstone Hero), Leaderboard Scoring, and automated re-engagement notifications.",
+    variables: [
+      { name: 'platform_name', label: 'Platform', defaultValue: 'Digital Wealth Creators LMS', placeholder: 'Platform...' }
+    ],
+    recommendedModel: 'GPT-4o',
+    membershipTierRequired: 'paid',
+    isFeatured: false,
+    copyCount: 720,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-122',
+    slug: 'student-code-review-constructive-feedback-bot',
+    title: "Student Assignment Code Review & Constructive Feedback Bot",
+    description: "Provides encouraging, pedagogical code reviews highlighting bug fixes and architectural praise.",
+    category: "LMS & Education",
+    tags: ["Feedback", "Code Review", "Mentorship", "Teaching"],
+    template: "Act as a patient senior developer mentor. Review this student submission: {{student_code}}. Provide: 1. Positive reinforcement on what was done well. 2. Two specific optimization opportunities with sample code diff. 3. Recommended documentation link for further study.",
+    variables: [
+      { name: 'student_code', label: 'Code', defaultValue: 'const fetchUsers = () => { fetch("/api/users").then(res => setUsers(res)) }', placeholder: 'Paste code...' }
+    ],
+    recommendedModel: 'Gemini 2.5 Flash',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 610,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-123',
+    slug: 'cohort-onboarding-welcome-sequence',
+    title: "Cohort Onboarding & VIP Community Welcome Sequence",
+    description: "4-email warm welcome journey that guides new enrollees from orientation to their first lesson.",
+    category: "LMS & Education",
+    tags: ["Onboarding", "Emails", "Cohort", "Welcome"],
+    template: "Draft a 4-part automated student welcome email onboarding sequence for {{course_title}}. Email 1: Instant Portal Access & Telegram Hub invite. Email 2: How to setup your local IDE. Email 3: Meeting your mentors and booking office hours. Email 4: Celebrating your first milestone.",
+    variables: [
+      { name: 'course_title', label: 'Course', defaultValue: 'Digital Wealth Creators VIP Accelerator', placeholder: 'Course...' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet',
+    membershipTierRequired: 'paid',
+    isFeatured: false,
+    copyCount: 480,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-124',
+    slug: 'course-promo-video-trailer-script',
+    title: "Course Promotional Video Trailer & Hook Script",
+    description: "60-second high-energy video trailer script showcasing the course transformation.",
+    category: "LMS & Education",
+    tags: ["Promo", "Trailer", "Video", "Marketing"],
+    template: "Write a high-converting 60-second video trailer script promoting {{course_title}}. Hook the viewer in the first 3 seconds with {{bold_claim}}, showcase the 3 core masterclass skills, feature a student proof metric, and close with CTA: {{cta_url}}.",
+    variables: [
+      { name: 'course_title', label: 'Course', defaultValue: 'AI SaaS Accelerator 2026', placeholder: 'Course...' },
+      { name: 'bold_claim', label: 'Hook Claim', defaultValue: 'Stop writing boilerplate. Ship full-stack apps in hours using autonomous AI agents.', placeholder: 'Claim...' },
+      { name: 'cta_url', label: 'CTA', defaultValue: 'Enroll now at digitalwealthcreators.org.ng/courses', placeholder: 'CTA...' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet / GPT-4o',
+    membershipTierRequired: 'paid',
+    isFeatured: true,
+    copyCount: 890,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-125',
+    slug: 'live-masterclass-facilitator-discussion-guide',
+    title: "Live Masterclass Facilitator Guide & Interactive Prompts",
+    description: "Run smooth, high-engagement 90-minute live webinars with time-stamped speaker cues.",
+    category: "LMS & Education",
+    tags: ["Webinar", "Facilitator", "Live Class", "Hosting"],
+    template: "Create a facilitator guide for a 90-minute live workshop on {{workshop_topic}}. Include: Minute 0-10: Warm welcome & poll question. Minute 10-40: Core framework walkthrough. Minute 40-70: Live student tear-down. Minute 70-90: Q&A session with prompt questions for {{facilitator_name}}.",
+    variables: [
+      { name: 'workshop_topic', label: 'Topic', defaultValue: 'Building Digital Products & Affiliate Revenue Funnels in 2026', placeholder: 'Topic...' },
+      { name: 'facilitator_name', label: 'Facilitator', defaultValue: 'S. B. OMOTOSO', placeholder: 'Name...' }
+    ],
+    recommendedModel: 'Claude 3.5 Sonnet',
+    membershipTierRequired: 'free',
+    isFeatured: false,
+    copyCount: 560,
+    createdAt: '2026-11-01T00:00:00Z'
+  },
+  {
+    id: 'vault-126',
+    slug: 'post-course-alumni-career-upskill-roadmap',
+    title: "Post-Course Alumni Mentorship & Career Upskilling Roadmap",
+    description: "30-60-90 day alumni progression plan turning course graduates into high-earning practitioners.",
+    category: "LMS & Education",
+    tags: ["Alumni", "Career", "Roadmap", "Mentorship"],
+    template: "Develop a structured 30-60-90 day post-graduation action plan for alumni of {{program_name}}. Detail specific goals for Days 1-30 (Portfolio proof), Days 31-60 (First high-ticket client or product launch), and Days 61-90 (Affiliate syndication and recurring monetization).",
+    variables: [
+      { name: 'program_name', label: 'Program', defaultValue: 'Digital Wealth Creators Full-Stack Engineering Program', placeholder: 'Program...' }
+    ],
+    recommendedModel: 'Claude 3.7 Sonnet',
+    membershipTierRequired: 'paid',
+    isFeatured: true,
+    copyCount: 920,
+    createdAt: '2026-11-01T00:00:00Z'
+  }
+
 ];

@@ -28,7 +28,9 @@ import type {
   Product,
   ProductFilterState,
   ProductReview,
+  PromptVaultItem,
   PublicServerConfig,
+  SavedCustomizedPrompt,
   ShowcaseSite,
   SocialPostDraft,
   StorefrontAppearance,
@@ -343,6 +345,16 @@ export interface StoreContextValue {
   updateAppearance: (appearance: StorefrontAppearance) => void;
   resetDemoDatabase: () => void;
 
+  // Prompt Vault Management & Student Customizations
+  promptVaultCategories: string[];
+  addPromptVaultCategory: (category: string) => void;
+  customPromptVaultItems: PromptVaultItem[];
+  addCustomPromptVaultItem: (item: Omit<PromptVaultItem, 'id' | 'createdAt'>) => PromptVaultItem;
+  deleteCustomPromptVaultItem: (id: string) => void;
+  savedStudentPrompts: SavedCustomizedPrompt[];
+  saveStudentPrompt: (item: SavedCustomizedPrompt) => void;
+  deleteStudentPrompt: (id: string) => void;
+
   // Facilitator Booking & Calendar Engagements (Milestone 3)
   facilitatorBookings: FacilitatorBooking[];
   calendarEngagements: CalendarEngagement[];
@@ -497,6 +509,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
   const [calendarEngagements, setCalendarEngagements] = useState<CalendarEngagement[]>(() =>
     storageService.getCalendarEngagements()
+  );
+  const [promptVaultCategories, setPromptVaultCategories] = useState<string[]>(() =>
+    storageService.getPromptVaultCategories()
+  );
+  const [customPromptVaultItems, setCustomPromptVaultItems] = useState<PromptVaultItem[]>(() =>
+    storageService.getCustomPromptVaultItems()
+  );
+  const [savedStudentPrompts, setSavedStudentPrompts] = useState<SavedCustomizedPrompt[]>(() =>
+    storageService.getStudentSavedPrompts()
   );
   const [publicServerConfig, setPublicServerConfig] = useState<PublicServerConfig>({
     supabaseConfigured: false,
@@ -976,6 +997,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => storageService.saveEvents(events), [events]);
   useEffect(() => storageService.saveEventRegistrations(eventRegistrations), [eventRegistrations]);
   useEffect(() => storageService.saveSocialDrafts(socialDrafts), [socialDrafts]);
+  useEffect(() => storageService.savePromptVaultCategories(promptVaultCategories), [promptVaultCategories]);
+  useEffect(() => storageService.saveCustomPromptVaultItems(customPromptVaultItems), [customPromptVaultItems]);
+  useEffect(() => storageService.saveStudentSavedPrompts(savedStudentPrompts), [savedStudentPrompts]);
   useEffect(() => storageService.saveEmailCampaigns(emailCampaigns), [emailCampaigns]);
   useEffect(() => storageService.saveCommunityChannels(communityChannels), [communityChannels]);
   useEffect(() => storageService.saveCommunityMessages(communityMessages), [communityMessages]);
@@ -3704,6 +3728,65 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [isFacilitatorDateFree]
   );
 
+  const addPromptVaultCategory = useCallback((category: string) => {
+    const clean = category.trim();
+    if (!clean) return;
+    setPromptVaultCategories((prev) => {
+      if (prev.some((c) => c.toLowerCase() === clean.toLowerCase())) return prev;
+      const updated = [...prev, clean];
+      storageService.savePromptVaultCategories(updated);
+      return updated;
+    });
+    showToast(`Added category: "${clean}"`);
+  }, [showToast]);
+
+  const addCustomPromptVaultItem = useCallback((item: Omit<PromptVaultItem, 'id' | 'createdAt'>) => {
+    const newItem: PromptVaultItem = {
+      ...item,
+      id: `custom-vault-${Date.now()}`,
+      slug: (item.title || 'prompt').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      createdAt: new Date().toISOString(),
+      copyCount: 0,
+    };
+    setCustomPromptVaultItems((prev) => {
+      const updated = [newItem, ...prev];
+      storageService.saveCustomPromptVaultItems(updated);
+      return updated;
+    });
+    showToast(`Added custom prompt: "${newItem.title}"`);
+    return newItem;
+  }, [showToast]);
+
+  const deleteCustomPromptVaultItem = useCallback((id: string) => {
+    setCustomPromptVaultItems((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      storageService.saveCustomPromptVaultItems(updated);
+      return updated;
+    });
+    showToast('Prompt deleted from vault');
+  }, [showToast]);
+
+  const saveStudentPrompt = useCallback((prompt: SavedCustomizedPrompt) => {
+    setSavedStudentPrompts((prev) => {
+      const index = prev.findIndex((p) => p.id === prompt.id);
+      const updated = index >= 0
+        ? prev.map((p) => (p.id === prompt.id ? prompt : p))
+        : [prompt, ...prev];
+      storageService.saveStudentSavedPrompts(updated);
+      return updated;
+    });
+    showToast('Customized prompt saved to your dashboard!');
+  }, [showToast]);
+
+  const deleteStudentPrompt = useCallback((id: string) => {
+    setSavedStudentPrompts((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      storageService.saveStudentSavedPrompts(updated);
+      return updated;
+    });
+    showToast('Saved prompt removed');
+  }, [showToast]);
+
   const resetDemoDatabase = useCallback(() => {
     storageService.resetAllDemoData();
     window.location.reload();
@@ -3856,6 +3939,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     theme,
     toggleTheme,
     resetDemoDatabase,
+    promptVaultCategories,
+    addPromptVaultCategory,
+    customPromptVaultItems,
+    addCustomPromptVaultItem,
+    deleteCustomPromptVaultItem,
+    savedStudentPrompts,
+    saveStudentPrompt,
+    deleteStudentPrompt,
     facilitatorBookings,
     calendarEngagements,
     isFacilitatorDateFree,
