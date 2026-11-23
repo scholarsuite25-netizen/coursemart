@@ -504,40 +504,12 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Bottom Legal & Contact Bar */}
+      {/* Bottom Legal Copyright Bar */}
       <div className="border-t border-[#1e3557] bg-[#06101f]">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-5 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span>
-              © 2026 DIGITAL WEALTH CREATORS. All rights reserved.
-            </span>
-            <span className="text-[#d4af37]/60">·</span>
-            <span>GTB Settlement · Instant Course & License Delivery</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <a
-              href={buildCallUrl()}
-              className="hover:text-[#f5c451] transition-colors tabular-nums"
-            >
-              Tel: {TINTOL_PAYMENT_DETAILS.phoneDisplay}
-            </a>
-            <a
-              href={buildWhatsAppUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#f5c451] transition-colors"
-            >
-              WhatsApp Desk
-            </a>
-            <a
-              href={TELEGRAM_DETAILS.channelUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#f5c451] transition-colors"
-            >
-              Telegram Channel
-            </a>
-          </div>
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-5 flex items-center justify-center text-center text-xs text-slate-400">
+          <span>
+            © 2026 DIGITAL WEALTH CREATORS. All rights reserved.
+          </span>
         </div>
       </div>
     </footer>
