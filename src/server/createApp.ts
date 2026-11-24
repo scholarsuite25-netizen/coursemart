@@ -84,6 +84,7 @@ import {
   verifyTwoFactorToken,
   markTwoFactorVerified,
 } from '../utils/security2fa.ts';
+import { isLoginBanned, recordFailedLoginAttempt, resetLoginThrottle, type KVReader, type KVWriter } from '../utils/auditProtections.ts';
 import {
   DEFAULT_DOWNLOAD_TTL_SECONDS,
   HMAC_SECRET,
@@ -638,22 +639,38 @@ export function createApiApp() {
     );
   };
 
-  app.post('/api/auth/admin/login', (req, res) => {
+  app.post('/api/auth/admin/login', async (req, res) => {
     if (!checkRateLimit(req.ip || 'unknown', 'admin-login', 10, 60_000)) {
       res.status(429).json({ ok: false, error: 'Too many login attempts. Wait 1 minute.' });
       return;
     }
     const { email, password } = req.body ?? {};
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    const normalized = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const read: KVReader = (key) => readStoreKeyValue(key);
+    const write: KVWriter = (key, value) => writeStoreKeyValue(key, value);
+
+    if (!normalized || typeof password !== 'string' || !password) {
+      await recordFailedLoginAttempt(req.ip || 'unknown', normalized, read, write);
       res.status(400).json({ ok: false, error: 'Email and password are required.' });
       return;
     }
 
-    const verified = verifyAdminCredentials(email, password);
+    if (await isLoginBanned(req.ip || 'unknown', normalized, read)) {
+      res.status(429).json({ ok: false, code: 'locked_out', error: 'Too many failed login attempts. Try again later.' });
+      return;
+    }
+
+    const verified = verifyAdminCredentials(email as string, password as string);
     if (!verified.ok || !verified.email) {
+      const audit = await recordFailedLoginAttempt(req.ip || 'unknown', normalized, read, write);
+      if (audit.blocked) {
+        res.status(429).json({ ok: false, code: 'locked_out', error: 'Too many failed login attempts. Try again later.' });
+        return;
+      }
       res.status(401).json({ ok: false, error: verified.error || 'Invalid credentials.' });
       return;
     }
+    await resetLoginThrottle(req.ip || 'unknown', normalized, read, write);
 
     const token = createAdminSessionToken(verified.email, getAdminSessionSecret());
     const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
@@ -701,6 +718,13 @@ export function createApiApp() {
       return;
     }
     const normalized = email.trim().toLowerCase();
+    const read: KVReader = (key) => readStoreKeyValue(key);
+    const write: KVWriter = (key, value) => writeStoreKeyValue(key, value);
+
+    if (await isLoginBanned(req.ip || 'unknown', normalized, read)) {
+      res.status(429).json({ ok: false, code: 'locked_out', error: 'Too many failed login attempts. Try again later.' });
+      return;
+    }
 
     const genericError = { ok: false as const, code: 'invalid_credentials', error: 'Invalid email or password.' };
     try {
@@ -713,6 +737,7 @@ export function createApiApp() {
           String((u as Record<string, unknown>).email ?? '').trim().toLowerCase() === normalized
       );
       if (!match) {
+        await recordFailedLoginAttempt(req.ip || 'unknown', normalized, read, write);
         res.status(404).json({ ok: false, code: 'not_found', error: 'Invalid email or password.' });
         return;
       }
@@ -721,6 +746,11 @@ export function createApiApp() {
         typeof match.password === 'string' ? match.password : ''
       );
       if (!valid) {
+        const audit = await recordFailedLoginAttempt(req.ip || 'unknown', normalized, read, write);
+        if (audit.blocked) {
+          res.status(429).json({ ok: false, code: 'locked_out', error: 'Too many failed login attempts. Try again later.' });
+          return;
+        }
         res.status(401).json(genericError);
         return;
       }
@@ -730,6 +760,7 @@ export function createApiApp() {
         res.json({ ok: true, twoFactorRequired: true });
         return;
       }
+      await resetLoginThrottle(req.ip || 'unknown', normalized, read, write);
       const role = match.role === 'instructor' || match.role === 'admin' ? match.role : 'customer';
       const token = createUserSessionToken(
         String(match.id),
