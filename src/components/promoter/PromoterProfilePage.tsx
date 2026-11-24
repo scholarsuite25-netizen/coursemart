@@ -98,7 +98,7 @@ export function PromoterProfilePage() {
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>Invite as Resource Person / Facilitator</span>
+                  <span>Invite as Resource Person/Facilitator</span>
                 </button>
 
                 <a
@@ -175,17 +175,26 @@ export function PromoterProfilePage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 space-y-12">
         {/* 2. SPECIAL HEADING: CEO FOR HIRE, ADMINISTRATOR FOR HIRE */}
-        <section className="p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-emerald-900/20 via-slate-900 to-slate-950 border border-emerald-500/30 text-white space-y-4 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-500/20">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
-                <Briefcase className="w-5 h-5" />
+        <section className="relative overflow-hidden p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#0c1f38] via-[#0f2b52] to-[#0a192f] border-2 border-blue-500/40 text-white space-y-5 shadow-2xl shadow-blue-950/50">
+          {/* Subtle decorative background glow */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-blue-400/20">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-red-600 to-rose-700 text-white shadow-md shadow-red-900/30">
+                <Briefcase className="w-6 h-6" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                  Executive Mandate
-                </span>
-                <h2 className="text-lg sm:text-xl font-extrabold text-white">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-red-400 bg-red-950/60 border border-red-500/40 px-2.5 py-0.5 rounded-full">
+                    ★ Executive Mandate
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-950/60 border border-blue-500/30 px-2.5 py-0.5 rounded-full">
+                    Advisory/Interim
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
                   CEO for Hire, Administrator for Hire
                 </h2>
               </div>
@@ -193,30 +202,55 @@ export function PromoterProfilePage() {
             <button
               type="button"
               onClick={handleOpenBookingModal}
-              className="px-3.5 py-1.5 text-xs font-bold text-[#0a192f] bg-emerald-400 hover:bg-emerald-300 rounded-lg transition-colors cursor-pointer self-start sm:self-auto"
+              className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-500 hover:to-rose-500 rounded-xl transition-all shadow-lg shadow-red-950/50 hover:scale-[1.02] cursor-pointer self-start sm:self-auto border border-red-400/40"
             >
-              Initiate Executive Inquiry
+              Initiate Executive Inquiry →
             </button>
           </div>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+
+          <p className="relative text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">
             Available for interim, fractional, or advisory chief executive and institutional registrar/administrative leadership mandates across higher institutions, corporate enterprises, educational foundations, and digital ventures seeking proven operational governance, institution building, and technology-forward stewardship.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1">
-              <span className="text-emerald-400 text-xs font-bold">Strategic Leadership</span>
-              <p className="text-[11px] text-slate-300">End-to-end organizational direction, board relations & compliance.</p>
+
+          <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+            <div className="p-3.5 rounded-xl bg-[#091528]/80 border border-blue-500/25 space-y-1.5 hover:border-blue-400/50 transition-colors shadow-sm">
+              <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span>Strategic Leadership</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                End-to-end organizational direction, board relations, corporate governance & statutory compliance.
+              </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1">
-              <span className="text-emerald-400 text-xs font-bold">Institution Building</span>
-              <p className="text-[11px] text-slate-300">Administrative take-off, registry setup & statutory structuring.</p>
+
+            <div className="p-3.5 rounded-xl bg-[#091528]/80 border border-blue-500/25 space-y-1.5 hover:border-blue-400/50 transition-colors shadow-sm">
+              <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span>Institution Building</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Administrative take-off, university registry setup, institutional policies & accreditation structures.
+              </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1">
-              <span className="text-emerald-400 text-xs font-bold">Turnaround Governance</span>
-              <p className="text-[11px] text-slate-300">Crisis leadership, continuity frameworks & process overhaul.</p>
+
+            <div className="p-3.5 rounded-xl bg-[#091528]/80 border border-red-500/25 space-y-1.5 hover:border-red-400/50 transition-colors shadow-sm">
+              <div className="flex items-center gap-1.5 text-red-400 text-xs font-bold">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                <span>Turnaround Governance</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Crisis leadership, operational overhaul, continuity frameworks & human capital realignment.
+              </p>
             </div>
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-1">
-              <span className="text-emerald-400 text-xs font-bold">Cost Leadership</span>
-              <p className="text-[11px] text-slate-300">Direct labor deployment & digital modernization at fraction cost.</p>
+
+            <div className="p-3.5 rounded-xl bg-[#091528]/80 border border-blue-500/25 space-y-1.5 hover:border-blue-400/50 transition-colors shadow-sm">
+              <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span>Cost Leadership</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Direct labor deployment & digital modernization delivering high impact at a fraction of traditional cost.
+              </p>
             </div>
           </div>
         </section>
@@ -324,10 +358,41 @@ export function PromoterProfilePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 1. Ogun State Library Board Collaboration */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                  Ogun State Library Board
+                </h4>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                Organised AI Literacy, Vibe Coding and Web App Development Training for Librarians, Information Science Practitioners and Administrators in Ogun State, in collaboration with the Ogun State Library Board in September, 2026.
+              </p>
+            </div>
+
+            {/* 2. Owu Youth Forum Abeokuta */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <Users className="w-4 h-4" />
+                </div>
+                <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                  Owu Youth Forum Abeokuta
+                </h4>
+              </div>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                Organised AI Literacy, Vibe Coding and Web App Development Training for the Owu Youth Forum Abeokuta, in October, 2026 amongs many others.
+              </p>
+            </div>
+
+            {/* 3. Chrisland University */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
                   <GraduationCap className="w-4 h-4" />
                 </div>
                 <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
@@ -339,10 +404,11 @@ export function PromoterProfilePage() {
               </p>
             </div>
 
+            {/* 4. Abeokuta Polo Club Training */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  <Users className="w-4 h-4" />
+                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <Terminal className="w-4 h-4" />
                 </div>
                 <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
                   Abeokuta Polo Club Training
@@ -353,10 +419,11 @@ export function PromoterProfilePage() {
               </p>
             </div>
 
+            {/* 5. Published Author */}
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                  <BookOpen className="w-4 h-4" />
+                <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                  <Award className="w-4 h-4" />
                 </div>
                 <h4 className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
                   Published Author
@@ -562,7 +629,7 @@ export function PromoterProfilePage() {
             <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1.5">
               <div className="flex items-center gap-2 text-emerald-400">
                 <Phone className="w-4 h-4" />
-                <h4 className="font-bold text-white text-xs">Direct / WhatsApp</h4>
+                <h4 className="font-bold text-white text-xs">Direct/WhatsApp</h4>
               </div>
               <a
                 href="https://wa.me/2348034710699"
