@@ -27,6 +27,7 @@ import {
   buildEventIcsContent,
   filterEvents,
   getEventSeatStats,
+  isEventFree,
   type EventRegistrationInput,
 } from '../../utils/events';
 import { formatNaira } from '../../utils/currency';
@@ -123,7 +124,7 @@ export function EventsPage() {
     if (!selectedEvent || submitting) return;
     setFormErrors({});
 
-    if (selectedEvent.price > 0 && ticketPayMethod === 'gtb_whatsapp' && gtbReference.trim().length < 3) {
+    if (!isEventFree(selectedEvent) && ticketPayMethod === 'gtb_whatsapp' && gtbReference.trim().length < 3) {
       setFormErrors({
         payment: 'Enter your GTB transfer reference or sender name before submitting.',
       });
@@ -136,10 +137,10 @@ export function EventsPage() {
       paymentStatus: EventRegistration['paymentStatus'];
       paymentReference?: string;
     } = {
-      paymentStatus: selectedEvent.price === 0 ? 'free' : 'paid_paystack',
+      paymentStatus: isEventFree(selectedEvent) ? 'free' : 'paid_paystack',
     };
 
-    if (selectedEvent.price > 0) {
+    if (!isEventFree(selectedEvent)) {
       if (ticketPayMethod === 'gtb_whatsapp') {
         paymentInfo = {
           paymentStatus: 'pending_gtb',
@@ -236,7 +237,7 @@ export function EventsPage() {
       `Confirmation Code: ${reg.confirmationCode}`,
       `When: ${new Date(event.startAt).toLocaleString()} (${event.timezone})`,
       `Delivery: ${event.deliveryMode}`,
-      `Access / Venue: ${event.locationOrLink}`,
+      `Access/Venue: ${event.locationOrLink}`,
       ``,
       `AGENDA:`,
       ...event.agenda.map((a, i) => `  ${i + 1}. ${a}`),
@@ -376,7 +377,7 @@ export function EventsPage() {
                         {meta.label}
                       </span>
                       <span className="absolute top-3 right-3 px-2.5 py-1 text-xs font-extrabold rounded bg-[#0a192f] text-[#f5c451] tabular-nums">
-                        {ev.price === 0 ? 'FREE' : formatNaira(ev.price)}
+                        {isEventFree(ev) ? 'FREE' : formatNaira(ev.price)}
                       </span>
                     </div>
 
@@ -427,7 +428,7 @@ export function EventsPage() {
                         <span>{seats.registeredCount} attending</span>
                         <span>
                           {seats.isFull
-                            ? 'Waitlist / Full'
+                            ? 'Waitlist/Full'
                             : `${seats.remainingSeats} of ${ev.capacity} seats left`}
                         </span>
                       </div>
@@ -853,7 +854,7 @@ export function EventsPage() {
                       }
                       className="w-full h-9 px-2.5 text-sm bg-white border border-slate-300 rounded-md"
                     >
-                      <option value="Live Virtual">Live Virtual (Zoom / Meet)</option>
+                      <option value="Live Virtual">Live Virtual (Zoom/Meet)</option>
                       <option value="In-Person">In-Person Studio (if hybrid/physical)</option>
                       <option value="On-Demand Replay">Cannot Attend Live — Send Replay & Materials</option>
                     </select>
@@ -873,7 +874,7 @@ export function EventsPage() {
                     />
                   </div>
 
-                  {selectedEvent.price > 0 && (
+                  {!isEventFree(selectedEvent) ? (
                     <div className="p-3.5 rounded-lg bg-white border border-slate-300 space-y-2.5">
                       <div className="flex items-center justify-between text-xs font-bold text-slate-900">
                         <span>Ticket Fee (Paystack or GTB Transfer)</span>
@@ -931,6 +932,16 @@ export function EventsPage() {
                         <p className="text-xs text-rose-700 font-semibold">{formErrors.payment}</p>
                       )}
                     </div>
+                  ) : (
+                    <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between font-bold">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                        <span>Admission Status</span>
+                      </div>
+                      <span className="px-2.5 py-1 rounded bg-emerald-200 text-emerald-950 font-extrabold uppercase tracking-wide">
+                        Free Admission
+                      </span>
+                    </div>
                   )}
 
                   {/* Newsletter Consent Toggle */}
@@ -961,7 +972,7 @@ export function EventsPage() {
                   >
                     {submitting
                       ? 'Confirming Seat & Preparing Materials...'
-                      : selectedEvent.price === 0
+                      : isEventFree(selectedEvent)
                       ? 'Confirm Free Registration & Get Materials'
                       : ticketPayMethod === 'paystack'
                       ? `Pay ${formatNaira(selectedEvent.price)} via Paystack & Register`

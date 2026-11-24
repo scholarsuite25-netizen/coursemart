@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Sparkles,
   Lock,
@@ -81,6 +81,13 @@ export function MemberPromptVaultPage({ initialCategory }: MemberPromptVaultPage
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'featured' | 'popular' | 'alpha'>('featured');
+
+  useEffect(() => {
+    if (initialCategory) {
+      setSelectedCategory(initialCategory);
+      setCategoryPage(1);
+    }
+  }, [initialCategory]);
 
   // Pagination State for Single Category view
   const [categoryPage, setCategoryPage] = useState<number>(1);

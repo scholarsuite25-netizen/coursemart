@@ -425,6 +425,86 @@ export function createForumThread(params: {
   return { ok: true, thread };
 }
 
+/**
+ * Automatically archives a high-value assistant answer into a CommunityForumThread
+ * for community discussions/FAQ, SEO indexing, and reusable knowledge.
+ */
+export async function archiveAssistantAnswerToCommunity(
+  question: string,
+  answer: string,
+  topics: string[] = [],
+  existingThreads: CommunityForumThread[] = []
+): Promise<CommunityForumThread | null> {
+  const cleanQ = (question || '').trim();
+  const cleanA = (answer || '').trim();
+
+  // Substantive depth requirement: question >= 15 chars, answer is comprehensive (>= 20 chars)
+  if (cleanQ.length < 15 || cleanA.length < 20) {
+    return null;
+  }
+
+  const slug = slugifyText(cleanQ) || `faq-${Date.now()}`;
+
+  // Check if thread with matching slug or title already exists
+  const duplicate = existingThreads.some(
+    (t) =>
+      t.slug === slug ||
+      t.title.trim().toLowerCase() === cleanQ.toLowerCase()
+  );
+  if (duplicate) {
+    return null;
+  }
+
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).slice(2, 8);
+  const id = `th_faq_${timestamp}_${random}`;
+  const now = new Date(timestamp).toISOString();
+
+  // Category determination: 'FAQ' or 'Course Q&A'
+  const isCourseQuestion = topics.some((topic) =>
+    ['react', 'web-development', 'curriculum', 'lecture', 'hooks', 'course'].includes(
+      topic.toLowerCase()
+    )
+  );
+  const category = isCourseQuestion ? 'Course Q&A' : 'FAQ';
+
+  const cleanTags = Array.from(
+    new Set([
+      'faq',
+      'assistant-archive',
+      ...topics
+        .map((t) => t.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''))
+        .filter((t) => t.length > 0),
+    ])
+  ).slice(0, 6);
+
+  const thread: CommunityForumThread = {
+    id,
+    slug,
+    title: cleanQ.length > 150 ? cleanQ.slice(0, 147) + '...' : cleanQ,
+    body: cleanA,
+    content: cleanA,
+    category,
+    authorId: 'dwc-ai-assistant',
+    authorName: 'DWC AI Assistant',
+    authorRole: 'instructor',
+    tags: cleanTags,
+    upvotes: 0,
+    upvotedUserIds: [],
+    viewsCount: 1,
+    replyCount: 0,
+    isPinned: false,
+    pinned: false,
+    isLocked: false,
+    isSolved: true,
+    createdAt: now,
+    updatedAt: now,
+    lastActivityAt: now,
+  };
+
+  return thread;
+}
+
 export function filterAndSortForumThreads(
   threads: CommunityForumThread[],
   options?: {

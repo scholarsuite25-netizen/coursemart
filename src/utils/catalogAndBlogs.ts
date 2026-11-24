@@ -284,7 +284,7 @@ export type ParsedAppRoute =
   | { page: 'admin-login' }
   | { page: 'learn'; productId: string }
   | { page: 'funnel'; slug: string }
-  | { page: 'vault' }
+  | { page: 'vault'; category?: string }
   | { page: 'tutorials-hub' }
   | { page: 'tutorial-detail'; slug: string }
   | {
@@ -343,7 +343,10 @@ export function parseAppRoute(route: string): ParsedAppRoute {
   if (cleanPath === '/login') return { page: 'login' };
   if (cleanPath === '/admin-login') return { page: 'admin-login' };
   if (cleanPath === '/admin' || cleanPath.startsWith('/admin/')) return { page: 'admin' };
-  if (cleanPath === '/vault' || cleanPath.startsWith('/vault/')) return { page: 'vault' };
+  if (cleanPath === '/vault' || cleanPath.startsWith('/vault/')) {
+    const categoryParam = searchParams.get('category') || undefined;
+    return categoryParam ? { page: 'vault', category: categoryParam } : { page: 'vault' };
+  }
   if (cleanPath === '/tutorials') return { page: 'tutorials-hub' };
   if (cleanPath.startsWith('/tutorials/')) {
     const slug = cleanPath.replace('/tutorials/', '').trim();

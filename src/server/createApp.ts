@@ -56,6 +56,7 @@ import type {
   UserMembership,
   UserAccount,
   EventItem,
+  CommunityForumThread,
 } from '../types/marketplace.ts';
 import type { DocumentTutorial } from '../types/tutorial.ts';
 import {
@@ -95,6 +96,9 @@ import {
   migrateUserMemberships,
 } from '../utils/commerce.ts';
 import { synthesizeStandardPrompt } from '../utils/funnelsAndVault.ts';
+import { slugifyText } from '../utils/catalogAndBlogs.ts';
+import { archiveAssistantAnswerToCommunity } from '../utils/community.ts';
+import { generateAiCompletion } from './aiRouter.ts';
 
 export { migrateLegacyTier, migrateUserMemberships };
 
@@ -219,7 +223,7 @@ async function sendViaEmailService(params: {
       provider: 'none',
       sentCount: 0,
       error:
-        'No live email API key is configured. Set EMAILBUMP_API_KEY, RESEND_API_KEY, or BREVO_API_KEY in .env / Vercel Environment Variables.',
+        'No live email API key is configured. Set EMAILBUMP_API_KEY, RESEND_API_KEY, or BREVO_API_KEY in .env/Vercel Environment Variables.',
     };
   }
 
@@ -805,7 +809,7 @@ export function createApiApp() {
         </div>
       </div>`;
 
-      // Dispatch via configured email provider (EmailBump / Brevo / Resend)
+      // Dispatch via configured email provider (EmailBump/Brevo/Resend)
       const emailResult = await sendViaEmailService({
         recipients: [{ email: normalizedEmail, name: recipientName }],
         subject,
@@ -1507,7 +1511,7 @@ export function createApiApp() {
       const cleanName = typeof name === 'string' && name.trim() ? name.trim().slice(0, 100) : 'Builder';
       const nowIso = new Date().toISOString();
 
-      // Read current users and update / add subscriber
+      // Read current users and update/add subscriber
       const rawUsers = await readStoreKeyValue('users');
       const users: UserAccount[] = Array.isArray(rawUsers)
         ? rawUsers.filter((u): u is UserAccount => Boolean(u && typeof u === 'object'))
@@ -1537,7 +1541,7 @@ export function createApiApp() {
         await writeStoreKeyValue('users', users);
       }
 
-      // Send branded welcome email via Resend / active ESP
+      // Send branded welcome email via Resend/active ESP
       const welcomeSubject = 'Welcome to Digital Wealth Creators · Your Weekly Wealth & AI Briefing';
       const welcomeHtml = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f172a;line-height:1.6;">
@@ -1590,7 +1594,7 @@ export function createApiApp() {
     }
   });
 
-  // Live Email Broadcast (Admin Session Protected — EmailBump / Resend / Brevo)
+  // Live Email Broadcast (Admin Session Protected — EmailBump/Resend/Brevo)
   app.post('/api/email/broadcast', async (req, res) => {
     if (!requireAdminSession(req, res)) return;
     if (!checkRateLimit(req.ip || 'unknown', 'email', 25, 60_000)) {
@@ -1657,7 +1661,7 @@ export function createApiApp() {
     return false;
   }
 
-  // Autonomous / On-Demand Weekly Newsletter Summary Builder & Dispatcher
+  // Autonomous/On-Demand Weekly Newsletter Summary Builder & Dispatcher
   async function dispatchWeeklyNewsletterSummary(options: { dryRun?: boolean } = {}) {
     const rawUsers = await readStoreKeyValue('users');
     const users: UserAccount[] = Array.isArray(rawUsers)
@@ -2701,7 +2705,7 @@ Requirements:
   });
 
   // --------------------------------------------------------------------------
-  // Agent 2: Automated Enquiry Responder (Dual Storefront FAQ & LMS Q&A)
+  // Agent 2: Automated Enquiry Responder (Dual Storefront FAQ/LMS Q&A)
   // --------------------------------------------------------------------------
   app.post('/api/agents/enquiry', async (req, res) => {
     if (!checkRateLimit(req.ip || 'unknown', 'agent-enquiry', 35, 60_000)) {
@@ -2713,6 +2717,30 @@ Requirements:
       const { question, context, category } = req.body ?? {};
       const cleanQ = typeof question === 'string' ? question.trim() : '';
 
+      // Determine user tier: paid, free, or anonymous
+      const userSession = readUserSession(req);
+      const adminSession = readAdminSession(req);
+      let userTier: 'paid' | 'free' | 'anonymous' = 'anonymous';
+
+      if (adminSession || userSession?.role === 'admin' || userSession?.role === 'instructor') {
+        userTier = 'paid';
+      } else if (userSession?.sub) {
+        const memberships = await getEffectiveMemberships();
+        const activeMembership = memberships.find(
+          (m) => m.userId === userSession.sub && m.status === 'active'
+        );
+        const canonicalTier = migrateLegacyTier(activeMembership?.planId);
+        userTier = canonicalTier === 'paid' ? 'paid' : 'free';
+      }
+
+      const isTeaser = userTier !== 'paid';
+      const cta = isTeaser
+        ? {
+            text: 'Upgrade to Paid Membership to unlock unrestricted AI answers',
+            link: '/membership',
+          }
+        : undefined;
+
       if (!cleanQ || cleanQ.replace(/[^a-zA-Z0-9]/g, '').length === 0) {
         res.json({
           ok: true,
@@ -2720,112 +2748,105 @@ Requirements:
           matchedTopics: [],
           confidence: 0,
           generatedBy: 'deterministic',
+          isTeaser,
+          userTier,
+          cta,
         });
         return;
       }
 
-      const safeContext = context && typeof context === 'object' ? context : {};
-      const deterministic = buildEnquiryResponse(cleanQ, {
-        ...safeContext,
+      const safeContext = {
+        ...(context && typeof context === 'object' ? context : {}),
         category: typeof category === 'string' ? (category as any) : undefined,
-      });
+        userTier,
+      };
 
-      if (deterministic.confidence >= 0.85) {
-        res.json({
-          ok: true,
-          answer: deterministic.answer,
-          matchedTopics: deterministic.matchedTopics,
-          confidence: deterministic.confidence,
-          suggestedForumThreadSlug: deterministic.suggestedForumThreadSlug,
-          generatedBy: 'deterministic',
-        });
-        return;
-      }
+      // 1. Prioritize DWC platform context
+      const deterministic = buildEnquiryResponse(cleanQ, safeContext);
+
+      let finalAnswer = deterministic.answer;
+      let matchedTopics = deterministic.matchedTopics;
+      let finalConfidence = deterministic.confidence;
+      let suggestedForumThreadSlug = deterministic.suggestedForumThreadSlug;
+      let generatedBy = 'deterministic';
 
       const isTestEnv =
         process.env.NODE_ENV === 'test' ||
         Boolean(process.env.VITEST) ||
-        Boolean(process.env.npm_lifecycle_event === 'test');
+        Boolean(process.env.npm_lifecycle_event === 'test') ||
+        process.argv.includes('--test');
 
-      if (!isTestEnv) {
-        // 1. Try local multi-model AI proxy first (Rule 5: port 8080 with 16 free pooled models)
+      // 2. If confidence < 0.85 and not in test environment, answer using general AI knowledge via zero-cost AI router
+      if (deterministic.confidence < 0.85 && !isTestEnv) {
+        const systemPrompt =
+          userTier === 'paid'
+            ? 'You are the official AI tutor and support assistant for DIGITAL WEALTH CREATORS (DWC). Answer this inquiry clearly, authoritatively, and comprehensively. Provide in-depth guidance with actionable steps and technical rationale.'
+            : 'You are the official AI tutor and support assistant for DIGITAL WEALTH CREATORS (DWC). Provide a concise 1-2 sentence introductory teaser summary of the concept.';
+
+        const aiResult = await generateAiCompletion({
+          prompt: cleanQ,
+          systemPrompt,
+          modelTier: 'fast',
+          fallbackText: deterministic.answer,
+        });
+
+        finalAnswer = aiResult.text;
+        matchedTopics = deterministic.matchedTopics.length ? deterministic.matchedTopics : ['ai-assistant'];
+        finalConfidence = aiResult.fallbackOccurred ? deterministic.confidence : 0.95;
+        generatedBy = aiResult.modelUsed.startsWith('direct-gemini')
+          ? 'gemini'
+          : aiResult.modelUsed.includes('fallback')
+          ? 'deterministic'
+          : 'proxy-ai';
+      }
+
+      // 3. Community Discussions/FAQ Auto-Archiving for high-value answers
+      // If substantive depth (cleanQ >= 15 chars) and answer is comprehensive, archive to forum_threads
+      if (cleanQ.length >= 15 && finalAnswer.length >= 25 && !finalAnswer.includes("couldn't quite understand")) {
         try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 3500);
-          const proxyResp = await fetch('http://localhost:8080/v1/models/gemini-3-8-flash-free:generateContent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    {
-                      text: `You are the official AI tutor and support assistant for DIGITAL WEALTH CREATORS (DWC). Answer this inquiry clearly, authoritatively, and concisely in 2-3 sentences: "${cleanQ}". Context: ${JSON.stringify(safeContext)}`,
-                    },
-                  ],
-                },
-              ],
-            }),
-          });
-          clearTimeout(timeout);
-          if (proxyResp.ok) {
-            const pData = (await proxyResp.json()) as any;
-            const proxyText = pData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-            if (proxyText) {
-              res.json({
-                ok: true,
-                answer: proxyText,
-                matchedTopics: deterministic.matchedTopics.length ? deterministic.matchedTopics : ['ai-assistant'],
-                confidence: 0.95,
-                suggestedForumThreadSlug: deterministic.suggestedForumThreadSlug,
-                generatedBy: 'proxy-ai',
-              });
-              return;
+          const rawThreads = (await readStoreKeyValue('forum_threads')) || [];
+          const forumThreads = Array.isArray(rawThreads)
+            ? (rawThreads as CommunityForumThread[])
+            : [];
+          const targetSlug = slugifyText(cleanQ);
+          const existingThread = forumThreads.find(
+            (t) =>
+              Boolean(t) &&
+              (t.slug === targetSlug ||
+                (typeof t.title === 'string' && t.title.trim().toLowerCase() === cleanQ.toLowerCase()))
+          );
+
+          if (existingThread) {
+            if (!suggestedForumThreadSlug) {
+              suggestedForumThreadSlug = existingThread.slug;
+            }
+          } else if (!suggestedForumThreadSlug) {
+            const newThread = await archiveAssistantAnswerToCommunity(
+              cleanQ,
+              finalAnswer,
+              matchedTopics,
+              forumThreads
+            );
+            if (newThread) {
+              await writeStoreKeyValue('forum_threads', [newThread, ...forumThreads]);
+              suggestedForumThreadSlug = newThread.slug;
             }
           }
         } catch {
-          // Local proxy not available or timed out (e.g. running on Vercel cloud)
-        }
-
-        // 2. Try Google Gemini Client with candidate models
-        const ai = createGeminiClient();
-        if (ai) {
-          for (const candidateModel of [GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-1.5-flash']) {
-            try {
-              const aiResponse = await ai.models.generateContent({
-                model: candidateModel,
-                contents: `You are an expert DIGITAL WEALTH CREATORS academic tutor and customer support assistant. Provide a helpful, concise answer (maximum 3 sentences) to this user inquiry: "${cleanQ}". Context: ${JSON.stringify(safeContext)}`,
-                config: {
-                  systemInstruction: 'Answer professionally and concisely in under 75 words. No hype.',
-                },
-              });
-              const text = (aiResponse.text || '').trim();
-              if (text) {
-                res.json({
-                  ok: true,
-                  answer: text,
-                  matchedTopics: deterministic.matchedTopics.length ? deterministic.matchedTopics : ['ai-assistant'],
-                  confidence: 0.9,
-                  suggestedForumThreadSlug: deterministic.suggestedForumThreadSlug,
-                  generatedBy: 'gemini',
-                });
-                return;
-              }
-            } catch {
-              // Try next candidate model
-            }
-          }
+          // Non-fatal fallback for forum archiving
         }
       }
 
       res.json({
         ok: true,
-        answer: deterministic.answer,
-        matchedTopics: deterministic.matchedTopics,
-        confidence: deterministic.confidence,
-        suggestedForumThreadSlug: deterministic.suggestedForumThreadSlug,
-        generatedBy: 'deterministic',
+        answer: finalAnswer,
+        matchedTopics,
+        confidence: finalConfidence,
+        suggestedForumThreadSlug,
+        isTeaser,
+        userTier,
+        cta,
+        generatedBy,
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Enquiry processing error';
@@ -2860,13 +2881,11 @@ Requirements:
       const isTestEnv =
         process.env.NODE_ENV === 'test' ||
         Boolean(process.env.VITEST) ||
-        Boolean(process.env.npm_lifecycle_event === 'test');
+        Boolean(process.env.npm_lifecycle_event === 'test') ||
+        process.argv.includes('--test');
 
       if (!isTestEnv) {
-        // 1. Try local multi-model AI proxy (port 8080)
         try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 4000);
           const prompt = `You are an elite prompt engineer following the CO-STAR framework. Transform this raw/vague user idea into a professional, production-grade AI prompt with {{variable_name}} placeholders.
 User Idea: "${cleanIdea}"
 Role/Persona: "${rolePersona}"
@@ -2884,59 +2903,25 @@ Format the enhanced prompt clearly with:
 # OUTPUT SPECIFICATIONS
 Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customization. Output strictly the full enhanced prompt text.`;
 
-          const proxyResp = await fetch('http://localhost:8080/v1/models/gemini-3-8-flash-free:generateContent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-            }),
+          const aiResult = await generateAiCompletion({
+            prompt,
+            modelTier: 'fast',
+            timeoutMs: 4000,
           });
-          clearTimeout(timeout);
-          if (proxyResp.ok) {
-            const pData = (await proxyResp.json()) as any;
-            const text = pData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-            if (text) {
-              res.json({
-                ok: true,
-                enhancedPrompt: text,
-                suggestedTitle: `${cleanIdea.slice(0, 42).replace(/[^\w\s-]/g, '')} Master Directive`,
-                suggestedCategory: category || 'AI Engineering & Coding',
-                recommendedModel: 'Claude 3.5 Sonnet / Gemini 2.5 Flash',
-                generatedBy: 'proxy-ai',
-              });
-              return;
-            }
+
+          if (aiResult.text && !aiResult.modelUsed.includes('fallback')) {
+            res.json({
+              ok: true,
+              enhancedPrompt: aiResult.text,
+              suggestedTitle: `${cleanIdea.slice(0, 42).replace(/[^\w\s-]/g, '')} Master Directive`,
+              suggestedCategory: category || 'AI Engineering & Coding',
+              recommendedModel: 'Claude 3.5 Sonnet/Gemini 2.5 Flash',
+              generatedBy: aiResult.modelUsed.startsWith('direct-gemini') ? 'gemini' : 'proxy-ai',
+            });
+            return;
           }
         } catch {
-          // Try Gemini client
-        }
-
-        const ai = createGeminiClient();
-        if (ai) {
-          try {
-            const aiResp = await ai.models.generateContent({
-              model: GEMINI_MODEL,
-              contents: `Transform this raw idea into a production-grade, variable-interpolated prompt with {{variables}}: "${cleanIdea}". Role: "${rolePersona}". Audience: "${targetAudience}". Tone: "${selectedTone}". Rules: "${rulesConstraints}". Format: "${expectedFormat}".`,
-              config: {
-                systemInstruction: 'Output strictly the production prompt formatted with standard markdown headings (# ROLE, # OBJECTIVE, # CONTEXT, # CONSTRAINTS, # WORKFLOW, # OUTPUT).',
-              },
-            });
-            const text = (aiResp.text || '').trim();
-            if (text) {
-              res.json({
-                ok: true,
-                enhancedPrompt: text,
-                suggestedTitle: `${cleanIdea.slice(0, 42).replace(/[^\w\s-]/g, '')} Blueprint`,
-                suggestedCategory: category || 'AI Engineering & Coding',
-                recommendedModel: 'Gemini 2.5 Flash',
-                generatedBy: 'gemini',
-              });
-              return;
-            }
-          } catch {
-            // Fall through to deterministic synthesizer
-          }
+          // Fall through to deterministic synthesizer
         }
       }
 
@@ -2955,7 +2940,7 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
         enhancedPrompt,
         suggestedTitle: `${cleanIdea.slice(0, 42).replace(/[^\w\s-]/g, '')} Blueprint`,
         suggestedCategory: category || 'AI Engineering & Coding',
-        recommendedModel: 'Gemini 2.5 Flash / Claude 3.5 Sonnet',
+        recommendedModel: 'Gemini 2.5 Flash/Claude 3.5 Sonnet',
         generatedBy: 'deterministic',
       });
     } catch (err: unknown) {

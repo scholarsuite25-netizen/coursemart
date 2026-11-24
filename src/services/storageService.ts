@@ -621,6 +621,7 @@ export const storageService = {
       'Content Creation',
       'Productivity',
       'LMS & Education',
+      'Photography & Camera Prompts',
     ]),
   savePromptVaultCategories: (list: string[]): void =>
     writeStorage(STORAGE_KEYS.PROMPT_VAULT_CATEGORIES, list),

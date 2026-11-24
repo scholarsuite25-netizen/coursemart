@@ -623,6 +623,7 @@ export type EventFormat = 'online-course' | 'seminar' | 'workshop';
 
 export type EventDeliveryMode =
   | 'Live Virtual (Zoom / Meet)'
+  | 'Live Virtual (Zoom/Meet)'
   | 'Hybrid (In-Person + Live Stream)'
   | 'In-Person Studio';
 
@@ -652,21 +653,24 @@ export interface CoursemartEvent {
   speakerAvatar: string;
   coverImage: string;
   price: number;
+  isFree?: boolean;
   capacity: number;
   status: 'published' | 'draft' | 'completed';
   featured: boolean;
   agenda: string[];
   preEventMaterials: PreEventMaterial[];
-  acknowledgementMessage: string;
+  acknowledgementMessage?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export type EventItem = CoursemartEvent;
 
 export interface EventRegistration {
   id: string;
+  userId?: string;
   eventId: string;
-  eventTitle: string;
+  eventTitle?: string;
   fullName: string;
   email: string;
   phone?: string;
@@ -680,7 +684,7 @@ export interface EventRegistration {
   paymentStatus: 'free' | 'paid_paystack' | 'pending_paystack' | 'pending_gtb';
   paymentReference?: string;
   preEventMaterialsSentAt?: string;
-  acknowledgementEmailStatus: 'sent_via_esp' | 'queued_no_esp_key' | 'in_app_ready';
+  acknowledgementEmailStatus?: 'sent_via_esp' | 'queued_no_esp_key' | 'in_app_ready';
   registeredAt: string;
 }
 
@@ -929,7 +933,8 @@ export type PromptVaultCategory =
   | 'Business & Strategy'
   | 'Content Creation'
   | 'Productivity'
-  | 'LMS & Education';
+  | 'LMS & Education'
+  | 'Photography & Camera Prompts';
 
 export interface PromptVaultItem {
   id: string;

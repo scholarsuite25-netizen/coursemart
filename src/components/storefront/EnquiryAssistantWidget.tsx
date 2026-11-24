@@ -11,6 +11,12 @@ interface Message {
   matchedTopics?: string[];
   suggestedForumThreadSlug?: string;
   timestamp: string;
+  isTeaser?: boolean;
+  userTier?: 'paid' | 'free' | 'anonymous';
+  cta?: {
+    text: string;
+    link: string;
+  };
 }
 
 const QUICK_SUGGESTIONS = [
@@ -60,6 +66,9 @@ export function EnquiryAssistantWidget() {
       answer: string;
       matchedTopics?: string[];
       suggestedForumThreadSlug?: string;
+      isTeaser?: boolean;
+      userTier?: 'paid' | 'free' | 'anonymous';
+      cta?: { text: string; link: string };
     };
 
     try {
@@ -72,6 +81,9 @@ export function EnquiryAssistantWidget() {
         answer?: string;
         matchedTopics?: string[];
         suggestedForumThreadSlug?: string;
+        isTeaser?: boolean;
+        userTier?: 'paid' | 'free' | 'anonymous';
+        cta?: { text: string; link: string };
       } | null;
       if (!resp.ok || !json || typeof json.answer !== 'string' || !json.answer.trim()) {
         throw new Error('Enquiry API unavailable');
@@ -80,10 +92,24 @@ export function EnquiryAssistantWidget() {
         answer: json.answer,
         matchedTopics: json.matchedTopics,
         suggestedForumThreadSlug: json.suggestedForumThreadSlug,
+        isTeaser: json.isTeaser,
+        userTier: json.userTier,
+        cta: json.cta,
       };
     } catch {
       // Local deterministic knowledge base keeps the widget working offline.
-      response = runEnquiryAgent(text);
+      const offline = runEnquiryAgent(text);
+      response = {
+        answer: offline.answer,
+        matchedTopics: offline.matchedTopics,
+        suggestedForumThreadSlug: offline.suggestedForumThreadSlug,
+        isTeaser: offline.isTeaser ?? true,
+        userTier: offline.userTier ?? 'anonymous',
+        cta: offline.cta ?? {
+          text: 'Upgrade to Paid Membership to unlock unrestricted AI answers',
+          link: '/membership',
+        },
+      };
     }
 
     const botMsg: Message = {
@@ -92,6 +118,9 @@ export function EnquiryAssistantWidget() {
       text: response.answer,
       matchedTopics: response.matchedTopics,
       suggestedForumThreadSlug: response.suggestedForumThreadSlug,
+      isTeaser: response.isTeaser,
+      userTier: response.userTier,
+      cta: response.cta,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
     setMessages((prev) => [...prev, botMsg]);
@@ -163,9 +192,18 @@ export function EnquiryAssistantWidget() {
                   className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                     m.sender === 'user'
                       ? 'bg-[#0a192f] text-white rounded-br-none'
+                      : m.isTeaser
+                      ? 'bg-amber-50/50 border border-amber-200/80 text-slate-800 rounded-bl-none shadow-sm'
                       : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
                   }`}
                 >
+                  {m.isTeaser && (
+                    <div className="mb-2 flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded">
+                        Teaser Preview
+                      </span>
+                    </div>
+                  )}
                   <p>{m.text}</p>
                   {m.matchedTopics && m.matchedTopics.length > 0 && (
                     <div className="mt-2 pt-1.5 border-t border-slate-100 flex flex-wrap gap-1">
@@ -179,6 +217,21 @@ export function EnquiryAssistantWidget() {
                       ))}
                     </div>
                   )}
+                  {m.cta && (
+                    <div className="mt-2.5 pt-2 border-t border-amber-200/60">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(m.cta?.link || '/membership');
+                          setIsOpen(false);
+                        }}
+                        className="w-full text-center text-xs font-bold bg-[#0a192f] hover:bg-slate-800 text-amber-300 py-1.5 px-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <span>{m.cta.text}</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  )}
                   {m.suggestedForumThreadSlug && (
                     <button
                       type="button"
@@ -189,7 +242,7 @@ export function EnquiryAssistantWidget() {
                       className="mt-2 text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      View community discussion
+                      View in Community Discussions →
                     </button>
                   )}
                 </div>

@@ -338,6 +338,7 @@ export interface EnquiryContext {
   category?: string;
   userRole?: UserRole;
   currentUrl?: string;
+  userTier?: 'paid' | 'free' | 'anonymous';
 }
 
 export interface EnquiryResponse {
@@ -345,157 +346,233 @@ export interface EnquiryResponse {
   matchedTopics: string[];
   confidence: number;
   suggestedForumThreadSlug?: string;
+  isTeaser?: boolean;
+  userTier?: 'paid' | 'free' | 'anonymous';
+  cta?: {
+    text: string;
+    link: string;
+  };
+}
+
+export function formatEnquiryTieredResponse(
+  response: EnquiryResponse,
+  userTier: 'paid' | 'free' | 'anonymous' = 'anonymous'
+): EnquiryResponse {
+  if (userTier === 'paid') {
+    return {
+      ...response,
+      isTeaser: false,
+      userTier: 'paid',
+      cta: undefined,
+    };
+  }
+
+  return {
+    ...response,
+    isTeaser: true,
+    userTier: userTier === 'free' ? 'free' : 'anonymous',
+    cta: {
+      text: 'Upgrade to Paid Membership to unlock unrestricted AI answers',
+      link: '/membership',
+    },
+  };
 }
 
 /**
  * Semantic and deterministic enquiry responder. Analyzes questions for customer
  * support (refunds, certificates, payment types) and LMS student questions (React hooks, state).
+ * Supports tiered answering: comprehensive for paid members, concise teaser for free/anonymous visitors.
  */
 export function buildEnquiryResponse(
   question: string,
   context?: EnquiryContext
 ): EnquiryResponse {
   const cleanQ = typeof question === 'string' ? question.trim() : '';
+  const userTier = context?.userTier || 'anonymous';
+  const isPaid = userTier === 'paid';
 
   if (!cleanQ || cleanQ.replace(/[^a-zA-Z0-9]/g, '').length === 0) {
-    return {
+    const base: EnquiryResponse = {
       answer:
         "Hello! I couldn't quite understand your question. Could you please provide more details or ask about course enrollment, certificates, or community discussions?",
       matchedTopics: [],
       confidence: 0,
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 1. Refunds & Billing
   if (/\b(refund|refunds|money back)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'CourseMart offers a 30-day money-back guarantee on digital courses. Manual GTB transfers and completed card orders can request a refund in their account portal.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'CourseMart offers a 30-day money-back guarantee on digital courses. Manual GTB transfers and completed card orders can request a refund in their account portal. As an active paid member, your refund requests receive priority processing within 3-5 business days back to your original payment method upon order reference submission.'
+        : 'CourseMart offers a 30-day money-back guarantee on digital courses. Manual GTB transfers and completed card orders can request a refund in their account portal.',
       matchedTopics: ['refunds', 'billing'],
       confidence: 0.95,
       suggestedForumThreadSlug: 'faq-refund-policy-and-settlements',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 2. Certificates & Accreditation
   if (/\b(certificate|certificates|accreditation|cm-cert)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'Certificates of completion are automatically generated with a verifiable CM-CERT code once you complete 100% of the course lectures across all modules.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'Certificates of completion are automatically generated with a verifiable CM-CERT code once you complete 100% of the course lectures across all modules. As an active paid member, you can also download high-resolution PDF credentials, export verifiable badges to your LinkedIn profile, and verify them via our public certification portal.'
+        : 'Certificates of completion are automatically generated with a verifiable CM-CERT code once you complete 100% of the course lectures across all modules.',
       matchedTopics: ['certificates', 'accreditation'],
       confidence: 0.92,
       suggestedForumThreadSlug: 'how-to-verify-and-share-certificates',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
-  // 3. React / Hooks / Web Dev Curriculum
+  // 3. React/Hooks/Web Dev Curriculum
   if (/\b(react|hooks?|usestate|useeffect|usecontext)\b/i.test(cleanQ)) {
-    return {
-      answer: `In ${context?.courseName || 'our engineering courses'}, React hooks must be called at the top level of your component. Check the lesson resources for sample code snippets.`,
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? `In ${context?.courseName || 'our engineering courses'}, React hooks must be called at the top level of your component. Check the lesson resources for sample code snippets. Never call hooks inside loops, conditions, or nested functions to ensure that React preserves state correctly across multiple renders. For advanced state management, explore custom hooks and reducer patterns in the curriculum.`
+        : `In ${context?.courseName || 'our engineering courses'}, React hooks must be called at the top level of your component. Check the lesson resources for sample code snippets.`,
       matchedTopics: ['react', 'web-development'],
       confidence: 0.88,
       suggestedForumThreadSlug: 'debugging-react-hooks-and-state',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 4. Payment Methods: Paystack vs GTB
   if (/\b(paystack|payments?|gtb|bank transfer)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'We support instant Card/Bank Transfer payments via Paystack (immediate unlock) and manual GTB bank transfers (requires admin payment verification before access is granted).',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'We support instant Card/Bank Transfer payments via Paystack (immediate unlock) and manual GTB bank transfers (requires admin payment verification before access is granted). Paid members also receive automatic discounts and saved checkout preferences for all future platform purchases.'
+        : 'We support instant Card/Bank Transfer payments via Paystack (immediate unlock) and manual GTB bank transfers (requires admin payment verification before access is granted).',
       matchedTopics: ['payments', 'checkout'],
       confidence: 0.9,
       suggestedForumThreadSlug: 'payment-methods-paystack-vs-gtb',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 5. Membership Tiers & VIP Access
   if (/\b(membership|memberships|vip|pro)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'CourseMart memberships (Starter, Pro, and VIP) provide instant access to designated premium courses, full digital downloads, and member-only prompt vault access.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'CourseMart memberships (Starter, Pro, and VIP) provide instant access to designated premium courses, full digital downloads, and member-only prompt vault access. As an active member, you enjoy unrestricted AI answers and complete access to all digital tools and masterclasses.'
+        : 'CourseMart memberships (Starter, Pro, and VIP) provide instant access to designated premium courses, full digital downloads, and member-only prompt vault access.',
       matchedTopics: ['membership', 'subscriptions'],
       confidence: 0.9,
       suggestedForumThreadSlug: 'membership-tiers-and-benefits',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 6. Vibe Coding & AI Software Engineering
   if (/\b(vibe\s*coding|vibe\s*code|specification[\s-]first|ai\s*engineering|ai\s*developer|prompt\s*engineering|autonomous\s*agents?)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'Vibe coding is a modern specification-first development approach where builders use natural language prompts and clear architectural requirements to direct AI coding agents, focusing on rapid iteration, automated verification, and end-to-end execution rather than manual syntax.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'Vibe coding is a modern specification-first development approach where builders use natural language prompts and clear architectural requirements to direct AI coding agents, focusing on rapid iteration, automated verification, and end-to-end execution rather than manual syntax. Master the full playbook in our AI & Vibe Coding Mastery cohort.'
+        : 'Vibe coding is a modern specification-first development approach where builders use natural language prompts and clear architectural requirements to direct AI coding agents, focusing on rapid iteration, automated verification, and end-to-end execution rather than manual syntax.',
       matchedTopics: ['vibe-coding', 'ai-engineering'],
       confidence: 0.95,
       suggestedForumThreadSlug: 'getting-started-with-vibe-coding-and-ai',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 7. Affiliate Marketing, Promoters & Commissions
   if (/\b(affiliates?|promoter|referrals?|commission|earn\s*money|make\s*money|monetiz\w*)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'Digital Wealth Creators features a high-earning affiliate promoter program offering 20% to 50% commission per referral. Each promoter gets a unique tracking link, automated sales attribution, real-time analytics, and weekly payouts to their bank account.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'Digital Wealth Creators features a high-earning affiliate promoter program offering 20% to 50% commission per referral. Each promoter gets a unique tracking link, automated sales attribution, real-time analytics, and weekly payouts to their bank account. Paid members can access advanced promotional assets, custom campaign tracking, and prioritized affiliate payout processing in their partner dashboard.'
+        : 'Digital Wealth Creators features a high-earning affiliate promoter program offering 20% to 50% commission per referral. Each promoter gets a unique tracking link, automated sales attribution, real-time analytics, and weekly payouts to their bank account.',
       matchedTopics: ['affiliate', 'monetization'],
       confidence: 0.94,
       suggestedForumThreadSlug: 'how-affiliate-commissions-and-payouts-work',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
-  // 8. Prompt Vault & 105 VIP Blueprints
-  if (/\b(prompts?|vault|100\s*prompts?|105\s*prompts?|blueprints?)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'The DWC VIP Prompt Vault contains 105 battle-tested executive AI prompts and blueprints for business growth, sales copy, social syndication, and vibe coding. VIP members enjoy full instant access, and individual prompt packs can be downloaded in the Digital Store.',
+  // 7.5 Photography & Camera Prompts (Member Vault & ChatGPT Blueprints)
+  if (
+    /\b(photograph(y|ic|er)?|photos?|cameras?|lighting|aperture|shutter(\s*speed)?|lenses|lens|portraits?|cinematic\s*shots?|golden\s*hour|rembrandt|chiaroscuro|astrophotography|macro\s*photo|film\s*emulation|midjourney\s*photo)\b/i.test(
+      cleanQ
+    )
+  ) {
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'The DWC VIP Prompt Vault includes a comprehensive Photography & Camera Prompts collection featuring 24 ChatGPT-engineered photography blueprints across 6 sub-genres: Portraiture & Editorial, Street & Documentary, Landscape & Astrophotography, Commercial & Culinary, Action & Motion, and AI Synthesis & Film Emulation. Each prompt includes parameterized variables for camera body, lens, aperture, shutter speed, ISO, lighting, and composition rules. As an active paid member, you enjoy full interactive access to customize, interpolate, and copy prompts directly to ChatGPT or your student dashboard.'
+        : 'The DWC VIP Prompt Vault includes a comprehensive Photography & Camera Prompts collection featuring 24 ChatGPT-engineered photography blueprints across 6 sub-genres (Portraiture, Street, Landscape, Commercial, Action, and AI Synthesis) with parameterized camera settings, lighting setups, and composition rules.',
+      matchedTopics: ['photography-prompts', 'prompt-vault', 'chatgpt-photography'],
+      confidence: 0.95,
+      suggestedForumThreadSlug: 'how-to-use-photography-prompts-in-chatgpt',
+    };
+    return formatEnquiryTieredResponse(base, userTier);
+  }
+
+  // 8. Prompt Vault & 150+ VIP Blueprints
+  if (/\b(prompts?|vault|100\s*prompts?|105\s*prompts?|150\s*prompts?|blueprints?)\b/i.test(cleanQ)) {
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'The DWC VIP Prompt Vault contains 150+ battle-tested executive AI prompts and blueprints for business growth, sales copy, social syndication, vibe coding, and professional photography. VIP members enjoy full instant access, and individual prompt packs can be downloaded in the Digital Store. Active paid members enjoy unrestricted instant access to all categories, dynamic bracketed variable customization in the prompt customizer, and 1-click clipboard exports for ChatGPT, Claude, and Gemini.'
+        : 'The DWC VIP Prompt Vault contains 150+ battle-tested executive AI prompts and blueprints for business growth, sales copy, social syndication, vibe coding, and professional photography. VIP members enjoy full instant access, and individual prompt packs can be downloaded in the Digital Store.',
       matchedTopics: ['prompt-vault', 'digital-products'],
       confidence: 0.94,
       suggestedForumThreadSlug: 'how-to-use-the-105-prompt-vault',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 9. Digital Products, eBooks & Templates
   if (/\b(digital\s*products?|ebooks?|handbooks?|notion\s*templates?|engineering\s*toolkits?|digital\s*downloads?)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'Our Digital Products hub includes actionable eBooks, Notion templates, PRD specifications, and software starter kits. Purchases feature instant file downloads and perpetual updates in your personal library.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'Our Digital Products hub includes actionable eBooks, Notion templates, PRD specifications, and software starter kits. Purchases feature instant file downloads and perpetual updates in your personal library. Paid members receive 50% member discounts across the store and perpetual access to version updates.'
+        : 'Our Digital Products hub includes actionable eBooks, Notion templates, PRD specifications, and software starter kits. Purchases feature instant file downloads and perpetual updates in your personal library.',
       matchedTopics: ['digital-products', 'ebooks'],
       confidence: 0.92,
       suggestedForumThreadSlug: 'accessing-digital-product-downloads',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 10. Video Studio & YouTube Course Repurposer
   if (/\b(video\s*(generator|studio)|canvas\s*studio|youtube\s*(repurpos\w*|to\s*course)|slides?\s*to\s*video)\b/i.test(cleanQ)) {
-    return {
-      answer:
-        'The DWC Canvas Video Studio enables 1-click in-browser 1280x720 video slide creation with synchronized speech and WebM export. Our YouTube Course Repurposer takes any video URL and converts it into a full interactive course curriculum with quizzes and summaries.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'The DWC Canvas Video Studio enables 1-click in-browser 1280x720 video slide creation with synchronized speech and WebM export. Our YouTube Course Repurposer takes any video URL and converts it into a full interactive course curriculum with quizzes and summaries. Paid members enjoy unlimited video scene rendering, high-definition exports, and automated social snippet syndication.'
+        : 'The DWC Canvas Video Studio enables 1-click in-browser 1280x720 video slide creation with synchronized speech and WebM export. Our YouTube Course Repurposer takes any video URL and converts it into a full interactive course curriculum with quizzes and summaries.',
       matchedTopics: ['video-generation', 'ai-tools'],
       confidence: 0.93,
       suggestedForumThreadSlug: 'generating-videos-and-repurposing-youtube-courses',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
-  // 11. General "Explain" / "What is" queries for the platform
+  // 11. General "Explain"/"What is" queries for the platform
   if (
     /\b(explain|what\s+is|tell\s+me\s+about|overview\s+of)\s+(digital\s*wealth\s*creators|dwc|coursemart|this\s*platform|the\s*platform|your\s*services?)\b/i.test(cleanQ) ||
     /\b(how\s+does\s+this\s+platform\s+work|what\s+does\s+dwc\s+offer)\b/i.test(cleanQ)
   ) {
-    return {
-      answer:
-        'Digital Wealth Creators (DWC) is a unified platform combining digital commerce, technical education, and AI automation. We empower creators and developers to master vibe coding, deploy software, sell digital assets, and monetize through high-ticket masterclasses and affiliate partnerships.',
+    const base: EnquiryResponse = {
+      answer: isPaid
+        ? 'Digital Wealth Creators (DWC) is a unified platform combining digital commerce, technical education, and AI automation. We empower creators and developers to master vibe coding, deploy software, sell digital assets, and monetize through high-ticket masterclasses and affiliate partnerships. As an active member, you have unrestricted access to all courses, member prompt vaults, community channels, and AI copilot tools.'
+        : 'Digital Wealth Creators (DWC) is a unified platform combining digital commerce, technical education, and AI automation. We empower creators and developers to master vibe coding, deploy software, sell digital assets, and monetize through high-ticket masterclasses and affiliate partnerships.',
       matchedTopics: ['general-explanation', 'dwc-platform'],
       confidence: 0.9,
       suggestedForumThreadSlug: 'digital-wealth-creators-platform-overview',
     };
+    return formatEnquiryTieredResponse(base, userTier);
   }
 
   // 12. General Support Fallback
-  return {
-    answer:
-      'Thank you for contacting CourseMart support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions.',
+  const fallbackBase: EnquiryResponse = {
+    answer: isPaid
+      ? 'Thank you for contacting CourseMart support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions or ask our AI assistant for in-depth technical details on any topic.'
+      : 'Thank you for contacting CourseMart support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions.',
     matchedTopics: ['general-support'],
     confidence: 0.5,
   };
+  return formatEnquiryTieredResponse(fallbackBase, userTier);
 }
 
 /**
@@ -503,13 +580,8 @@ export function buildEnquiryResponse(
  */
 export function runEnquiryAgent(
   question: string,
-  context?: { courseName?: string; lectureTitle?: string }
-): {
-  answer: string;
-  matchedTopics: string[];
-  confidence: number;
-  suggestedForumThreadSlug?: string;
-} {
+  context?: EnquiryContext
+): EnquiryResponse {
   return buildEnquiryResponse(question, context);
 }
 

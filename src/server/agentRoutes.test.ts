@@ -1,9 +1,13 @@
 import test, { after, before } from 'node:test';
 import assert from 'node:assert/strict';
+
+process.env.NODE_ENV = 'test';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createApiApp } from './createApp';
 import type { BlogPost, Product, Order } from '../types/marketplace';
+import { createUserSessionToken, USER_SESSION_COOKIE_NAME } from './userAuth.ts';
+import { createAdminSessionToken, ADMIN_SESSION_COOKIE_NAME, getAdminSessionSecret } from './adminAuth.ts';
 
 let server: Server;
 let baseUrl: string;
@@ -108,7 +112,7 @@ test('POST /api/agents/blog-publisher enforces authorization and publishes sched
 });
 
 test('POST /api/agents/enquiry answers public enquiries deterministically', async () => {
-  // 1. Empty / whitespace question
+  // 1. Empty/whitespace question
   const emptyRes = await fetch(`${baseUrl}/api/agents/enquiry`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -441,4 +445,69 @@ test('POST /api/agents/* routes gracefully handle null/malformed payloads and re
   const secNullData = await secNullRes.json();
   assert.equal(secNullData.ok, true);
   assert.equal(secNullData.flaggedUserIds.length, 0);
+});
+
+test('POST /api/agents/enquiry differentiates paid vs anonymous/free visitor responses', async () => {
+  // 1. Anonymous visitor receives concise teaser + upgrade CTA
+  const anonRes = await fetch(`${baseUrl}/api/agents/enquiry`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: 'What is included in membership tiers?' }),
+  });
+  assert.equal(anonRes.status, 200);
+  const anonData = await anonRes.json();
+  assert.equal(anonData.ok, true);
+  assert.equal(anonData.isTeaser, true);
+  assert.equal(anonData.userTier, 'anonymous');
+  assert.ok(anonData.cta);
+  assert.equal(anonData.cta.link, '/membership');
+  assert.equal(anonData.cta.text, 'Upgrade to Paid Membership to unlock unrestricted AI answers');
+
+  // 2. Authenticated paid member receives comprehensive unrestricted answer
+  const adminSecret = getAdminSessionSecret();
+  const paidToken = createUserSessionToken('user-instructor-1', 'instructor@dwc.org.ng', 'instructor', adminSecret);
+
+  const paidRes = await fetch(`${baseUrl}/api/agents/enquiry`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${paidToken}`,
+    },
+    body: JSON.stringify({ question: 'What is included in membership tiers?' }),
+  });
+  assert.equal(paidRes.status, 200);
+  const paidData = await paidRes.json();
+  assert.equal(paidData.ok, true);
+  assert.equal(paidData.isTeaser, false);
+  assert.equal(paidData.userTier, 'paid');
+  assert.equal(paidData.cta, undefined);
+  assert.ok(paidData.answer.length > anonData.answer.length);
+  assert.match(paidData.answer, /CourseMart memberships/i);
+});
+
+test('POST /api/agents/enquiry auto-archives high-value inquiries to community discussions/FAQ', async () => {
+  const highValueQuestion = 'How do I architect distributed microservices with Kafka and Docker?';
+
+  // 1. First invocation creates new community forum thread and returns suggestedForumThreadSlug
+  const firstRes = await fetch(`${baseUrl}/api/agents/enquiry`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: highValueQuestion }),
+  });
+  assert.equal(firstRes.status, 200);
+  const firstData = await firstRes.json();
+  assert.equal(firstData.ok, true);
+  assert.ok(firstData.suggestedForumThreadSlug);
+  assert.match(firstData.suggestedForumThreadSlug, /how-do-i-architect-distributed-microservices/);
+
+  // 2. Second invocation for identical question returns matching slug without creating duplicates
+  const secondRes = await fetch(`${baseUrl}/api/agents/enquiry`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: highValueQuestion }),
+  });
+  assert.equal(secondRes.status, 200);
+  const secondData = await secondRes.json();
+  assert.equal(secondData.ok, true);
+  assert.equal(secondData.suggestedForumThreadSlug, firstData.suggestedForumThreadSlug);
 });

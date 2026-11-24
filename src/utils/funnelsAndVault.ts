@@ -15,6 +15,7 @@ import type {
 } from '../types/marketplace';
 import { roundCurrency, migrateLegacyTier } from './commerce.ts';
 import { resolveInitialOrderStatus } from './automation.ts';
+import { SEED_PROMPT_VAULT_ITEMS } from '../data/promptVaultCatalog';
 
 // ==========================================
 // Sales Funnel Calculations
@@ -407,6 +408,7 @@ export function filterPromptVault(
           if (l.includes('social') || l.includes('content')) return 'content creation';
           if (l.includes('architecture') || l.includes('productivity')) return 'productivity';
           if (l.includes('lms') || l.includes('education')) return 'lms & education';
+          if (l.includes('photo') || l.includes('camera') || l.includes('lens')) return 'photography & camera prompts';
           return l;
         };
 
@@ -448,6 +450,62 @@ export function filterPromptVault(
     });
 }
 
+/**
+ * Search the Prompt Vault across title, description, tags, template, and optional category.
+ * Supports token matching and optional result limit.
+ */
+export function searchPromptVault(
+  query: string,
+  category?: string,
+  limit?: number,
+  sourcePrompts: PromptVaultItem[] = SEED_PROMPT_VAULT_ITEMS
+): PromptVaultItem[] {
+  if (!sourcePrompts || !Array.isArray(sourcePrompts)) return [];
+  const cleanQ = (query || '').trim().toLowerCase();
+  const cleanCat = (category || '').trim();
+
+  // First try direct filter via filterPromptVault
+  let results = filterPromptVault(sourcePrompts, {
+    query: cleanQ,
+    category: cleanCat || undefined,
+  });
+
+  // If multi-word query produced no exact phrase matches, match individual tokens
+  if (results.length === 0 && cleanQ.includes(' ')) {
+    const tokens = cleanQ.split(/\s+/).filter(Boolean);
+    results = sourcePrompts.filter((item) => {
+      if (!item) return false;
+      if (cleanCat && cleanCat !== 'All') {
+        const normalizeCategory = (c: string): string => {
+          const l = c.trim().toLowerCase();
+          if (l.includes('vibe') || l.includes('coding') || l.includes('engineering')) return 'ai engineering & coding';
+          if (l.includes('leadership') || l.includes('strategy') || l.includes('business')) return 'business & strategy';
+          if (l.includes('social') || l.includes('content')) return 'content creation';
+          if (l.includes('architecture') || l.includes('productivity')) return 'productivity';
+          if (l.includes('lms') || l.includes('education')) return 'lms & education';
+          if (l.includes('photo') || l.includes('camera') || l.includes('lens')) return 'photography & camera prompts';
+          return l;
+        };
+        const targetNorm = normalizeCategory(cleanCat);
+        const itemNorm = normalizeCategory(item.category || '');
+        if (item.category?.toLowerCase() !== cleanCat.toLowerCase() && targetNorm !== itemNorm) {
+          return false;
+        }
+      }
+      const title = (item.title || '').toLowerCase();
+      const desc = (item.description || '').toLowerCase();
+      const tmpl = (item.template || '').toLowerCase();
+      const tags = (Array.isArray(item.tags) ? item.tags : []).map((t) => String(t).toLowerCase());
+      return tokens.some((t) => title.includes(t) || desc.includes(t) || tmpl.includes(t) || tags.some((tag) => tag.includes(t)));
+    });
+  }
+
+  if (typeof limit === 'number' && limit > 0) {
+    return results.slice(0, limit);
+  }
+  return results;
+}
+
 export interface SynthesizeStandardPromptInput {
   idea: string;
   persona?: string;
@@ -458,7 +516,7 @@ export interface SynthesizeStandardPromptInput {
 }
 
 /**
- * Standard Prompt Engineering Synthesizer (CO-STAR / CREATE framework).
+ * Standard Prompt Engineering Synthesizer (CO-STAR/CREATE framework).
  * Transforms vague requirements into a production-grade prompt with variable brackets.
  */
 export function synthesizeStandardPrompt(input: SynthesizeStandardPromptInput): string {

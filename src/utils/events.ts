@@ -22,6 +22,43 @@ export const EVENT_FORMAT_META: Record<
   },
 };
 
+/**
+ * Determines whether an event is free of charge.
+ * Returns true if price is 0 (or negative) or if the event is explicitly marked free.
+ */
+export function isEventFree(
+  event: (Pick<CoursemartEvent, 'price'> & { isFree?: boolean }) | { price?: number; isFree?: boolean }
+): boolean {
+  if ('isFree' in event && event.isFree === true) {
+    return true;
+  }
+  if (typeof event.price === 'number') {
+    return event.price <= 0;
+  }
+  return false;
+}
+
+/**
+ * Validates event pricing configuration for free/paid events.
+ * If isFree is true, valid is always true.
+ * If isFree is false, requires price > 0, otherwise returns valid: false with an error message.
+ */
+export function validateEventPricing(
+  isFree: boolean,
+  price: number
+): { valid: boolean; error?: string } {
+  if (isFree) {
+    return { valid: true };
+  }
+  if (typeof price === 'number' && !Number.isNaN(price) && price > 0) {
+    return { valid: true };
+  }
+  return {
+    valid: false,
+    error: 'Paid events require a ticket fee greater than ₦0. Please enter a valid ticket fee or switch to Free Admission.',
+  };
+}
+
 export interface EventSeatStats {
   registeredCount: number;
   remainingSeats: number;
@@ -250,12 +287,12 @@ export function buildPreEventAcknowledgementHtml(
         </div>
         <div style="padding:24px;line-height:1.6;">
           <p>Hi <strong>${escapeHtml(registration.fullName)}</strong>,</p>
-          <p>${escapeHtml(event.acknowledgementMessage)}</p>
+          <p>${escapeHtml(event.acknowledgementMessage || 'Your seat is reserved! Review your pre-event preparation materials below.')}</p>
           <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:16px;margin:16px 0;">
             <p style="margin:0 0 6px;"><strong>Confirmation Code:</strong> ${escapeHtml(registration.confirmationCode)}</p>
             <p style="margin:0 0 6px;"><strong>Date & Time:</strong> ${escapeHtml(startReadable)} (${escapeHtml(event.timezone)})</p>
             <p style="margin:0 0 6px;"><strong>Attendance Mode:</strong> ${escapeHtml(registration.attendanceMode)}</p>
-            <p style="margin:0;"><strong>Access / Venue:</strong> ${escapeHtml(event.locationOrLink)}</p>
+            <p style="margin:0;"><strong>Access/Venue:</strong> ${escapeHtml(event.locationOrLink)}</p>
           </div>
           <h2 style="font-size:16px;color:#0a192f;margin-top:20px;">Pre-Event Preparation Materials</h2>
           <ul>${materialsRows}</ul>

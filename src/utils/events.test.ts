@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { CoursemartEvent, EventRegistration } from '../types/marketplace.ts';
+import type { CoursemartEvent, EventRegistration, PreEventMaterial } from '../types/marketplace.ts';
 import {
   buildAttendeesCsv,
   buildEventIcsContent,
@@ -8,6 +8,8 @@ import {
   filterEvents,
   generateEventConfirmationCode,
   getEventSeatStats,
+  isEventFree,
+  validateEventPricing,
   validateEventRegistrationForm,
 } from './events.ts';
 
@@ -173,4 +175,168 @@ test('filterEvents excludes drafts by default and filters by format and query', 
 
   const searchMiss = filterEvents([SAMPLE_EVENT], { search: 'nonexistent-topic' });
   assert.equal(searchMiss.length, 0);
+});
+
+test('isEventFree correctly detects free/paid events across pricing and explicit flags', () => {
+  // Free events with price: 0
+  assert.equal(isEventFree({ price: 0 }), true);
+  assert.equal(isEventFree({ price: 0, isFree: true }), true);
+
+  // Paid events with positive prices
+  assert.equal(isEventFree({ price: 25000 }), false);
+  assert.equal(isEventFree({ price: 25000, isFree: false }), false);
+
+  // Negative prices (treated as free)
+  assert.equal(isEventFree({ price: -100 }), true);
+
+  // Undefined price
+  assert.equal(isEventFree({ price: undefined }), false);
+  assert.equal(isEventFree({}), false);
+
+  // Explicit isFree flag overrides
+  assert.equal(isEventFree({ price: 25000, isFree: true }), true);
+  assert.equal(isEventFree({ isFree: true }), true);
+  assert.equal(isEventFree({ price: 15000, isFree: false }), false);
+  assert.equal(isEventFree({ isFree: false }), false);
+});
+
+test('validateEventPricing validates free/paid pricing thresholds and error messages', () => {
+  // Free events (isFree = true) are always valid regardless of price value
+  const freeZero = validateEventPricing(true, 0);
+  assert.equal(freeZero.valid, true);
+  assert.equal(freeZero.error, undefined);
+
+  const freeNonZero = validateEventPricing(true, 100);
+  assert.equal(freeNonZero.valid, true);
+
+  const freeNegative = validateEventPricing(true, -50);
+  assert.equal(freeNegative.valid, true);
+
+  // Paid events (isFree = false) require price > 0
+  const paidPositive = validateEventPricing(false, 25000);
+  assert.equal(paidPositive.valid, true);
+  assert.equal(paidPositive.error, undefined);
+
+  const paidZero = validateEventPricing(false, 0);
+  assert.equal(paidZero.valid, false);
+  assert.match(paidZero.error || '', /greater than/i);
+
+  const paidNegative = validateEventPricing(false, -500);
+  assert.equal(paidNegative.valid, false);
+  assert.match(paidNegative.error || '', /greater than/i);
+
+  const paidNan = validateEventPricing(false, Number.NaN);
+  assert.equal(paidNan.valid, false);
+  assert.match(paidNan.error || '', /greater than/i);
+});
+
+test('multi-material pre-event kit supports pdf, slides, repo, checklist, and video types', () => {
+  const materials: PreEventMaterial[] = [
+    {
+      id: 'mat-pdf-1',
+      title: 'Architectural Blueprint PDF',
+      type: 'pdf',
+      urlOrNotes: 'https://cdn.coursemart.io/materials/blueprint.pdf',
+      summary: 'High-resolution architecture diagram and technical specifications.',
+    },
+    {
+      id: 'mat-slides-2',
+      title: 'Session Keynote Deck',
+      type: 'slides',
+      urlOrNotes: 'https://slides.coursemart.io/deck-vibe.key',
+      summary: 'Interactive keynote slides covering core architectural patterns.',
+    },
+    {
+      id: 'mat-repo-3',
+      title: 'Starter Template Monorepo',
+      type: 'repo',
+      urlOrNotes: 'https://github.com/digitalwealthcreators/starter-kit',
+      summary: 'Production template scaffold with TypeScript and Vite preconfigured.',
+    },
+    {
+      id: 'mat-check-4',
+      title: 'Dev Environment Checklist',
+      type: 'checklist',
+      urlOrNotes: 'Verify Node 22, Git 2.45, and pnpm 9 are installed.',
+      summary: 'Mandatory prerequisites to complete prior to workshop kickoff.',
+    },
+    {
+      id: 'mat-vid-5',
+      title: 'Setup Walkthrough Video',
+      type: 'video',
+      urlOrNotes: 'https://vimeo.com/coursemart/walkthrough-preview',
+      summary: 'A 5-minute pre-event onboarding screencast.',
+    },
+  ];
+
+  assert.equal(materials.length, 5);
+  const types = materials.map((m) => m.type);
+  assert.deepEqual(types, ['pdf', 'slides', 'repo', 'checklist', 'video']);
+
+  const multiMatEvent: CoursemartEvent = {
+    ...SAMPLE_EVENT,
+    id: 'evt-multi-kit',
+    title: 'Enterprise Architecture Workshop',
+    preEventMaterials: materials,
+  };
+
+  // Verify ICS calendar generator reflects all materials
+  const ics = buildEventIcsContent(multiMatEvent, 'EVT-TEST-MULTI');
+  assert.match(ics, /Architectural Blueprint PDF/);
+  assert.match(ics, /Session Keynote Deck/);
+  assert.match(ics, /Starter Template Monorepo/);
+  assert.match(ics, /Dev Environment Checklist/);
+  assert.match(ics, /Setup Walkthrough Video/);
+
+  // Verify HTML acknowledgement includes all materials and types
+  const ack = buildPreEventAcknowledgementHtml(multiMatEvent, SAMPLE_REGS[0]);
+  assert.match(ack.html, /PDF/);
+  assert.match(ack.html, /SLIDES/);
+  assert.match(ack.html, /REPO/);
+  assert.match(ack.html, /CHECKLIST/);
+  assert.match(ack.html, /VIDEO/);
+  assert.match(ack.html, /blueprint\.pdf/);
+  assert.match(ack.html, /starter-kit/);
+});
+
+test('event registration paymentStatus resolves correctly for free vs paid checkout flows', () => {
+  const freeEvent: CoursemartEvent = {
+    ...SAMPLE_EVENT,
+    price: 0,
+    isFree: true,
+  };
+
+  const paidEvent: CoursemartEvent = {
+    ...SAMPLE_EVENT,
+    id: 'evt-paid-1',
+    price: 35000,
+    isFree: false,
+  };
+
+  // Simulation of free registration logic from EventsPage.tsx
+  const resolvePaymentInfo = (
+    event: CoursemartEvent,
+    method?: 'paystack' | 'gtb_whatsapp',
+    gtbRef?: string
+  ): { paymentStatus: EventRegistration['paymentStatus']; paymentReference?: string } => {
+    if (isEventFree(event)) {
+      return { paymentStatus: 'free' };
+    }
+    if (method === 'gtb_whatsapp') {
+      return { paymentStatus: 'pending_gtb', paymentReference: gtbRef || 'GTB-TRANSFER-123' };
+    }
+    return { paymentStatus: 'pending_paystack', paymentReference: 'EVT-PSK-REF-999' };
+  };
+
+  const freeResult = resolvePaymentInfo(freeEvent);
+  assert.equal(freeResult.paymentStatus, 'free');
+  assert.equal(freeResult.paymentReference, undefined);
+
+  const paidPaystackResult = resolvePaymentInfo(paidEvent, 'paystack');
+  assert.equal(paidPaystackResult.paymentStatus, 'pending_paystack');
+  assert.equal(paidPaystackResult.paymentReference, 'EVT-PSK-REF-999');
+
+  const paidGtbResult = resolvePaymentInfo(paidEvent, 'gtb_whatsapp', 'GTB-SENDER-ADA');
+  assert.equal(paidGtbResult.paymentStatus, 'pending_gtb');
+  assert.equal(paidGtbResult.paymentReference, 'GTB-SENDER-ADA');
 });

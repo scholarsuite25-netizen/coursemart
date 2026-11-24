@@ -214,7 +214,7 @@ function AppRouter() {
       content = <SalesFunnelPage key={parsed.slug} slug={parsed.slug} />;
       break;
     case 'vault':
-      content = <MemberPromptVaultPage />;
+      content = <MemberPromptVaultPage initialCategory={parsed.category} />;
       break;
     case 'tutorials-hub':
       content = <TutorialDetailPage />;
