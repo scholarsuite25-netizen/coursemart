@@ -104,6 +104,41 @@ export const SEED_USERS: UserAccount[] = [
 
 export const SEED_PRODUCTS: Product[] = [
   {
+    id: 'prod-vip-mastermind',
+    slug: 'dwc-creator-mastermind-pass',
+    title: 'DWC Creator Mastermind Pass',
+    subtitle: 'VIP seat in the Creator Mastermind — private lounge, expert chats, and let it show up on paid entry',
+    description:
+      'Gain permanent access to the DWC Creator Mastermind: a private lounge for platform members, with hands-on discussions, master class sessions, and exclusive experts. Buying this pass unlocks the #vip-mastermind community channel and keeps your membership active.',
+    type: 'ebook',
+    category: 'Masterclass / Coaching',
+    instructorId: 'user-admin-1',
+    instructorName: 'Marcus Sterling',
+    instructorRole: 'Platform Operations Director',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 9500,
+    originalPrice: 12500,
+    rating: 4.9,
+    reviewCount: 214,
+    studentsCount: 312,
+    thumbnail: '/src/assets/images/course_fullstack_architecture_1794890415282.jpg',
+    level: 'Intermediate',
+    language: 'English',
+    updatedAt: '2026-11-20T00:00:00Z',
+    status: 'published',
+    featured: true,
+    formatLabel: '1-Year Membership Pass',
+    learningOutcomes: [
+      'Attend private Creator Mastermind lounges and expert working sessions',
+      'Get priority access to new masterclasses and tutorials as they launch',
+      'Join Q&A Office Hours with platform instructors weekly',
+    ],
+    requirements: [
+      'DWC platform membership (free or paid) with a connected account',
+      'Laptop with a modern browser for live sessions',
+    ],
+  },
+  {
     id: 'prod-course-1',
     slug: 'distributed-systems-fullstack-typescript',
     title: 'Distributed Systems & Full-Stack TypeScript Architecture',
@@ -2210,10 +2245,12 @@ export const SEED_COMMUNITY_CHANNELS: CommunityChannel[] = [
   {
     id: 'chan-vip-lounge',
     slug: 'vip-member-lounge',
-    name: 'VIP Member Lounge',
-    description: 'Private mastermind lounge for active platform members and creators.',
+    name: 'VIP Mastermind Space',
+    description:
+      'Private mastermind lounge for members who hold the DWC Creator Mastermind Pass (paid entry).',
     category: 'vip',
     visibility: 'members_only',
+    productId: 'prod-vip-mastermind',
     isReadOnly: false,
     icon: 'crown',
     memberCount: 128,

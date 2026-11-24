@@ -289,7 +289,7 @@ export type ParsedAppRoute =
   | { page: 'tutorial-detail'; slug: string }
   | {
       page: 'community';
-      subView?: 'chat' | 'forums' | 'thread';
+      subView?: 'chat' | 'forums' | 'thread' | 'leaderboard';
       channelId?: string;
       threadId?: string;
     };
@@ -327,6 +327,9 @@ export function parseAppRoute(route: string): ParsedAppRoute {
     }
     if (cleanPath === '/community/forums' || cleanPath === '/community/forum') {
       return { page: 'community', subView: 'forums' };
+    }
+    if (cleanPath === '/community/leaderboard') {
+      return { page: 'community', subView: 'leaderboard' };
     }
     if (cleanPath === '/community/chat') {
       return { page: 'community', subView: 'chat' };

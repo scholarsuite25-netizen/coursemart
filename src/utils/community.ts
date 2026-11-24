@@ -99,9 +99,10 @@ export const DEFAULT_COMMUNITY_CHANNELS: CommunityChannel[] = [
     id: 'chan-vip-mastermind',
     slug: 'vip-mastermind',
     name: 'VIP Creator Mastermind',
-    description: 'Exclusive lounge for active platform members and creators.',
+    description: 'Exclusive lounge for members who hold the DWC Creator Mastermind Pass (paid space).',
     category: 'vip',
     visibility: 'members_only',
+    productId: 'prod-vip-mastermind',
     isReadOnly: false,
     icon: 'crown',
     memberCount: 128,
@@ -115,7 +116,7 @@ export const DEFAULT_COMMUNITY_CHANNELS: CommunityChannel[] = [
 
 export function canUserAccessChannel(
   channel: CommunityChannel,
-  ctx?: { role?: UserRole; enrolledProductIds?: string[]; isMember?: boolean }
+  ctx?: { role?: UserRole; enrolledProductIds?: string[]; ownedProductIds?: string[]; isMember?: boolean }
 ): boolean {
   const vis = String(channel.visibility || channel.accessLevel || 'public');
   if (vis === 'public') {
@@ -129,6 +130,11 @@ export function canUserAccessChannel(
     return Boolean(ctx?.enrolledProductIds && ctx.enrolledProductIds.includes(channel.productId));
   }
   if (vis === 'members_only' || vis === 'members') {
+    if (channel.productId) {
+      // Paywalled space: instructors, or owners of the linked product.
+      if (ctx?.role === 'instructor') return true;
+      return Boolean(ctx?.ownedProductIds && ctx.ownedProductIds.includes(channel.productId));
+    }
     return ctx?.role === 'instructor' || ctx?.isMember === true;
   }
   return false;
@@ -140,7 +146,7 @@ export function filterChannels(
     category?: string;
     search?: string;
     includeArchived?: boolean;
-    user?: { role?: UserRole; enrolledProductIds?: string[]; isMember?: boolean };
+    user?: { role?: UserRole; enrolledProductIds?: string[]; ownedProductIds?: string[]; isMember?: boolean };
   }
 ): CommunityChannel[] {
   return channels.filter((c) => {
@@ -167,7 +173,7 @@ export function filterChannels(
 
 export function canUserPostInChannel(
   channel: CommunityChannel,
-  ctx?: { role?: UserRole; enrolledProductIds?: string[]; isMember?: boolean }
+  ctx?: { role?: UserRole; enrolledProductIds?: string[]; ownedProductIds?: string[]; isMember?: boolean }
 ): { allowed: boolean; reason?: string } {
   if (!ctx || !ctx.role) {
     return { allowed: false, reason: 'Sign-in required to post messages.' };

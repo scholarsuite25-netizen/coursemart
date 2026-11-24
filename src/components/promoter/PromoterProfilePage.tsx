@@ -33,12 +33,27 @@ import {
 import { useStore } from '../../context/StoreContext';
 import { InteractiveCalendar } from './InteractiveCalendar';
 import { FacilitatorBookingModal } from './FacilitatorBookingModal';
+import { MentorshipBookingModal, MENTORSHIP_SERVICES } from './MentorshipBookingModal';
 import { AppointmentsTable } from './AppointmentsTable';
+
+const MENTORSHIP_SERVICE_DESCRIPTIONS: Record<string, string> = {
+  'Taster Mentorship Session (30 min)': 'A 30-minute chat to get unstuck: diagnose a problem, review a plan, or get a directionality check.',
+  'Deep Dive Mentorship (60 min)': '60 minutes of focused strategy review and problem-solving with the promoter — ideal for career or business blockers.',
+  'Program Guided Session (90 min)': 'A 90-minute structured session walking you through a real goal — milestones, accountability, and follow-ups.',
+  'Pathway Planning Consult (45 min)': 'Helps you map the path ahead (skills, projects, milestones) with guidance tailored to your goals.',
+};
+
+const MENTORSHIP_SERVICE_BADGES = [
+  'Live 1:1 audio/video sessions, recorded if you want them',
+  'Custom outcome: roadmap, brand plan, market entry plan, or 90-day plan',
+  'Deep-dive: teaches you the thinking, not just answers',
+];
 
 export function PromoterProfilePage() {
   const { calendarEngagements, currentUser } = useStore();
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isMentorshipBookingOpen, setIsMentorshipBookingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
 
   const handleSelectDateFromCalendar = (dateStr: string) => {
@@ -629,6 +644,58 @@ export function PromoterProfilePage() {
           </div>
         </section>
 
+        {/* 5B. MENTORSHIP SERVICES (NON-FREE, BOOK VIA ENQUIRIES) */}
+        <section id="mentorship-services" className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-6">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <span className="px-3 py-1 rounded-full bg-[#f5c451]/10 text-[#f5c451] border border-[#f5c451]/30 text-[10px] font-bold uppercase tracking-wider">
+              1:1 Mentorship
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-white">
+              Mentorship Services — Paid 1:1 Sessions
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm">
+              The same mentors who drive platforms, courses, and masterclasses across DWC now offer
+              non-free mentorship sessions. Book an enquiry — it goes directly to the mentor, who
+              typically replies within 24–48 hours.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {MENTORSHIP_SERVICES.map((svc) => (
+              <div
+                key={svc.title}
+                className="p-5 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition-all flex flex-col gap-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-sm font-bold text-white">{svc.title}</h3>
+                  <span className="px-2 py-1 rounded-full bg-[#f5c451]/20 text-[#f5c451] font-bold text-xs tabular-nums shrink-0">
+                    ₦{svc.priceNgn.toLocaleString('en-US')}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {MENTORSHIP_SERVICE_DESCRIPTIONS[svc.title]}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsMentorshipBookingOpen(true)}
+                  className="mt-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#f5c451]/60 text-[#f5c451] font-bold text-xs hover:bg-[#f5c451]/10 transition-all cursor-pointer"
+                >
+                  Book This Session
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-3">
+            {MENTORSHIP_SERVICE_BADGES.map((badge) => (
+              <div key={badge} className="flex items-center gap-2 text-xs text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-[#f5c451]/80" />
+                {badge}
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* 6. INTERACTIVE AVAILABILITY CALENDAR SECTION */}
         <section id="availability-calendar" className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800 pb-4">
@@ -660,6 +727,12 @@ export function PromoterProfilePage() {
             onSelectDate={handleSelectDateFromCalendar}
           />
         </section>
+
+        {/* 5C. MENTORSHIP BOOKING MODAL */}
+        <MentorshipBookingModal
+          isOpen={isMentorshipBookingOpen}
+          onClose={() => setIsMentorshipBookingOpen(false)}
+        />
 
         {/* 6B. FACILITATOR APPOINTMENTS & ENGAGEMENT ROSTER TABLE */}
         <section id="appointments-roster" className="space-y-4">

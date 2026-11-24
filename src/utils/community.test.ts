@@ -105,6 +105,53 @@ test('filterChannels and canUserAccessChannel enforce public, enrolled_only, and
   assert.equal(adminVisible.length, 3);
 });
 
+test('product-gated members_only channels unlock for owners of the linked product', () => {
+  const paidVipChan: CommunityChannel = {
+    id: 'c-vip-paid',
+    slug: 'vip-paid-lounge',
+    name: 'VIP Mastermind Space',
+    description: 'Paid lounge',
+    category: 'vip',
+    visibility: 'members_only',
+    productId: 'prod-vip-mastermind',
+    isReadOnly: false,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
+
+  // Guests and non-owners are locked out even if isMember is true
+  assert.equal(canUserAccessChannel(paidVipChan), false);
+  assert.equal(
+    canUserAccessChannel(paidVipChan, { role: 'customer', isMember: true }),
+    false
+  );
+  // Staff unlock (consistent with previous behavior)
+  assert.equal(canUserAccessChannel(paidVipChan, { role: 'instructor' }), true);
+  // Owners unlock
+  assert.equal(
+    canUserAccessChannel(paidVipChan, {
+      role: 'customer',
+      ownedProductIds: ['prod-vip-mastermind'],
+    }),
+    true
+  );
+  // Ownership does not leak access to other product owners
+  assert.equal(
+    canUserAccessChannel(paidVipChan, {
+      role: 'customer',
+      ownedProductIds: ['prod-other'],
+    }),
+    false
+  );
+  // canUserPostInChannel mirrors access rules
+  const ownerPost = canUserPostInChannel(paidVipChan, {
+    role: 'customer',
+    ownedProductIds: ['prod-vip-mastermind'],
+  });
+  assert.equal(ownerPost.allowed, true);
+  const guestPost = canUserPostInChannel(paidVipChan, { role: 'customer' });
+  assert.equal(guestPost.allowed, false);
+});
+
 test('canUserPostInChannel blocks customer posting in read-only announcement channels', () => {
   const readOnlyChan: CommunityChannel = {
     id: 'c-announce',

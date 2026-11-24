@@ -71,9 +71,12 @@ export const ChatChannelsView: React.FC<ChatChannelsViewProps> = ({
   // Check enrollment gating if enrolled_only channel
   const isEnrolledOnly =
     channel.visibility === 'enrolled_only' || channel.accessLevel === 'enrolled';
+  // Product-gated VIP space (members_only + productId): access via ownership
+  const isProductGated =
+    (channel.visibility === 'members_only' || channel.accessLevel === 'members') &&
+    Boolean(channel.productId);
   const hasCourseAccess =
-    !isEnrolledOnly ||
-    !channel.productId ||
+    !isProductGated ||
     currentUser?.role === 'admin' ||
     currentUser?.role === 'instructor' ||
     (channel.productId ? isOwnedByCurrentUser(channel.productId) : true);
@@ -381,13 +384,13 @@ export const ChatChannelsView: React.FC<ChatChannelsViewProps> = ({
               <Lock className="w-5 h-5 text-amber-600" />
             </span>
             <div>
-              <p className="text-sm font-bold text-slate-900">Enrolled Cohort Channel</p>
+              <p className="text-sm font-bold text-slate-900">
+                {isProductGated ? 'VIP Mastermind Space' : 'Enrolled Cohort Channel'}
+              </p>
               <p className="text-xs text-slate-500">
-                Participation in #{channel.slug} requires enrollment in{' '}
-                <span className="font-semibold text-slate-700">
-                  {linkedProduct?.title || 'the related course'}
-                </span>
-                .
+                {isProductGated
+                  ? `Join #${channel.slug} by holding the ${linkedProduct?.title || 'Mastermind Pass'} product.`
+                  : `Participation in #${channel.slug} requires enrollment in ${linkedProduct?.title || 'the related course'}.`}
               </p>
             </div>
           </div>
@@ -397,7 +400,7 @@ export const ChatChannelsView: React.FC<ChatChannelsViewProps> = ({
               onClick={() => navigate(`/product/${linkedProduct.slug}`)}
               className="px-4 py-2 bg-[#0a192f] text-[#f5c451] hover:bg-[#162a4d] text-xs font-bold rounded-lg transition-colors whitespace-nowrap shadow-sm"
             >
-              Enroll to Join Cohort →
+              {isProductGated ? 'Get Pass →' : 'Enroll to Join Cohort →'}
             </button>
           )}
         </div>

@@ -13,16 +13,18 @@ import {
   Cpu,
   Crown,
   Layers,
+  Award,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { ChatChannelsView } from './ChatChannelsView';
 import { ForumBoardsView } from './ForumBoardsView';
 import { ThreadDetailView } from './ThreadDetailView';
+import { CommunityLeaderboard } from './CommunityLeaderboard';
 import { DEFAULT_FORUM_CATEGORIES } from '../../utils/community';
 import type { CommunityChannel } from '../../types/marketplace';
 
 interface CommunityPageProps {
-  initialView?: 'chat' | 'forums' | 'thread';
+  initialView?: 'chat' | 'forums' | 'leaderboard' | 'thread';
   initialChannelId?: string;
   initialThreadId?: string;
 }
@@ -42,10 +44,13 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({
     navigate,
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'chat' | 'forums'>(
-    initialView === 'thread' || initialView === 'forums' ? 'forums' : 'chat'
-  );
-  const [selectedChannelId, setSelectedChannelId] = useState<string>(
+  const [activeTab, setActiveTab] = useState<'chat' | 'forums' | 'leaderboard'>(
+    initialView === 'leaderboard'
+      ? 'leaderboard'
+      : initialView === 'thread' || initialView === 'forums'
+        ? 'forums'
+        : 'chat'
+  );  const [selectedChannelId, setSelectedChannelId] = useState<string>(
     initialChannelId || (communityChannels[0]?.id ?? 'chan-announcements')
   );
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(
@@ -70,6 +75,9 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({
       setSelectedThreadId(initialThreadId);
     } else if (initialView === 'forums') {
       setActiveTab('forums');
+      setSelectedThreadId(null);
+    } else if (initialView === 'leaderboard') {
+      setActiveTab('leaderboard');
       setSelectedThreadId(null);
     } else if (initialView === 'chat') {
       setActiveTab('chat');
@@ -209,6 +217,24 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({
               >
                 <MessageSquare className="w-4 h-4" />
                 <span>Discussion Boards</span>
+              </button>
+
+              {/* Leaderboard Pill */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('leaderboard');
+                  setSelectedThreadId(null);
+                  navigate('/community/leaderboard');
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'leaderboard'
+                    ? 'bg-[#f5c451] text-slate-950 shadow-sm'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <Award className="w-4 h-4" />
+                <span>Leaderboard</span>
               </button>
             </div>
 
@@ -401,7 +427,9 @@ export const CommunityPage: React.FC<CommunityPageProps> = ({
 
           {/* Main Active Surface */}
           <main className="flex-1 min-w-0">
-            {selectedThreadId ? (
+            {activeTab === 'leaderboard' ? (
+              <CommunityLeaderboard />
+            ) : selectedThreadId ? (
               <ThreadDetailView
                 threadId={selectedThreadId}
                 onBack={() => {
