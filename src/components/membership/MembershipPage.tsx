@@ -17,6 +17,9 @@ import {
 } from '../../utils/paystack';
 import { TINTOL_PAYMENT_DETAILS, buildWhatsAppUrl } from '../../utils/whatsapp';
 import { PaystackChannelPicker } from '../common/PaystackChannelPicker';
+import { SeoHead } from '../common/SeoHead';
+import { DEFAULT_SITE_URL } from '../../utils/seoHead';
+import { buildBreadcrumbListSchema } from '../../utils/seoSchema';
 
 export function MembershipPage() {
   const {
@@ -142,8 +145,46 @@ export function MembershipPage() {
     }).length;
   };
 
+  // SEO: OfferCatalog of membership tiers + breadcrumb JSON-LD for /membership
+  const seoOfferCatalog = {
+    '@context': 'https://schema.org',
+    '@type': 'OfferCatalog',
+    name: 'Digital Wealth Creators Membership Plans',
+    url: `${DEFAULT_SITE_URL}/membership`,
+    itemListElement: membershipPlans.map((plan, idx) => ({
+      '@type': 'Offer',
+      position: idx + 1,
+      price: plan.annualPrice,
+      priceCurrency: 'NGN',
+      itemOffered: {
+        '@type': 'Service',
+        name: plan.name,
+        description: plan.tagline || plan.audienceLabel || plan.name,
+        provider: {
+          '@type': 'Organization',
+          name: 'Digital Wealth Creators',
+          url: DEFAULT_SITE_URL,
+        },
+      },
+    })),
+  };
+
   return (
     <main className="pb-20 bg-white">
+      {/* SEO: canonical, OpenGraph and OfferCatalog + breadcrumb JSON-LD */}
+      <SeoHead
+        title="Membership Plans — Free, Standard ₦10k & Master Class ₦25k"
+        description="Compare DWC membership tiers: start free, or unlock the Standard 1-Year Pass (₦10,000) and Master Class 1-Year Pass (₦25,000) with 50% member discounts, full course access and mentorship."
+        canonical={`${DEFAULT_SITE_URL}/membership`}
+        ogType="website"
+        jsonLd={[
+          seoOfferCatalog,
+          buildBreadcrumbListSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Membership', url: '/membership' },
+          ]),
+        ]}
+      />
       {/* Navy & Gold Centered Header */}
       <section className="bg-[#0a192f] text-white border-b-4 border-[#d4af37]">
         <div className="max-w-4xl mx-auto px-4 lg:px-8 py-12 lg:py-16 text-center space-y-5">

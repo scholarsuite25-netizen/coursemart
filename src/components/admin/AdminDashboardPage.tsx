@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Award,
+  BookOpen,
   Bot,
   Calendar,
   CalendarCheck,
@@ -68,6 +69,7 @@ import { EventsManagerPanel } from './EventsManagerPanel';
 import { ProductEditorModal } from './ProductEditorModal';
 import { YouTubeRepurposerModal } from './YouTubeRepurposerModal';
 import { SocialQueuePanel } from './SocialQueuePanel';
+import { TutorialsManagerPanel } from './TutorialsManagerPanel';
 import { CommunityModerationPanel } from './CommunityModerationPanel';
 import { AutomationAgentsPanel } from './AutomationAgentsPanel';
 import { AffiliateManagementPanel } from './AffiliateManagementPanel';
@@ -78,6 +80,7 @@ type AdminTab =
   | 'dashboard'
   | 'products'
   | 'events'
+  | 'tutorials'
   | 'appointments'
   | 'blogs'
   | 'email'
@@ -98,6 +101,7 @@ export function AdminDashboardPage() {
     currentUser,
     products,
     blogPosts,
+    tutorials,
     orders,
     licenses,
     coupons,
@@ -447,6 +451,7 @@ export function AdminDashboardPage() {
       title: 'Learning & Curriculum',
       items: [
         { id: 'events', label: 'Events & Masterclasses', icon: Calendar },
+        { id: 'tutorials', label: 'Tutorials & Guides', icon: BookOpen, badge: tutorials.length },
         { id: 'appointments', label: 'Facilitator Bookings', icon: CalendarCheck },
         {
           id: 'link-instructor',
@@ -2540,6 +2545,7 @@ export function AdminDashboardPage() {
           )}
           {/* 11. EVENTS & ATTENDEE ROSTER */}
           {activeTab === 'events' && <EventsManagerPanel />}
+          {activeTab === 'tutorials' && <TutorialsManagerPanel />}
 
           {/* 11B. FACILITATOR APPOINTMENTS & BOOKINGS */}
           {activeTab === 'appointments' && (

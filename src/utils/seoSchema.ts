@@ -1,4 +1,4 @@
-import type { Product, BlogPost } from '../types/marketplace.ts';
+import type { Product, BlogPost, CoursemartEvent } from '../types/marketplace.ts';
 import { cleanBaseUrl } from './seoEngine.ts';
 
 export function buildOrganizationSchema(baseUrl?: string): Record<string, any> {
@@ -81,7 +81,7 @@ function toSafeIsoDate(dateVal?: string | number | Date | null): string | undefi
   }
 }
 
-function resolveImageUrl(imagePath?: unknown, base?: string): string {
+export function resolveImageUrl(imagePath?: unknown, base?: string): string {
   const defaultImage = `${base}/logo.png`;
   if (!imagePath || typeof imagePath !== 'string') return defaultImage;
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
@@ -225,6 +225,58 @@ export function buildProductSchema(product: Product, baseUrl?: string): Record<s
       worstRating: 1,
     };
   }
+
+  return schema;
+}
+
+export function buildEventSchema(event: CoursemartEvent, baseUrl?: string): Record<string, any> {
+  const base = cleanBaseUrl(baseUrl);
+  const eventUrl = `${base}/events`;
+  const imageUrl = resolveImageUrl(event.coverImage, base);
+  const isVirtual =
+    event.deliveryMode === 'Live Virtual (Zoom / Meet)' ||
+    event.deliveryMode === 'Live Virtual (Zoom/Meet)';
+  const isHybrid = event.deliveryMode === 'Hybrid (In-Person + Live Stream)';
+
+  const schema: Record<string, any> = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.title,
+    description: event.subtitle || event.description || event.title,
+    url: eventUrl,
+    startDate: event.startAt,
+    endDate: event.endAt,
+    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: isVirtual
+      ? 'https://schema.org/OnlineEventAttendanceMode'
+      : isHybrid
+        ? 'https://schema.org/MixedEventAttendanceMode'
+        : 'https://schema.org/OfflineEventAttendanceMode',
+    image: [imageUrl],
+    organizer: {
+      '@type': 'Organization',
+      name: 'Digital Wealth Creators',
+      url: base,
+    },
+    location: isVirtual
+      ? { '@type': 'VirtualLocation', name: event.locationOrLink, url: event.locationOrLink }
+      : {
+          '@type': 'Place',
+          name: event.locationOrLink,
+          address: { '@type': 'PostalAddress', addressCountry: 'NG' },
+        },
+  };
+
+  const isFree = event.isFree === true || event.price === 0;
+  schema.offers = {
+    '@type': 'Offer',
+    name: isFree ? 'Free Registration' : 'Paid Registration',
+    price: isFree ? 0 : event.price,
+    priceCurrency: 'NGN',
+    availability: (event.capacity ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+    url: eventUrl,
+    validFrom: event.createdAt,
+  };
 
   return schema;
 }

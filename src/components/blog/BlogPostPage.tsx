@@ -26,6 +26,13 @@ import {
 } from '../../utils/whatsapp';
 import { ProductThumbnail } from '../common/ProductThumbnail';
 import { ShareButton } from '../common/ShareButton';
+import { SeoHead } from '../common/SeoHead';
+import { DEFAULT_SITE_URL } from '../../utils/seoHead';
+import {
+  buildArticleSchema,
+  buildBreadcrumbListSchema,
+  resolveImageUrl,
+} from '../../utils/seoSchema';
 
 interface BlogPostPageProps {
   slug: string;
@@ -164,6 +171,23 @@ export function BlogPostPage({ slug }: BlogPostPageProps) {
 
   return (
     <main className="pb-20 bg-white">
+      {/* SEO: canonical, OpenGraph, Twitter and Article + breadcrumb JSON-LD */}
+      <SeoHead
+        title={post.seoTitle || post.title}
+        description={post.seoDescription || post.excerpt || post.subtitle}
+        canonical={`${DEFAULT_SITE_URL}/blog/${post.slug}`}
+        ogType="article"
+        ogImage={resolveImageUrl(post.coverImage, DEFAULT_SITE_URL)}
+        ogUrl={`${DEFAULT_SITE_URL}/blog/${post.slug}`}
+        jsonLd={[
+          buildArticleSchema(post),
+          buildBreadcrumbListSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Blogs', url: '/blogs' },
+            { name: post.title, url: `/blog/${post.slug}` },
+          ]),
+        ]}
+      />
       {/* Top Scroll Reading Depth Indicator */}
       <div className="fixed top-16 left-0 right-0 h-1 bg-slate-200/70 z-30 pointer-events-none">
         <div

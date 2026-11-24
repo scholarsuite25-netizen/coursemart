@@ -51,6 +51,14 @@ import {
 import { ProductThumbnail } from '../common/ProductThumbnail';
 import { RatingStars } from '../common/RatingStars';
 import { ShareButton } from '../common/ShareButton';
+import { SeoHead } from '../common/SeoHead';
+import { DEFAULT_SITE_URL } from '../../utils/seoHead';
+import {
+  buildBreadcrumbListSchema,
+  buildCourseSchema,
+  buildProductSchema,
+  resolveImageUrl,
+} from '../../utils/seoSchema';
 
 interface ProductDetailPageProps {
   slug: string;
@@ -222,6 +230,25 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
 
   return (
     <main className="pb-20">
+      {/* SEO: canonical, OpenGraph and Course/Product + breadcrumb JSON-LD */}
+      <SeoHead
+        title={product.title}
+        description={product.description || product.subtitle || product.title}
+        canonical={`${DEFAULT_SITE_URL}/product/${product.slug}`}
+        ogType="product"
+        ogImage={resolveImageUrl(product.thumbnail, DEFAULT_SITE_URL)}
+        ogUrl={`${DEFAULT_SITE_URL}/product/${product.slug}`}
+        jsonLd={[
+          product.type === 'course' && product.courseData
+            ? buildCourseSchema(product)
+            : buildProductSchema(product),
+          buildBreadcrumbListSchema([
+            { name: 'Home', url: '/' },
+            { name: 'Catalog', url: '/courses' },
+            { name: product.title, url: `/product/${product.slug}` },
+          ]),
+        ]}
+      />
       {/* High-Contrast Navy Banner */}
       <div className="bg-[#0a192f] text-white border-b-2 border-[#d4af37]/60">
         <div className="max-w-[1280px] mx-auto px-4 lg:px-8 py-10 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8">

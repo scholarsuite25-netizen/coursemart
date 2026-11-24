@@ -6,8 +6,10 @@ import {
   buildArticleSchema,
   buildCourseSchema,
   buildProductSchema,
+  buildEventSchema,
+  resolveImageUrl,
 } from './seoSchema.ts';
-import type { BlogPost, Product } from '../types/marketplace.ts';
+import type { BlogPost, Product, CoursemartEvent } from '../types/marketplace.ts';
 
 describe('SEO Schema: Schema.org JSON-LD Generators', () => {
   const base = 'https://digitalwealthcreators.org.ng';
@@ -221,5 +223,89 @@ describe('SEO Schema: Schema.org JSON-LD Generators', () => {
     expect(schema.applicationCategory).toBe('BusinessApplication');
     expect(schema.operatingSystem).toBe('Web / Cloud');
     expect(schema.offers.price).toBe(12000);
+  });
+
+  const buildCoursemartEvent = (overrides: Partial<CoursemartEvent> = {}): CoursemartEvent => ({
+    id: 'ev-1',
+    slug: 'ai-automation-workshop-lagos',
+    title: 'AI Automation Workshop',
+    subtitle: 'Ship your first automation in a day',
+    description: 'Hands-on workshop covering agent workflows and integrations.',
+    format: 'workshop',
+    category: 'AI',
+    deliveryMode: 'In-Person Studio',
+    locationOrLink: 'DWC Studio, Lagos',
+    startAt: '2026-12-05T10:00:00.000Z',
+    endAt: '2026-12-05T16:00:00.000Z',
+    timezone: 'Africa/Lagos',
+    speakerName: 'Ada Dev',
+    speakerRole: 'Lead Engineer',
+    speakerAvatar: '',
+    coverImage: '/images/event-cover.png',
+    price: 5000,
+    isFree: false,
+    capacity: 40,
+    status: 'published',
+    featured: true,
+    agenda: ['Intro to agents', 'Live build'],
+    preEventMaterials: [],
+    createdAt: '2026-11-01T00:00:00.000Z',
+    updatedAt: '2026-11-02T00:00:00.000Z',
+    ...overrides,
+  });
+
+  it('buildEventSchema builds schema.org Event with offline attendance for in-person events', () => {
+    const event = buildCoursemartEvent();
+    const schema = buildEventSchema(event, base);
+
+    expect(schema['@context']).toBe('https://schema.org');
+    expect(schema['@type']).toBe('Event');
+    expect(schema.name).toBe('AI Automation Workshop');
+    expect(schema.url).toBe(`${base}/events`);
+    expect(schema.startDate).toBe('2026-12-05T10:00:00.000Z');
+    expect(schema.endDate).toBe('2026-12-05T16:00:00.000Z');
+    expect(schema.eventStatus).toBe('https://schema.org/EventScheduled');
+    expect(schema.eventAttendanceMode).toBe('https://schema.org/OfflineEventAttendanceMode');
+    expect(schema.location['@type']).toBe('Place');
+    expect(schema.location.name).toBe('DWC Studio, Lagos');
+    expect(schema.organizer.name).toBe('Digital Wealth Creators');
+    expect(schema.image[0]).toBe(`${base}/images/event-cover.png`);
+    expect(schema.offers.price).toBe(5000);
+    expect(schema.offers.priceCurrency).toBe('NGN');
+    expect(schema.offers.availability).toBe('https://schema.org/InStock');
+  });
+
+  it('buildEventSchema maps virtual/hybrid delivery, free pricing and sold-out capacity', () => {
+    const virtual = buildCoursemartEvent({
+      deliveryMode: 'Live Virtual (Zoom / Meet)',
+      locationOrLink: 'https://meet.example.com/dwc',
+      price: 0,
+      isFree: true,
+    });
+    const virtualSchema = buildEventSchema(virtual, base);
+    expect(virtualSchema.eventAttendanceMode).toBe('https://schema.org/OnlineEventAttendanceMode');
+    expect(virtualSchema.location['@type']).toBe('VirtualLocation');
+    expect(virtualSchema.location.url).toBe('https://meet.example.com/dwc');
+    expect(virtualSchema.offers.price).toBe(0);
+    expect(virtualSchema.offers.name).toBe('Free Registration');
+
+    const hybrid = buildCoursemartEvent({ deliveryMode: 'Hybrid (In-Person + Live Stream)' });
+    expect(buildEventSchema(hybrid, base).eventAttendanceMode).toBe(
+      'https://schema.org/MixedEventAttendanceMode'
+    );
+
+    const soldOut = buildCoursemartEvent({ capacity: 0 });
+    expect(buildEventSchema(soldOut, base).offers.availability).toBe(
+      'https://schema.org/SoldOut'
+    );
+  });
+
+  it('resolveImageUrl makes relative paths absolute and passes through absolute URLs', () => {
+    expect(resolveImageUrl('/images/a.png', base)).toBe(`${base}/images/a.png`);
+    expect(resolveImageUrl('images/a.png', base)).toBe(`${base}/images/a.png`);
+    expect(resolveImageUrl('https://cdn.example.com/a.png', base)).toBe(
+      'https://cdn.example.com/a.png'
+    );
+    expect(resolveImageUrl(undefined, base)).toBe(`${base}/logo.png`);
   });
 });

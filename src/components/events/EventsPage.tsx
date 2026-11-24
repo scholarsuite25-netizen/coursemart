@@ -37,6 +37,9 @@ import {
 } from '../../utils/paystack';
 import { TINTOL_PAYMENT_DETAILS, buildWhatsAppUrl } from '../../utils/whatsapp';
 import { PaystackChannelPicker } from '../common/PaystackChannelPicker';
+import { SeoHead } from '../common/SeoHead';
+import { DEFAULT_SITE_URL } from '../../utils/seoHead';
+import { buildEventSchema } from '../../utils/seoSchema';
 
 function triggerDownload(filename: string, content: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
@@ -105,6 +108,24 @@ export function EventsPage() {
         0
       ),
     [visibleEvents, eventRegistrations]
+  );
+
+  // SEO: ItemList JSON-LD of published events for the /events landing page
+  const seoEventList = useMemo(
+    () => ({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Upcoming Events & Masterclasses',
+      itemListElement: events
+        .filter((ev) => ev.status !== 'draft')
+        .slice(0, 10)
+        .map((ev, idx) => ({
+          '@type': 'ListItem',
+          position: idx + 1,
+          item: buildEventSchema(ev, DEFAULT_SITE_URL),
+        })),
+    }),
+    [events]
   );
 
   const openRegistrationModal = (event: CoursemartEvent) => {
@@ -253,6 +274,14 @@ export function EventsPage() {
 
   return (
     <main className="pb-20 bg-white">
+      {/* SEO: canonical, OpenGraph and Event ItemList JSON-LD */}
+      <SeoHead
+        title="Events, Seminars & Masterclasses"
+        description="Reserve your seat for live virtual and in-person DWC events: seminars, hands-on workshops, and masterclasses with instant confirmation codes and pre-event kits."
+        canonical={`${DEFAULT_SITE_URL}/events`}
+        ogType="website"
+        jsonLd={[seoEventList]}
+      />
       {/* Navy & Gold Hero Header */}
       <section className="bg-[#0a192f] text-white border-b-4 border-[#d4af37]">
         <div className="max-w-[1280px] mx-auto px-4 lg:px-8 py-12 lg:py-16 space-y-6">
