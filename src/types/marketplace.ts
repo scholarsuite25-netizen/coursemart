@@ -170,6 +170,8 @@ export interface ProductReview {
 export type MembershipTierId = 'free' | 'paid';
 export type LegacyMembershipTierId = 'starter' | 'pro' | 'vip' | 'enterprise';
 
+export type ProductPriority = 'high' | 'normal' | 'low';
+
 export interface Product {
   id: string;
   slug: string;
@@ -177,6 +179,7 @@ export interface Product {
   subtitle: string;
   description: string;
   type: ProductType;
+  priority?: ProductPriority;
   digitalSubType?: DigitalResourceSubType;
   category: string;
   instructorId: string;

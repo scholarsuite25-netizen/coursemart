@@ -13,6 +13,7 @@ import type {
   EbookChapter,
   MembershipTierId,
   Product,
+  ProductPriority,
   ProductStatus,
   ProductType,
 } from '../../types/marketplace';
@@ -58,6 +59,7 @@ export function ProductEditorModal({
   const [status, setStatus] = useState<ProductStatus>(initialProduct?.status ?? 'published');
   const [featured, setFeatured] = useState(initialProduct?.featured ?? false);
   const [isPremium, setIsPremium] = useState(initialProduct?.isPremium ?? false);
+  const [priorityValue, setPriorityValue] = useState<ProductPriority>(initialProduct?.priority ?? 'normal');
   const [copyProtectionEnabled, setCopyProtectionEnabled] = useState(
     initialProduct?.copyProtectionEnabled ?? false
   );
@@ -317,6 +319,7 @@ export function ProductEditorModal({
       id: initialProduct?.id ?? `prod-${Date.now()}`,
       slug,
       title: title.trim(),
+      priority: priorityValue,
       subtitle: subtitle.trim() || 'Comprehensive digital release ready for immediate access.',
       description:
         description.trim() ||
@@ -697,6 +700,19 @@ export function ProductEditorModal({
                 className="accent-[#2271b1]"
               />
               <span>Feature on Storefront Homepage</span>
+            </label>
+
+            <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <span>Bundle Priority:</span>
+              <select
+                value={priorityValue}
+                onChange={(e) => setPriorityValue(e.target.value as ProductPriority)}
+                className="px-2 py-1 border border-[#8c8f94] rounded-sm text-xs text-slate-900 bg-white"
+              >
+                <option value="high">High</option>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
+              </select>
             </label>
 
             <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">

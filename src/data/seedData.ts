@@ -108,6 +108,7 @@ export const SEED_PRODUCTS: Product[] = [
   {
     id: 'prod-group-membership',
     slug: 'dwc-group-membership-15',
+    priority: 'high',
     title: 'DWC Group Membership Pass (15 seats, ₦75,000)',
     subtitle:
       'Lump sum for a Group Admin (Group Representative) to register 15 seats — members count as paid. Fully usable on courses, enquiries, and enquiry-based enquiries, plus promoter mentorship services.',
@@ -145,6 +146,7 @@ export const SEED_PRODUCTS: Product[] = [
   {
     id: 'prod-vip-mastermind',
     slug: 'dwc-creator-mastermind-pass',
+    priority: 'high',
     title: 'DWC Creator Mastermind Pass',
     subtitle: 'VIP seat in the Creator Mastermind — private lounge, expert chats, and let it show up on paid entry',
     description:
