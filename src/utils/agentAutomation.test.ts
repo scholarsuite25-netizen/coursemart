@@ -4,6 +4,8 @@ import {
   processScheduledBlogPosts,
   runBlogPublisherAgent,
   generateOfflineBlogDraftTemplate,
+  generateArticleOutline,
+  generateArticleOutlineToArticle,
   generateAutonomousBlogDraft,
   buildEnquiryResponse,
   runEnquiryAgent,
@@ -161,7 +163,9 @@ test('generateOfflineBlogDraftTemplate and generateAutonomousBlogDraft produce s
   assert.equal(offlineDraft.post.status, 'scheduled');
   assert.ok(offlineDraft.post.scheduledAt);
   assert.ok(offlineDraft.post.sections.length >= 2);
-  assert.ok(offlineDraft.post.sections.some((s) => s.heading.includes('Executive Summary')));
+  assert.ok(offlineDraft.post.sections.some((s) => s.heading.includes('Introduction')));
+  assert.ok(offlineDraft.post.sections.some((s) => s.heading === 'Conclusion & Next Steps'));
+  assert.ok(offlineDraft.post.sections.some((s) => s.blockType === 'callout'));
   assert.ok(offlineDraft.metadata.wordCount > 30);
   assert.ok(offlineDraft.metadata.estimatedReadTime >= 1);
   assert.deepEqual(offlineDraft.post.relatedProductIds, ['course-ai-101']);
@@ -204,6 +208,26 @@ test('generateOfflineBlogDraftTemplate and generateAutonomousBlogDraft produce s
   assert.equal(draftSuccess.source, 'gemini');
   assert.equal(draftSuccess.post.title, 'High Performance AI');
   assert.ok(draftSuccess.post.sections[0].body.includes('Artificial Intelligence is transforming workflows'));
+});
+
+test('generateArticleOutline produces a titled outline with sections and takeaway', () => {
+  assert.throws(() => generateArticleOutline('   '), { message: /Topic is required/ });
+  const outline = generateArticleOutline('AI SaaS Automation', { keywords: ['AI SaaS', 'Automation', '2026'] });
+  assert.ok(outline.title.length > 0);
+  assert.ok(outline.sections.length >= 4);
+  assert.ok(outline.takeaway.length > 0);
+  assert.ok(outline.sections.some((s) => s.heading.toLowerCase().includes('introduction')));
+});
+
+test('generateArticleOutlineToArticle turns an outline into a structured blog article', () => {
+  const draft = generateArticleOutlineToArticle('AI SaaS Automation');
+  assert.equal(draft.source, 'template_fallback');
+  assert.ok(draft.post.title.includes('AI SaaS Automation'));
+  assert.ok(draft.post.slug.length > 0);
+  assert.ok(draft.post.sections.length >= 5);
+  assert.ok(draft.post.sections.some((s) => s.blockType === 'callout'));
+  assert.equal(draft.post.status, 'draft');
+  assert.ok(draft.post.seoTitle?.includes('AI SaaS Automation'));
 });
 
 test('buildEnquiryResponse and runEnquiryAgent handle customer and student queries', () => {

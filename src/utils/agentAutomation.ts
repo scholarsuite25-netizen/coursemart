@@ -170,32 +170,52 @@ export function generateOfflineBlogDraftTemplate(
     {
       id: `sec-${Date.now()}-1`,
       blockType: 'section',
-      heading: 'Executive Summary',
-      body: `In today's fast-evolving technological landscape, mastering ${cleanTopic} has become an indispensable advantage for modern professionals. This comprehensive guide outlines the foundational principles, tactical workflows, and real-world deployment strategies essential for lasting impact.`,
+      heading: 'Introduction',
+      body: `The field is evolving fast, and ${cleanTopic} is no exception — every engineer knows the ground moves under even the most "stable" fundamentals. This article is your practical, step-by-step guide to the core ideas you need, so you can skip theory and build real systems. You'll leave with a clear plan, reusable patterns, and a checklist of traps to avoid.`,
     },
     {
       id: `sec-${Date.now()}-2`,
       blockType: 'callout',
-      heading: 'The Architectural Landscape',
-      body: `When building and scaling digital products in ${category}, consistency and resilience dictate long-term success. Rather than relying on guesswork, top performers standardize their pipelines through modular, reusable patterns.`,
-      calloutTone: 'tip',
+      heading: 'TL;DR — Key Takeaway',
+      body: `If you take nothing else from this article, remember: the most effective approach to ${cleanTopic} starts with modeling your system boundaries and contracts before writing a single line of code.`,
+      calloutTone: 'info',
     },
     {
       id: `sec-${Date.now()}-3`,
-      blockType: 'checklist',
-      heading: 'Practical Implementation Steps',
-      body: 'Follow these core practices for optimal outcomes:',
-      checklistItems: [
-        'Discovery & Requirements Analysis',
-        'Iterative Deployment with Automated Testing',
-        'Continuous Auditing & Security Protection',
-      ],
+      blockType: 'section',
+      heading: 'The Problems Behind the Symptoms',
+      body: `Many technical issues surface as flaky behavior or hard-to-reproduce bugs. When ${cleanTopic} teams lose momentum, the usual culprits are usually: missing observability, weak guardrails, and unclear boundaries between teams.`,
     },
     {
       id: `sec-${Date.now()}-4`,
       blockType: 'section',
+      heading: 'Step-by-Step Implementation',
+      body: 'Follow these core practices for optimal outcomes:',
+      checklistItems: [
+        'Define the contract and its invariants first — schema, rate limits, and success criteria.',
+        'Write the stub/skeleton so the architecture is visible before implementation.',
+        'Implement the happy path, then the edge cases, then the failure modes.',
+        'Ship and measure: instrumentation first, then alerts.',
+      ],
+    },
+    {
+      id: `sec-${Date.now()}-5`,
+      blockType: 'section',
+      heading: 'Case Study: Building a production-ready example',
+      body: `Here's how to apply this in practice — we walk a real example of ${cleanTopic} from zero to production, with concrete patterns you can copy, including: API design, testing, documentation, and monitoring.`,
+    },
+    {
+      id: `sec-${Date.now()}-6`,
+      blockType: 'callout',
+      heading: 'Warning callout (common mistake)',
+      body: 'A very common mistake is to build a system that works on the happy path but has no story for when it breaks. Skip this, and your long-term maintenance costs grow fast. Many systems are abandoned faster than they are fixed — the ones with resilience built in survive longer.',
+      calloutTone: 'warning',
+    },
+    {
+      id: `sec-${Date.now()}-7`,
+      blockType: 'section',
       heading: 'Conclusion & Next Steps',
-      body: `By adopting these structured workflows for ${cleanTopic}, teams and individual builders can dramatically accelerate their time-to-market while maintaining ironclad quality standards.`,
+      body: `By adopting these structured workflows for ${cleanTopic}, teams and individual builders can dramatically accelerate their time-to-market while keeping a solid foundation for the long term.`,
     },
   ];
 
@@ -240,6 +260,105 @@ export function generateOfflineBlogDraftTemplate(
       targetAudience,
       wordCount: totalWords,
       estimatedReadTime,
+    },
+  };
+}
+
+/**
+ * Generates a structured outline for an article from a topic and optional keywords.
+ * The outline includes a title, 3-5 main sections, and a takeaway — used to
+ * seed the article-generation flow (`generateArticleOutlineToArticle`).
+ */
+export function generateArticleOutline(
+  topic: string,
+  opts?: { keywords?: string[]; customTitle?: string; customSubtitle?: string }
+): { title: string; sections: Array<{ id: string; heading: string; subheadings?: string[]; notes?: string }>; takeaway: string } {
+  const cleanTopic = (topic || '').trim();
+  if (!cleanTopic) {
+    throw new Error('Topic is required to generate an article outline');
+  }
+  const keywords = Array.from(new Set(opts?.keywords?.filter(Boolean) || [cleanTopic, 'Guide', 'Best Practices']));
+  const sectionSpecs: Array<{ id: string; heading: string; subheadings?: string[] }> = [
+    { id: 's1', heading: 'Introduction' },
+    {
+      id: 's2',
+      heading: `How to Get Started with ${keywords[0] || cleanTopic}`,
+      subheadings: ['Install', 'Configuration', 'Basics', 'First steps'],
+    },
+    { id: 's3', heading: `Step-by-step Workflow` },
+    { id: 's4', heading: `Common Mistakes & How to Avoid Them` },
+    { id: 's5', heading: `Advanced Tips & Real-World Examples` },
+    { id: 's6', heading: 'Conclusion & Summary' },
+  ];
+  return {
+    title: opts?.customTitle || `${cleanTopic}: A Practical Guide`,
+    sections: sectionSpecs,
+    takeaway: `Key takeaway: always verify with tests and iterate — a small, focused plan beats a big, risky plan when building with ${keywords[0] || cleanTopic}.`,
+  };
+}
+
+/**
+ * Expands an outline into a full structured article (deterministic offline body).
+ * Returns the same shape as `generateOfflineBlogDraftTemplate` so it can be
+ * layered on top of the autonomous generator.
+ */
+export function generateArticleOutlineToArticle(
+  topic: string,
+  opts?: { keywords?: string[]; customTitle?: string; customSubtitle?: string; customExcerpt?: string }
+): GeneratedBlogDraft {
+  const outline = generateArticleOutline(topic, opts);
+  const now = new Date();
+  const slug = slugifyText(outline.title) || `article-${Date.now()}`;
+
+  const bodySections: BlogSection[] = outline.sections.map((sec, idx) => ({
+    id: `outline-${sec.id}-${idx + 1}`,
+    blockType: 'section' as const,
+    heading: sec.heading,
+    body: `A practical guide to ${topic}. Key points, examples, and considerations.`,
+  }));
+  // Attach a closing callout from the outline takeaway
+  bodySections.push({
+    id: `outline-takeaway`,
+    blockType: 'callout' as const,
+    heading: 'Key Takeaway',
+    body: outline.takeaway,
+    calloutTone: 'info' as const,
+  });
+
+  const post: BlogPost = {
+    id: `post-${Date.now()}-${slug.slice(0, 20)}`,
+    slug,
+    title: outline.title,
+    subtitle: opts?.customSubtitle || `Actionable blueprints and technical architectures for modern builders.`,
+    excerpt: opts?.customExcerpt || `Discover actionable strategies, technical architectures, and practical insights on ${topic}.`,
+    category: 'AI',
+    authorId: 'agent-blog-bot',
+    authorName: 'CourseMart Editorial Agent',
+    authorRole: 'Autonomous AI Editor',
+    authorAvatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150',
+    coverImage: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200',
+    readTimeMinutes: 12,
+    publishedAt: '',
+    updatedAt: now.toISOString(),
+    status: 'draft',
+    featured: false,
+    tags: Array.from(new Set([...(opts?.keywords || [topic]), 'Guide', 'Best Practices'])),
+    seoTitle: `${outline.title} | CourseMart Insights`,
+    seoDescription: `Master ${topic} with practical architectures and blueprints.`,
+    focusKeyword: opts?.keywords?.[0] || topic,
+    sections: bodySections,
+    relatedProductIds: [],
+    comments: [],
+  };
+
+  return {
+    post,
+    source: 'template_fallback',
+    metadata: {
+      generatedAt: now.toISOString(),
+      targetAudience: 'Digital creators, developers, and entrepreneurs',
+      wordCount: 120,
+      estimatedReadTime: 2,
     },
   };
 }
