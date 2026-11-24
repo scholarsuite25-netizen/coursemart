@@ -36,6 +36,7 @@ import {
   formatTutorialAsJson,
   formatTutorialAsMarkdown,
 } from '../../utils/tutorialCreator';
+import { printTutorial } from '../../utils/tutorialPdf';
 
 interface TutorialDetailPageProps {
   slug?: string;
@@ -142,18 +143,8 @@ export const TutorialDetailPage: React.FC<TutorialDetailPageProps> = ({
   };
 
   const handlePrint = (tut: DocumentTutorial) => {
-    const html = formatTutorialAsHtml(tut);
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 300);
-    } else {
-      window.print();
-    }
+    printTutorial(tut);
+    showToast('PDF export opened — choose "Save as PDF"');
   };
 
   const navigateTo = (path: string) => {
@@ -435,9 +426,9 @@ export const TutorialDetailPage: React.FC<TutorialDetailPageProps> = ({
               type="button"
               onClick={() => handlePrint(activeTutorial)}
               className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-xl flex items-center gap-1 transition"
-              title="Print to PDF"
+              title="Download as PDF (Print)"
             >
-              <Printer className="w-3.5 h-3.5 text-purple-400" />
+              <Printer className="w-3.5 h-3.5 text-purple-400" /> PDF
             </button>
 
             {currentUser?.role === 'admin' && (
