@@ -15,6 +15,7 @@ export const STATIC_SITEMAP_ROUTES: SitemapRouteEntry[] = [
   { path: '/software', priority: 0.8, changefreq: 'weekly' },
   { path: '/digital-products', priority: 0.8, changefreq: 'weekly' },
   { path: '/blogs', priority: 0.8, changefreq: 'daily' },
+  { path: '/tutorials', priority: 0.8, changefreq: 'daily' },
   { path: '/community', priority: 0.7, changefreq: 'daily' },
   { path: '/events', priority: 0.7, changefreq: 'weekly' },
   { path: '/membership', priority: 0.8, changefreq: 'monthly' },
