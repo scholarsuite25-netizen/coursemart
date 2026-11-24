@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, CheckCircle2, Crown, Download, ExternalLink, Plus, Sparkles, Trash2, Video, X } from 'lucide-react';
+import { BookOpen, CheckCircle2, Crown, Download, ExternalLink, Headphones, Image, Plus, Sparkles, Trash2, Video, X } from 'lucide-react';
 import {
   INSTRUCTOR_AVATAR,
   TEMPLATES_TOOLKIT_COVER,

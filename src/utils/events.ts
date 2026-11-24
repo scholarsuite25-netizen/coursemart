@@ -29,8 +29,8 @@ export const EVENT_FORMAT_META: Record<
 export function isEventFree(
   event: (Pick<CoursemartEvent, 'price'> & { isFree?: boolean }) | { price?: number; isFree?: boolean }
 ): boolean {
-  if ('isFree' in event && event.isFree === true) {
-    return true;
+  if ('isFree' in event && typeof event.isFree === 'boolean') {
+    return event.isFree;
   }
   if (typeof event.price === 'number') {
     return event.price <= 0;

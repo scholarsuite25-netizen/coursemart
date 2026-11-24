@@ -217,7 +217,7 @@ export interface StoreContextValue {
   affiliatePayouts: AffiliatePayoutRequest[];
   currentUserAffiliate: AffiliateProfile | null;
   joinAffiliateProgram: (
-    bankDetails: string,
+    details: string | Partial<AffiliateProfile>,
     payoutMethod?: AffiliateProfile['payoutMethod']
   ) => { ok: boolean; error?: string; profile?: AffiliateProfile };
   updateAffiliateSettings: (
@@ -1636,13 +1636,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
       }
 
-      // Attribute affiliate commission if referred (and not self-referral)
+      // Attribute affiliate commission if referred (enforcing anti-self-referral & 1-time first-purchase policy)
       if (activeReferralCode && totals.grandTotal > 0) {
         const attr = attributeAffiliateReferral(
           activeReferralCode,
           { id: activeUser.id, email: activeUser.email },
           affiliates,
-          totals.grandTotal
+          totals.grandTotal,
+          affiliateConversions
         );
         if (attr.attributed && attr.affiliateId && attr.affiliateCode) {
           const aff = affiliates.find((a) => a.id === attr.affiliateId);
@@ -1653,6 +1654,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               affiliateUserId: aff.userId,
               orderId,
               buyerName: activeUser.name,
+              buyerEmail: activeUser.email,
+              isFirstPurchase: true,
               orderTotal: totals.grandTotal,
               commissionAmount: attr.commissionAmount,
               status: isPendingTransfer ? 'pending' : 'approved',
@@ -1738,7 +1741,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           affCode,
           { id: order.userId, email: order.customerEmail },
           affiliates,
-          order.total
+          order.total,
+          affiliateConversions
         );
         if (attr.attributed && attr.affiliateId && attr.affiliateCode) {
           const aff = affiliates.find((a) => a.id === attr.affiliateId);
@@ -1749,9 +1753,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               affiliateUserId: aff.userId,
               orderId: order.id,
               buyerName: order.customerName,
+              buyerEmail: order.customerEmail,
               orderTotal: order.total,
               commissionAmount: attr.commissionAmount,
               status: order.status === 'pending' ? 'pending' : 'approved',
+              isFirstPurchase: true,
               createdAt: nowIso,
             };
             setAffiliateConversions((prev) => [conv, ...prev]);
@@ -2380,13 +2386,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const joinAffiliateProgram = useCallback(
     (
-      bankDetails: string,
+      details: string | Partial<AffiliateProfile>,
       payoutMethod: AffiliateProfile['payoutMethod'] = 'GTB Bank Transfer'
     ) => {
       if (!currentUser) {
         return { ok: false, error: 'Please sign in to join the Affiliate program.' };
       }
-      if (bankDetails.trim().length < 5) {
+      const rawBank =
+        typeof details === 'string'
+          ? details.trim()
+          : (
+              details.bankDetails ||
+              `${details.bankName ?? ''} · ${details.accountNumber ?? ''} · ${details.accountName ?? ''}`
+            ).trim();
+      if (rawBank.length < 5) {
         return { ok: false, error: 'Enter your bank account or payout details (min 5 chars).' };
       }
       const existing = affiliates.find((a) => a.userId === currentUser.id);
@@ -2395,6 +2408,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       const cleanName = currentUser.name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6) || 'PARTNER';
       const code = `${cleanName}${Math.floor(10 + Math.random() * 89)}`;
+      const extra = typeof details === 'object' ? details : {};
       const profile: AffiliateProfile = {
         id: `aff-${Date.now()}`,
         userId: currentUser.id,
@@ -2403,8 +2417,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         code,
         commissionRate: DEFAULT_AFFILIATE_COMMISSION_PERCENT,
         clicks: 0,
-        payoutMethod,
-        bankDetails: bankDetails.trim(),
+        payoutMethod: (extra.payoutMethod || payoutMethod) as AffiliateProfile['payoutMethod'],
+        bankDetails: rawBank,
+        phone: extra.phone,
+        whatsappNumber: extra.whatsappNumber,
+        stateOrCity: extra.stateOrCity,
+        promotionChannel: extra.promotionChannel,
+        audienceDescription: extra.audienceDescription,
+        idType: extra.idType,
+        idNumber: extra.idNumber,
+        bankName: extra.bankName,
+        accountNumber: extra.accountNumber,
+        accountName: extra.accountName,
         active: true,
         joinedAt: new Date().toISOString(),
       };

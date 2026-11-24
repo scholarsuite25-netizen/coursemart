@@ -169,22 +169,20 @@ export function MembershipPage() {
               <button
                 type="button"
                 onClick={() => setBillingCycle('annual')}
-                className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-                  billingCycle === 'annual'
-                    ? 'bg-[#d4af37] text-[#0a192f] shadow'
-                    : 'text-slate-200 hover:text-white'
-                }`}
+                className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${billingCycle === 'annual'
+                  ? 'bg-[#d4af37] text-[#0a192f] shadow'
+                  : 'text-slate-200 hover:text-white'
+                  }`}
               >
                 Standard 1-Year Pass (₦10,000 / yr)
               </button>
               <button
                 type="button"
                 onClick={() => setBillingCycle('masterclass')}
-                className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
-                  billingCycle === 'masterclass'
-                    ? 'bg-[#d4af37] text-[#0a192f] shadow'
-                    : 'text-slate-200 hover:text-white'
-                }`}
+                className={`px-4 py-2 text-xs font-bold rounded-md whitespace-nowrap shrink-0 transition-colors cursor-pointer ${billingCycle === 'masterclass'
+                  ? 'bg-[#d4af37] text-[#0a192f] shadow'
+                  : 'text-slate-200 hover:text-white'
+                  }`}
               >
                 Master Class 1-Year Pass (₦25,000 / yr · Online Training)
               </button>
@@ -612,67 +610,67 @@ export function MembershipPage() {
         </section>
 
         {/* Concrete Plan Comparison Matrix */}
-        <section className="space-y-4">
+        <section className="space-y-3">
           <div className="text-center max-w-xl mx-auto space-y-1">
             <h2 className="font-display text-xl sm:text-2xl font-extrabold text-slate-900">
               Side-by-Side Entitlement Matrix
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-700 font-medium">
               Compare features across Free, Standard, and Master Class plans.
             </p>
           </div>
           <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+            <table className="w-full text-left text-xs sm:text-sm leading-tight">
+              <thead className="bg-slate-100/80 border-b border-slate-200 text-xs font-bold text-slate-800 leading-tight">
                 <tr>
-                  <th className="px-5 py-3.5">Capability & Entitlement</th>
-                  <th className="px-5 py-3.5 text-slate-900">Free Member</th>
-                  <th className="px-5 py-3.5 text-slate-900">Standard 1-Year (₦10k)</th>
-                  <th className="px-5 py-3.5 text-amber-900 bg-amber-50/50">Master Class 1-Year (₦25k)</th>
+                  <th className="px-4 py-2.5">Capability & Entitlement</th>
+                  <th className="px-4 py-2.5 text-slate-900">Free Member</th>
+                  <th className="px-4 py-2.5 text-slate-900">Standard 1-Year (₦10k)</th>
+                  <th className="px-4 py-2.5 text-amber-950 bg-amber-50/70">Master Class 1-Year (₦25k)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
-                <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Annual Pricing</td>
-                  <td className="px-5 py-3.5 text-slate-600 font-bold">₦0 (Forever)</td>
-                  <td className="px-5 py-3.5 text-slate-900 font-bold">₦10,000 / year</td>
-                  <td className="px-5 py-3.5 text-amber-900 font-bold bg-amber-50/30">₦25,000 / year</td>
+              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm leading-tight">
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-slate-900">Annual Pricing</td>
+                  <td className="px-4 py-2.5 text-slate-800 font-bold">₦0 (Forever)</td>
+                  <td className="px-4 py-2.5 text-slate-950 font-black">₦10,000 / year</td>
+                  <td className="px-4 py-2.5 text-amber-950 font-black bg-amber-50/40">₦25,000 / year</td>
                 </tr>
-                <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Course Formats Included</td>
-                  <td className="px-5 py-3.5 text-slate-600">Free Text & Video Courses</td>
-                  <td className="px-5 py-3.5 text-slate-900 font-semibold">100% Courses (Text, Video, Mixed)</td>
-                  <td className="px-5 py-3.5 text-amber-900 font-semibold bg-amber-50/30">100% Courses (Text, Video, Mixed)</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-slate-900">Course Formats Included</td>
+                  <td className="px-4 py-2.5 text-slate-800 font-medium">Free Text, Video & Multimedia</td>
+                  <td className="px-4 py-2.5 text-slate-950 font-bold">100% Courses (Text, Video, Audio, Infographics)</td>
+                  <td className="px-4 py-2.5 text-amber-950 font-bold bg-amber-50/40">100% All Courses + Mastermind Labs</td>
                 </tr>
-                <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Online Master Class Training</td>
-                  <td className="px-5 py-3.5 text-slate-400">Not Included</td>
-                  <td className="px-5 py-3.5 text-slate-500">Not Included (Self-Paced)</td>
-                  <td className="px-5 py-3.5 text-emerald-700 font-bold bg-amber-50/30">✔ Included (1-Year Online Training)</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-slate-900">Online Master Class Training</td>
+                  <td className="px-4 py-2.5 text-slate-600 font-medium">Not Included</td>
+                  <td className="px-4 py-2.5 text-slate-700 font-medium">Not Included (Self-Paced)</td>
+                  <td className="px-4 py-2.5 text-emerald-800 font-extrabold bg-amber-50/40">✔ Included (1-Year Online Training)</td>
                 </tr>
-                <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Discount on Premium Products</td>
-                  <td className="px-5 py-3.5 text-slate-400">0% (Full Price)</td>
-                  <td className="px-5 py-3.5 text-emerald-700 font-bold">50% Automatic Discount</td>
-                  <td className="px-5 py-3.5 text-emerald-700 font-bold bg-amber-50/30">50% Automatic Discount</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-slate-900">Discount on Premium Products</td>
+                  <td className="px-4 py-2.5 text-slate-600 font-medium">0% (Full Price)</td>
+                  <td className="px-4 py-2.5 text-emerald-800 font-bold">50% Automatic Discount</td>
+                  <td className="px-4 py-2.5 text-emerald-800 font-bold bg-amber-50/40">50% Automatic Discount</td>
                 </tr>
-                <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">VIP AI Prompt Vault</td>
-                  <td className="px-5 py-3.5 text-slate-400">Sample Prompts Only</td>
-                  <td className="px-5 py-3.5 text-slate-600">Standard Prompts</td>
-                  <td className="px-5 py-3.5 text-purple-700 font-bold bg-amber-50/30">✔ Full VIP Access</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-slate-900">VIP AI Prompt Vault</td>
+                  <td className="px-4 py-2.5 text-slate-600 font-medium">Sample Prompts Only</td>
+                  <td className="px-4 py-2.5 text-slate-800 font-medium">Standard Prompts</td>
+                  <td className="px-4 py-2.5 text-purple-800 font-bold bg-amber-50/40">✔ Full VIP Access (Photography & Vision)</td>
                 </tr>
-                <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Downloadable Resources</td>
-                  <td className="px-5 py-3.5 text-slate-600">Free Deliverables</td>
-                  <td className="px-5 py-3.5 text-slate-900 font-semibold">All eBooks, Toolkits, Software</td>
-                  <td className="px-5 py-3.5 text-amber-900 font-semibold bg-amber-50/30">All eBooks, Toolkits, Software</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-slate-900">Downloadable Resources</td>
+                  <td className="px-4 py-2.5 text-slate-800 font-medium">Free Deliverables</td>
+                  <td className="px-4 py-2.5 text-slate-950 font-bold">All eBooks, Toolkits, Software</td>
+                  <td className="px-4 py-2.5 text-amber-950 font-bold bg-amber-50/40">All eBooks, Toolkits, Software</td>
                 </tr>
-                <tr>
-                  <td className="px-5 py-3.5 font-semibold text-slate-700">Community Support</td>
-                  <td className="px-5 py-3.5 text-slate-600">Public Channels</td>
-                  <td className="px-5 py-3.5 text-slate-600">Full Community Channels</td>
-                  <td className="px-5 py-3.5 text-amber-900 font-semibold bg-amber-50/30">Facilitator Mentorship & S.B.O Hub</td>
+                <tr className="hover:bg-slate-50/60 transition-colors">
+                  <td className="px-4 py-2.5 font-bold text-slate-900">Community Support</td>
+                  <td className="px-4 py-2.5 text-slate-800 font-medium">Public Channels</td>
+                  <td className="px-4 py-2.5 text-slate-800 font-medium">Full Community Channels</td>
+                  <td className="px-4 py-2.5 text-amber-950 font-bold bg-amber-50/40">Facilitator Mentorship & S.B.O Hub</td>
                 </tr>
               </tbody>
             </table>

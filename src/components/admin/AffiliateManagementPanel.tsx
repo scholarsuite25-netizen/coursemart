@@ -55,7 +55,7 @@ export function AffiliateManagementPanel() {
             Affiliate Partners, Conversions & Payouts
           </h1>
           <p className="text-xs text-slate-600 mt-0.5">
-            Monitor partner referrals, adjust commission percentages (default 20%), approve conversions, and settle withdrawal requests.
+            Monitor partner directory, adjust performance commission tiers (default 10%), view affiliate identities, approve conversions, and settle withdrawal requests.
           </p>
         </div>
         <button
@@ -141,26 +141,31 @@ export function AffiliateManagementPanel() {
         </div>
       </div>
 
-      {/* 1. Registered Affiliates Table */}
+      {/* 1. Affiliate Partner Directory & Performance Manager */}
       <section className="bg-white border border-[#c3c4c7] rounded-sm shadow-sm overflow-x-auto">
-        <div className="px-4 py-3 border-b border-[#c3c4c7] flex items-center justify-between bg-slate-50">
-          <h2 className="font-display text-sm font-bold text-[#1d2327]">
-            Registered Affiliates ({affiliates.length})
-          </h2>
-          <span className="text-[11px] text-slate-500">
-            Standard Commission: 20%
+        <div className="px-4 py-3 border-b border-[#c3c4c7] flex flex-wrap items-center justify-between gap-2 bg-slate-50">
+          <div>
+            <h2 className="font-display text-sm font-bold text-[#1d2327]">
+              Affiliate Partner Directory & Verification ({affiliates.length})
+            </h2>
+            <p className="text-[11px] text-slate-500">
+              Verified identity profiles, promotion channels, settlement accounts, and performance-based commission upgrades.
+            </p>
+          </div>
+          <span className="text-[11px] font-bold text-[#0a192f] bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded">
+            Default Rate: 10% (One-time per introduced customer)
           </span>
         </div>
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-bold">
             <tr>
-              <th className="px-4 py-2.5">Partner Name & Email</th>
-              <th className="px-4 py-2.5">Referral Code</th>
-              <th className="px-4 py-2.5 text-center">Clicks</th>
-              <th className="px-4 py-2.5 text-center">Referred Orders</th>
-              <th className="px-4 py-2.5">Commission Rate (%)</th>
-              <th className="px-4 py-2.5">Payout Method</th>
-              <th className="px-4 py-2.5">Settlement Info</th>
+              <th className="px-4 py-2.5">Partner Identity & Contact</th>
+              <th className="px-4 py-2.5">Location & Channel</th>
+              <th className="px-4 py-2.5">ID Verification</th>
+              <th className="px-4 py-2.5">Settlement Account</th>
+              <th className="px-4 py-2.5 text-center">Ref Code</th>
+              <th className="px-4 py-2.5 text-center">Stats</th>
+              <th className="px-4 py-2.5">Commission Rate & Upgrades</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 tabular-nums">
@@ -173,28 +178,54 @@ export function AffiliateManagementPanel() {
             ) : (
               affiliates.map((aff) => {
                 const referredCount = conversionsByCode[aff.code.toUpperCase()] || 0;
-                // Commission rate is stored directly as a whole number integer (e.g. 20)
                 const rateInt = Math.round(aff.commissionRate);
                 return (
                   <tr key={aff.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-2.5">
-                      <p className="font-semibold text-slate-900">{aff.userName}</p>
+                    <td className="px-4 py-3 align-top">
+                      <p className="font-bold text-slate-900">{aff.userName}</p>
                       <p className="text-[11px] text-slate-500">{aff.userEmail}</p>
+                      {aff.phone && (
+                        <p className="text-[11px] text-slate-600 mt-0.5">
+                          📞 {aff.phone} {aff.whatsappNumber && aff.whatsappNumber !== aff.phone ? `· 💬 ${aff.whatsappNumber}` : ''}
+                        </p>
+                      )}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-3 align-top">
+                      <p className="font-medium text-slate-800">{aff.stateOrCity || 'Nigeria'}</p>
+                      <p className="text-[11px] text-blue-700 font-semibold mt-0.5">{aff.promotionChannel || 'Direct Network'}</p>
+                      {aff.audienceDescription && (
+                        <p className="text-[10px] text-slate-500 line-clamp-1 mt-0.5" title={aff.audienceDescription}>
+                          {aff.audienceDescription}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        ✓ {aff.idType || 'NIN / Gov ID'}
+                      </span>
+                      {aff.idNumber && (
+                        <p className="text-[10px] font-mono text-slate-600 mt-1">
+                          #{aff.idNumber}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 align-top text-xs">
+                      <p className="font-semibold text-slate-900">{aff.bankName || aff.payoutMethod}</p>
+                      <p className="text-[11px] font-mono text-slate-700">{aff.accountNumber || aff.bankDetails}</p>
+                      {aff.accountName && (
+                        <p className="text-[10px] text-slate-500 uppercase">{aff.accountName}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center align-top">
                       <span className="font-mono font-bold text-[#2271b1] px-2 py-0.5 bg-blue-50 border border-blue-200 rounded">
                         {aff.code}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-center font-medium text-slate-700">
-                      {aff.clicks}
+                    <td className="px-4 py-3 text-center align-top">
+                      <p className="text-slate-900 font-bold">{referredCount} <span className="text-[10px] font-normal text-slate-500">orders</span></p>
+                      <p className="text-[11px] text-slate-500">{aff.clicks} clicks</p>
                     </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-slate-100 text-slate-800">
-                        {referredCount}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-3 align-top space-y-1.5">
                       <div className="flex items-center gap-1.5">
                         <input
                           type="number"
@@ -208,18 +239,57 @@ export function AffiliateManagementPanel() {
                               updateAffiliateCommissionRate(aff.id, val);
                             }
                           }}
-                          className="w-16 h-8 px-2 border border-[#8c8f94] rounded-sm text-xs font-bold tabular-nums text-slate-900 bg-white focus:outline-none focus:border-[#2271b1]"
+                          className="w-14 h-7 px-2 border border-[#8c8f94] rounded text-xs font-bold tabular-nums text-slate-900 bg-white"
                         />
                         <span className="text-slate-500 font-bold">%</span>
                       </div>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span className="font-medium text-slate-800">
-                        {aff.payoutMethod}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-slate-600 max-w-xs truncate">
-                      {aff.bankDetails}
+                      {/* 1-Click Upgrade Badges based on performance */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => updateAffiliateCommissionRate(aff.id, 10)}
+                          className={`px-1.5 py-0.5 text-[10px] font-semibold rounded cursor-pointer ${
+                            rateInt === 10
+                              ? 'bg-slate-900 text-white'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          10% (Std)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateAffiliateCommissionRate(aff.id, 15)}
+                          className={`px-1.5 py-0.5 text-[10px] font-semibold rounded cursor-pointer ${
+                            rateInt === 15
+                              ? 'bg-blue-700 text-white'
+                              : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                          }`}
+                        >
+                          15%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateAffiliateCommissionRate(aff.id, 20)}
+                          className={`px-1.5 py-0.5 text-[10px] font-semibold rounded cursor-pointer ${
+                            rateInt === 20
+                              ? 'bg-indigo-700 text-white'
+                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                          }`}
+                        >
+                          20%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateAffiliateCommissionRate(aff.id, 25)}
+                          className={`px-1.5 py-0.5 text-[10px] font-semibold rounded cursor-pointer ${
+                            rateInt === 25
+                              ? 'bg-amber-600 text-white'
+                              : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                          }`}
+                        >
+                          25% VIP
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -232,11 +302,16 @@ export function AffiliateManagementPanel() {
       {/* 2. Referral Conversions Ledger */}
       <section className="bg-white border border-[#c3c4c7] rounded-sm shadow-sm overflow-x-auto">
         <div className="px-4 py-3 border-b border-[#c3c4c7] flex items-center justify-between bg-slate-50">
-          <h2 className="font-display text-sm font-bold text-[#1d2327]">
-            Referral Conversions Ledger ({affiliateConversions.length})
-          </h2>
-          <span className="text-[11px] text-slate-500">
-            20% standard attribution on net sales
+          <div>
+            <h2 className="font-display text-sm font-bold text-[#1d2327]">
+              Referral Conversions Ledger ({affiliateConversions.length})
+            </h2>
+            <p className="text-[11px] text-slate-500">
+              Strict first-purchase attribution: 10% standard commission credited once per introduced customer (no recurring fees).
+            </p>
+          </div>
+          <span className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-semibold">
+            🛡 Anti-Self-Referral Active
           </span>
         </div>
         <table className="w-full text-left text-xs">

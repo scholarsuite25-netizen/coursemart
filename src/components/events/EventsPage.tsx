@@ -776,14 +776,14 @@ export function EventsPage() {
 
                     <div>
                       <label htmlFor="ev-reg-role" className="block text-xs font-bold text-slate-700 mb-1">
-                        Current Role / Title *
+                        Current Role/Title *
                       </label>
                       <input
                         id="ev-reg-role"
                         type="text"
                         value={roleTitle}
                         onChange={(e) => setRoleTitle(e.target.value)}
-                        placeholder="Software Engineer / Founder"
+                        placeholder="Software Engineer/Founder"
                         className="w-full h-9 px-3 text-sm bg-white border border-slate-300 rounded-md focus:outline-none focus:border-[#0a192f]"
                       />
                       {formErrors.roleTitle && (
@@ -793,7 +793,7 @@ export function EventsPage() {
 
                     <div>
                       <label htmlFor="ev-reg-org" className="block text-xs font-bold text-slate-700 mb-1">
-                        Organization / Company (optional)
+                        Organization/Company (optional)
                       </label>
                       <input
                         id="ev-reg-org"
@@ -807,7 +807,7 @@ export function EventsPage() {
 
                     <div>
                       <label htmlFor="ev-reg-phone" className="block text-xs font-bold text-slate-700 mb-1">
-                        Phone / WhatsApp (optional)
+                        Phone/WhatsApp (optional)
                       </label>
                       <input
                         id="ev-reg-phone"

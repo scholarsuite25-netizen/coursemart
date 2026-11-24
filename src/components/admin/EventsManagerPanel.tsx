@@ -299,8 +299,9 @@ export function EventsManagerPanel() {
     }
     setEditPricingError(null);
 
-    const startIso = new Date(editStartAt).toISOString();
-    const endIso = new Date(new Date(editStartAt).getTime() + 2 * 60 * 60 * 1000).toISOString();
+    const startDate = editStartAt ? new Date(editStartAt) : new Date();
+    const startIso = (editStartAt ? new Date(editStartAt) : new Date()).toISOString();
+    const endIso = new Date(startDate.getTime() + 2 * 60 * 60 * 1000).toISOString();
 
     const updatedEvent: CoursemartEvent = {
       ...editingEvent,
@@ -402,7 +403,7 @@ export function EventsManagerPanel() {
         </div>
       </div>
 
-      {/* Create Event Drawer / Form */}
+      {/* Create Event Drawer/Form */}
       {showCreateForm && (
         <form
           onSubmit={handleCreateEvent}
@@ -788,7 +789,7 @@ export function EventsManagerPanel() {
         </table>
       </section>
 
-      {/* Edit Event Modal / Drawer */}
+      {/* Edit Event Modal/Drawer */}
       {editingEvent && (
         <div
           className="fixed inset-0 z-50 bg-slate-950/65 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"

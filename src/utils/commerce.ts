@@ -546,7 +546,7 @@ export function isUnlockedByMembership(
   return false;
 }
 
-export const DEFAULT_AFFILIATE_COMMISSION_PERCENT = 20;
+export const DEFAULT_AFFILIATE_COMMISSION_PERCENT = 10;
 
 export function calculateAffiliateCommission(
   orderTotal: number,
@@ -568,7 +568,13 @@ export function attributeAffiliateReferral(
     commissionRate?: number;
     active: boolean;
   }>,
-  orderTotal: number
+  orderTotal: number,
+  existingConversions?: Array<{
+    buyerName?: string;
+    buyerEmail?: string;
+    affiliateUserId?: string;
+    status?: string;
+  }>
 ): {
   attributed: boolean;
   affiliateId?: string;
@@ -588,6 +594,7 @@ export function attributeAffiliateReferral(
     return { attributed: false, commissionAmount: 0, reason: 'Invalid or inactive affiliate code' };
   }
   if (buyer) {
+    // 1. Strict Grade-A Anti-Fraud Security: Self-Referral Prevention
     const isSelfId = Boolean(buyer.id && buyer.id === aff.userId);
     const isSelfEmail = Boolean(
       buyer.email &&
@@ -598,8 +605,25 @@ export function attributeAffiliateReferral(
       return {
         attributed: false,
         commissionAmount: 0,
-        reason: 'Self-referrals are strictly disallowed',
+        reason: 'Fraud prevention: Self-referrals are strictly disallowed to prevent manipulation. Affiliates cannot earn commission on their own purchases.',
       };
+    }
+
+    // 2. Strict One-Time Commission Policy: Affiliate does not earn more than once on a customer introduced
+    if (existingConversions && Array.isArray(existingConversions) && existingConversions.length > 0) {
+      const cleanBuyerEmail = buyer.email?.trim().toLowerCase();
+      const hasPriorConversion = existingConversions.some((c) => {
+        if (!c || c.status === 'declined') return false;
+        const matchesEmail = cleanBuyerEmail && c.buyerEmail?.trim().toLowerCase() === cleanBuyerEmail;
+        return Boolean(matchesEmail);
+      });
+      if (hasPriorConversion) {
+        return {
+          attributed: false,
+          commissionAmount: 0,
+          reason: 'First-purchase only policy: Affiliate commission is credited once per introduced customer and does not apply to repeat or recurring purchases.',
+        };
+      }
     }
   }
   const commissionRate = aff.commissionRate ?? DEFAULT_AFFILIATE_COMMISSION_PERCENT;
@@ -616,13 +640,19 @@ export function attributeReferralSale(
   order: { id?: string; total?: number; userId?: string; customerEmail?: string } | number,
   affiliateCode: string | null | undefined,
   affiliatesList: any[],
-  buyerUser?: { id?: string; email?: string; name?: string }
+  buyerUser?: { id?: string; email?: string; name?: string },
+  existingConversions?: Array<{
+    buyerName?: string;
+    buyerEmail?: string;
+    affiliateUserId?: string;
+    status?: string;
+  }>
 ) {
   const orderTotal = typeof order === 'number' ? order : (order?.total ?? 0);
   const buyer =
     buyerUser ||
     (typeof order === 'object' ? { id: order.userId, email: order.customerEmail } : undefined);
-  return attributeAffiliateReferral(affiliateCode, buyer, affiliatesList, orderTotal);
+  return attributeAffiliateReferral(affiliateCode, buyer, affiliatesList, orderTotal, existingConversions);
 }
 
 export function extractReferralCodeFromSearch(search: string): string | null {

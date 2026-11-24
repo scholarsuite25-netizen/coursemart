@@ -283,15 +283,15 @@ test('getCountdownSecondsRemaining returns deterministic remaining seconds witho
   assert.equal(getCountdownSecondsRemaining(undefined, now), 0);
 });
 
-test('DEFAULT_AFFILIATE_COMMISSION_PERCENT is 20 percent', () => {
-  assert.equal(DEFAULT_AFFILIATE_COMMISSION_PERCENT, 20);
+test('DEFAULT_AFFILIATE_COMMISSION_PERCENT is 10 percent', () => {
+  assert.equal(DEFAULT_AFFILIATE_COMMISSION_PERCENT, 10);
 });
 
-test('calculateAffiliateCommission calculates 20% by default, clamps between 0 and 75, handles zero/negative values, and rounds currency', () => {
-  // Default 20%
-  assert.equal(calculateAffiliateCommission(10000), 2000);
-  assert.equal(calculateAffiliateCommission(65000), 13000);
-  assert.equal(calculateAffiliateCommission(49.99), 10); // 9.998 rounded to 10
+test('calculateAffiliateCommission calculates 10% by default, clamps between 0 and 75, handles zero/negative values, and rounds currency', () => {
+  // Default 10%
+  assert.equal(calculateAffiliateCommission(10000), 1000);
+  assert.equal(calculateAffiliateCommission(65000), 6500);
+  assert.equal(calculateAffiliateCommission(49.99), 5); // 4.999 rounded to 5
 
   // Custom commission rate
   assert.equal(calculateAffiliateCommission(10000, 25), 2500);
@@ -387,6 +387,33 @@ test('attributeAffiliateReferral attributes independent sales and rejects self-r
   assert.equal(attributeAffiliateReferral('', null, affiliates, 50000).attributed, false);
   assert.equal(attributeAffiliateReferral(null, null, affiliates, 50000).attributed, false);
   assert.equal(attributeAffiliateReferral('   ', null, affiliates, 50000).attributed, false);
+
+  // 7. Non-recurrent commission rule: one-time only per introduced customer
+  const priorConversions = [
+    {
+      id: 'conv-prev-1',
+      affiliateCode: 'JOHN20',
+      affiliateUserId: 'user-aff-1',
+      orderId: 'ord-101',
+      buyerName: 'First-time Buyer',
+      buyerEmail: 'buyer@example.com',
+      orderTotal: 25000,
+      commissionAmount: 2500,
+      status: 'approved' as const,
+      isFirstPurchase: true,
+      createdAt: '2026-11-20T10:00:00Z',
+    },
+  ];
+  const secondPurchase = attributeAffiliateReferral(
+    'john20',
+    { id: 'user-buyer-1', email: 'BUYER@EXAMPLE.COM' },
+    affiliates,
+    30000,
+    priorConversions
+  );
+  assert.equal(secondPurchase.attributed, false);
+  assert.equal(secondPurchase.commissionAmount, 0);
+  assert.match(secondPurchase.reason ?? '', /First-purchase only policy/);
 });
 
 test('attributeReferralSale alias supports both numeric order total and order object signature', () => {

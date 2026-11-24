@@ -31,9 +31,17 @@ export function AffiliatesPage() {
     showToast,
   } = useStore();
 
-  const [bankDetailsInput, setBankDetailsInput] = useState(
-    'GTB · Account Number · Account Name'
-  );
+  const [fullNameInput, setFullNameInput] = useState(currentUser?.name || '');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [whatsappInput, setWhatsappInput] = useState('');
+  const [stateCityInput, setStateCityInput] = useState('Lagos, Nigeria');
+  const [promotionChannel, setPromotionChannel] = useState('WhatsApp Groups & Communities');
+  const [audienceDesc, setAudienceDesc] = useState('');
+  const [idType, setIdType] = useState('National ID (NIN)');
+  const [idNumber, setIdNumber] = useState('');
+  const [bankName, setBankName] = useState('Guaranty Trust Bank (GTBank)');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
   const [payoutMethod, setPayoutMethod] =
     useState<AffiliateProfile['payoutMethod']>('GTB Bank Transfer');
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -90,7 +98,25 @@ export function AffiliatesPage() {
   const handleJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setJoinError(null);
-    const res = joinAffiliateProgram(bankDetailsInput, payoutMethod);
+    if (!accountNumber.trim() || accountNumber.trim().length < 10) {
+      setJoinError('Please provide a valid 10-digit NUBAN account number.');
+      return;
+    }
+    const combinedBank = `${bankName} · ${accountNumber.trim()} · ${accountName.trim() || fullNameInput.trim() || currentUser?.name || 'Partner'}`;
+    const res = joinAffiliateProgram({
+      bankDetails: combinedBank,
+      payoutMethod,
+      phone: phoneInput.trim(),
+      whatsappNumber: whatsappInput.trim() || phoneInput.trim(),
+      stateOrCity: stateCityInput.trim(),
+      promotionChannel,
+      audienceDescription: audienceDesc.trim(),
+      idType,
+      idNumber: idNumber.trim(),
+      bankName: bankName.trim(),
+      accountNumber: accountNumber.trim(),
+      accountName: (accountName.trim() || fullNameInput.trim() || currentUser?.name || 'Partner'),
+    });
     if (!res.ok) {
       setJoinError(res.error ?? 'Unable to activate partner profile.');
       return;
@@ -124,13 +150,19 @@ export function AffiliatesPage() {
             Partner & Affiliate Program
           </p>
           <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white text-balance">
-            Earn 25% recurring & product commissions promoting Digital Wealth Creators (DWC) offers.
+            Earn 10% commission on the first purchase of every new customer you introduce.
           </h1>
           <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-            Join in one click, generate trackable referral links for any Course, Digital Product,
-            Software License, or Membership tier, and request payouts via GTB Bank Transfer or
-            WhatsApp settlement.
+            Join our verified partner network, generate trackable referral links for any Course, Digital Product,
+            Software License, or Membership tier. Payouts are settled via GTB Bank Transfer or Direct Wire.
           </p>
+          <div className="p-3 rounded-lg bg-[#112240] border border-[#233554] text-xs text-slate-300 max-w-2xl flex items-start gap-2">
+            <span className="text-[#f5c451] font-bold">🔒 Security Policy:</span>
+            <span>
+              Commission is credited strictly <strong>once per customer introduced</strong> (first purchase only, non-recurrent).
+              Anti-self-referral security prevents using your own link to purchase items for yourself.
+            </span>
+          </div>
         </div>
       </section>
 
@@ -162,64 +194,217 @@ export function AffiliatesPage() {
             </div>
           </div>
         ) : !currentUserAffiliate ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 max-w-xl mx-auto space-y-5">
+          <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 max-w-2xl mx-auto space-y-6 shadow-sm">
             <div>
-              <h2 className="font-display text-2xl font-extrabold text-slate-900">
-                Activate Open Self-Serve Partner Account
+              <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-[#0a192f] border border-blue-200">
+                Partner Verification & Onboarding
+              </span>
+              <h2 className="font-display text-2xl font-extrabold text-slate-900 mt-2">
+                Join the DWC Affiliate Partner Network
               </h2>
-              <p className="text-sm text-slate-600 mt-1">
-                Receive an instant unique referral code (`?ref=`) and 25% commission rate across
-                courses, digital products, and software offers.
+              <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                Receive your unique referral code (`?ref=`) and 10% standard commission rate on first purchases made by introduced customers.
               </p>
             </div>
 
-            <form onSubmit={handleJoinSubmit} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="aff-payout-method"
-                  className="block text-xs font-bold text-slate-700 mb-1"
-                >
-                  Preferred Payout Method
-                </label>
-                <select
-                  id="aff-payout-method"
-                  value={payoutMethod}
-                  onChange={(e) =>
-                    setPayoutMethod(e.target.value as AffiliateProfile['payoutMethod'])
-                  }
-                  className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md bg-white"
-                >
-                  <option value="GTB Bank Transfer">GTB Bank Transfer</option>
-                  <option value="Bank Wire">International Bank Wire</option>
-                  <option value="WhatsApp Settlement">WhatsApp Settlement Desk</option>
-                </select>
+            <form onSubmit={handleJoinSubmit} className="space-y-4 text-xs sm:text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="aff-fullname" className="block text-xs font-bold text-slate-700 mb-1">
+                    Full Legal Name *
+                  </label>
+                  <input
+                    id="aff-fullname"
+                    type="text"
+                    value={fullNameInput}
+                    onChange={(e) => setFullNameInput(e.target.value)}
+                    placeholder="e.g. Samuel Babatunde Omotoso"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="aff-statecity" className="block text-xs font-bold text-slate-700 mb-1">
+                    State / City Location *
+                  </label>
+                  <input
+                    id="aff-statecity"
+                    type="text"
+                    value={stateCityInput}
+                    onChange={(e) => setStateCityInput(e.target.value)}
+                    placeholder="e.g. Abeokuta, Ogun State"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    required
+                  />
+                </div>
               </div>
 
-              <div>
-                <label
-                  htmlFor="aff-bank-details"
-                  className="block text-xs font-bold text-slate-700 mb-1"
-                >
-                  Payout Account Details
-                </label>
-                <input
-                  id="aff-bank-details"
-                  type="text"
-                  value={bankDetailsInput}
-                  onChange={(e) => setBankDetailsInput(e.target.value)}
-                  placeholder="Bank Name · Account Number · Account Name"
-                  className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md"
-                  required
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="aff-phone" className="block text-xs font-bold text-slate-700 mb-1">
+                    Phone Number *
+                  </label>
+                  <input
+                    id="aff-phone"
+                    type="tel"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value)}
+                    placeholder="e.g. +234 803 123 4567"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="aff-whatsapp" className="block text-xs font-bold text-slate-700 mb-1">
+                    WhatsApp Number *
+                  </label>
+                  <input
+                    id="aff-whatsapp"
+                    type="tel"
+                    value={whatsappInput}
+                    onChange={(e) => setWhatsappInput(e.target.value)}
+                    placeholder="e.g. +234 803 123 4567"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="aff-channel" className="block text-xs font-bold text-slate-700 mb-1">
+                    Primary Promotion Channel *
+                  </label>
+                  <select
+                    id="aff-channel"
+                    value={promotionChannel}
+                    onChange={(e) => setPromotionChannel(e.target.value)}
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                  >
+                    <option value="WhatsApp Groups & Communities">WhatsApp Groups & Communities</option>
+                    <option value="Social Media (Facebook/Instagram/X)">Social Media (Facebook/Instagram/X)</option>
+                    <option value="YouTube / Podcasts / Webinars">YouTube / Podcasts / Webinars</option>
+                    <option value="Blog, Website & SEO">Blog, Website & SEO</option>
+                    <option value="Email Newsletter">Email Newsletter</option>
+                    <option value="Direct / In-Person Professional Network">Direct / In-Person Professional Network</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="aff-audience" className="block text-xs font-bold text-slate-700 mb-1">
+                    Audience Reach / Profile URL
+                  </label>
+                  <input
+                    id="aff-audience"
+                    type="text"
+                    value={audienceDesc}
+                    onChange={(e) => setAudienceDesc(e.target.value)}
+                    placeholder="e.g. 5,000 WhatsApp group members or Twitter handle"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+                <div>
+                  <label htmlFor="aff-idtype" className="block text-xs font-bold text-slate-700 mb-1">
+                    Government ID Verification Type *
+                  </label>
+                  <select
+                    id="aff-idtype"
+                    value={idType}
+                    onChange={(e) => setIdType(e.target.value)}
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                  >
+                    <option value="National ID (NIN)">National ID (NIN)</option>
+                    <option value="Voter's Card (VIN)">Voter's Card (VIN)</option>
+                    <option value="Driver's License">Driver's License</option>
+                    <option value="International Passport">International Passport</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="aff-idnum" className="block text-xs font-bold text-slate-700 mb-1">
+                    ID / NIN Number *
+                  </label>
+                  <input
+                    id="aff-idnum"
+                    type="text"
+                    value={idNumber}
+                    onChange={(e) => setIdNumber(e.target.value)}
+                    placeholder="e.g. 12345678901"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Settlement Bank Account Details
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label htmlFor="aff-bankname" className="block text-xs font-bold text-slate-700 mb-1">
+                      Bank Name *
+                    </label>
+                    <input
+                      id="aff-bankname"
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="e.g. GTBank, Zenith, Kuda"
+                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="aff-accnum" className="block text-xs font-bold text-slate-700 mb-1">
+                      10-Digit Account Number *
+                    </label>
+                    <input
+                      id="aff-accnum"
+                      type="text"
+                      maxLength={10}
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
+                      placeholder="0123456789"
+                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white font-mono tabular-nums"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="aff-accname" className="block text-xs font-bold text-slate-700 mb-1">
+                      Account Holder Name *
+                    </label>
+                    <input
+                      id="aff-accname"
+                      type="text"
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      placeholder="Name as registered on account"
+                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-900 space-y-1">
+                <p className="font-bold flex items-center gap-1">
+                  <span>🛡 Anti-Fraud Notice:</span>
+                </p>
+                <p>
+                  Affiliates are strictly prohibited from using their own referral links to purchase items for themselves.
+                  System audit automatically verifies buyer identity and denies self-credited commissions.
+                </p>
               </div>
 
               {joinError && <p className="text-xs font-semibold text-rose-700">{joinError}</p>}
 
               <button
                 type="submit"
-                className="w-full py-3 text-sm font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md cursor-pointer"
+                className="w-full py-3.5 text-sm font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md cursor-pointer shadow transition-all"
               >
-                Generate My Affiliate Code Now
+                Register & Activate Verified Partner Account
               </button>
             </form>
           </div>

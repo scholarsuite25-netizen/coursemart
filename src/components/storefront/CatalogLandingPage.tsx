@@ -44,10 +44,10 @@ export function CatalogLandingPage({ scope }: CatalogLandingPageProps) {
   const pageMeta = useMemo(() => {
     if (scope.kind === 'courses') {
       return {
-        eyebrow: 'Video Learning Management System',
-        title: 'Video Training Courses',
+        eyebrow: 'Multimedia Learning Management System',
+        title: 'Courses',
         description:
-          'Structured multi-module video courses covering AI, Vibe Coding, Apps Deployment, Leadership, Mentorship, and Full-Stack Architecture.',
+          'Structured multi-module courses covering AI, Vibe Coding, Apps Deployment, Leadership, Mentorship, and Full-Stack Architecture across interactive video, audio, text, infographics, and multimedia.',
         breadcrumb: [{ label: 'Home', route: '/' }, { label: 'Courses' }],
       };
     }

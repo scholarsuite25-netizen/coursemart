@@ -3410,7 +3410,7 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
         `Delivered At: ${new Date().toISOString()}`,
         `Verification Hash: ${crypto.createHash('sha256').update(`${product.id}:${userId}`).digest('hex').slice(0, 24)}`,
         `================================================================================`,
-        `Curriculum / Deliverable Outcomes:`,
+        `Curriculum/Deliverable Outcomes:`,
         ...(product.learningOutcomes || []).map((o, idx) => `  ${idx + 1}. ${o}`),
         `================================================================================`,
         `Notice: This digital content is protected by CourseMart LMS Anti-Copy Protection.`,

@@ -20,7 +20,7 @@ const SAMPLE_EVENT: CoursemartEvent = {
   subtitle: 'Hands-on AI workflow seminar',
   description: 'Full workshop details.',
   format: 'workshop',
-  deliveryMode: 'Live Virtual (Zoom / Meet)',
+  deliveryMode: 'Live Virtual (Zoom/Meet)',
   category: 'Vibe Coding',
   startAt: '2026-12-10T15:00:00Z',
   endAt: '2026-12-10T17:30:00Z',
@@ -198,6 +198,8 @@ test('isEventFree correctly detects free/paid events across pricing and explicit
   assert.equal(isEventFree({ isFree: true }), true);
   assert.equal(isEventFree({ price: 15000, isFree: false }), false);
   assert.equal(isEventFree({ isFree: false }), false);
+  assert.equal(isEventFree({ isFree: false, price: 0 }), false);
+  assert.equal(isEventFree({ price: 0, isFree: false }), false);
 });
 
 test('validateEventPricing validates free/paid pricing thresholds and error messages', () => {

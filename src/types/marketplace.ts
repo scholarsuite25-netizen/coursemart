@@ -95,7 +95,7 @@ export interface CourseLecture {
   title: string;
   durationMinutes: number;
   isPreview: boolean;
-  lectureType?: 'video' | 'article' | 'exercise' | 'text' | 'mixed';
+  lectureType?: 'video' | 'article' | 'exercise' | 'text' | 'mixed' | 'audio' | 'infographic' | 'image' | 'multimedia';
   summary: string;
   keyTakeaways: string[];
   description?: string;
@@ -103,6 +103,9 @@ export interface CourseLecture {
   chapters?: LectureChapterMarker[];
   transcript?: string;
   videoUrl?: string;
+  audioUrl?: string;
+  imageUrl?: string;
+  infographicUrl?: string;
   textContent?: string;
   downloadUrl?: string;
 }
@@ -217,7 +220,7 @@ export interface Product {
   };
   courseData?: {
     totalHours: number;
-    courseFormat?: 'video' | 'text' | 'mixed';
+    courseFormat?: 'video' | 'text' | 'mixed' | 'audio' | 'infographic' | 'multimedia';
     modules: CourseModule[];
     announcements?: CourseAnnouncement[];
     promoHighlights?: string[];
@@ -542,6 +545,16 @@ export interface AffiliateProfile {
   userId: string;
   userName: string;
   userEmail: string;
+  phone?: string;
+  whatsappNumber?: string;
+  stateOrCity?: string;
+  promotionChannel?: string;
+  audienceDescription?: string;
+  idType?: string;
+  idNumber?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
   code: string;
   commissionRate: number;
   clicks: number;
@@ -559,9 +572,11 @@ export interface AffiliateConversion {
   affiliateUserId: string;
   orderId: string;
   buyerName: string;
+  buyerEmail?: string;
   orderTotal: number;
   commissionAmount: number;
   status: 'pending' | 'approved' | 'paid' | 'declined';
+  isFirstPurchase?: boolean;
   createdAt: string;
 }
 
