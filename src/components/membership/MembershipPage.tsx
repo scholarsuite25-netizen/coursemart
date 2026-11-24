@@ -185,6 +185,34 @@ export function MembershipPage() {
           ]),
         ]}
       />
+
+      {/* Group Membership (Campus/Group) — new purchase surface */}
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-3xl mx-auto p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#0a192f] via-[#0a192f] to-[#142a4d] border-4 border-[#d4af37]/40 text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_#f5c451,_transparent_50%)]" aria-hidden="true" />
+          <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 text-left">
+            <div className="space-y-3 max-w-xl">
+              <p className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-[#f5c451]/10 text-[#f5c451] rounded-full px-3 py-1">
+                🎓 Campus &amp; Group Packs
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                DWC Group Membership Pass (15 Seats, ₦75,000)
+              </h2>
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
+                A Group Admin or institution representative registers for a maximum of 15 seats with one lump-sum payment. Every assigned member gets their N25 paid-seat status. Perfect for campuses, cohorts, and teams. Groups can also access Enquiry-help desk services and booked mentorship sessions through the platform.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/product/dwc-group-membership-15')}
+              className="shrink-0 inline-flex items-center gap-2 px-6 py-3 text-sm font-bold bg-[#f5c451] hover:bg-[#d4af37] text-[#0a192f] rounded-xl shadow-lg shadow-[#f5c451]/30 transition-all cursor-pointer"
+            >
+              View Group Pass
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Navy & Gold Centered Header */}
       <section className="bg-[#0a192f] text-white border-b-4 border-[#d4af37]">
         <div className="max-w-4xl mx-auto px-4 lg:px-8 py-12 lg:py-16 text-center space-y-5">
