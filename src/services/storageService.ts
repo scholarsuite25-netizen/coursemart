@@ -23,6 +23,8 @@ import {
   SEED_COMMUNITY_MESSAGES,
   SEED_FORUM_THREADS,
   SEED_FORUM_REPLIES,
+  SEED_GROUP_MEMBERSHIPS,
+  SEED_GROUP_MEMBERSHIP_SEATS,
 } from '../data/seedData';
 import type {
   AffiliateConversion,
@@ -39,6 +41,8 @@ import type {
   CourseProgress,
   EmailBroadcastCampaign,
   EventRegistration,
+  GroupMembership,
+  GroupMembershipSeat,
   LicenseKey,
   MembershipPlan,
   Order,
@@ -86,6 +90,8 @@ const STORAGE_KEYS = {
   SOCIAL_DRAFTS: 'cm_db_social_drafts_v1',
   EMAIL_CAMPAIGNS: 'cm_db_email_campaigns_v1',
   COMMUNITY_CHANNELS: 'cm_db_community_channels_v1',
+  GROUP_MEMBERSHIPS: 'cm_db_group_memberships_v1',
+  GROUP_MEMBERSHIP_SEATS: 'cm_db_group_membership_seats_v1',
   COMMUNITY_MESSAGES: 'cm_db_community_messages_v1',
   FORUM_THREADS: 'cm_db_forum_threads_v1',
   FORUM_REPLIES: 'cm_db_forum_replies_v1',
@@ -525,6 +531,16 @@ export const storageService = {
     readStorage(STORAGE_KEYS.COMMUNITY_CHANNELS, SEED_COMMUNITY_CHANNELS),
   saveCommunityChannels: (list: CommunityChannel[]): void =>
     writeStorage(STORAGE_KEYS.COMMUNITY_CHANNELS, list),
+
+  getGroupMemberships: (): GroupMembership[] =>
+    readStorage(STORAGE_KEYS.GROUP_MEMBERSHIPS, SEED_GROUP_MEMBERSHIPS),
+  saveGroupMemberships: (list: GroupMembership[]): void =>
+    writeStorage(STORAGE_KEYS.GROUP_MEMBERSHIPS, list),
+
+  getGroupMembershipSeats: (): GroupMembershipSeat[] =>
+    readStorage(STORAGE_KEYS.GROUP_MEMBERSHIP_SEATS, SEED_GROUP_MEMBERSHIP_SEATS),
+  saveGroupMembershipSeats: (list: GroupMembershipSeat[]): void =>
+    writeStorage(STORAGE_KEYS.GROUP_MEMBERSHIP_SEATS, list),
 
   getCommunityMessages: (): CommunityChatMessage[] =>
     readStorage(STORAGE_KEYS.COMMUNITY_MESSAGES, SEED_COMMUNITY_MESSAGES),

@@ -12,6 +12,8 @@ import type {
   CourseProgress,
   EmailBroadcastCampaign,
   EventRegistration,
+  GroupMembership,
+  GroupMembershipSeat,
   LicenseKey,
   MembershipPlan,
   Order,
@@ -103,6 +105,43 @@ export const SEED_USERS: UserAccount[] = [
 ];
 
 export const SEED_PRODUCTS: Product[] = [
+  {
+    id: 'prod-group-membership',
+    slug: 'dwc-group-membership-15',
+    title: 'DWC Group Membership Pass (15 seats, ₦75,000)',
+    subtitle:
+      'Lump sum for a Group Admin (Group Representative) to register 15 seats — members count as paid. Fully usable on courses, enquiries, and enquiry-based enquiries, plus promoter mentorship services.',
+    description:
+      'DWC Group Membership: pay ₦75,000 once — one Group Admin pass for 15 paid seats (members are counted as N25 each by the platform), with the admin managing member seats via the Group Memberships admin panel.',
+    type: 'ebook',
+    category: 'Masterclass / Coaching',
+    instructorId: 'user-admin-1',
+    instructorName: 'Marcus Sterling',
+    instructorRole: 'Platform Operations Director',
+    instructorAvatar: INSTRUCTOR_AVATAR,
+    price: 75000,
+    originalPrice: 98000,
+    rating: 4.8,
+    reviewCount: 87,
+    studentsCount: 28,
+    thumbnail: '/src/assets/images/course_fullstack_architecture_1794890415282.jpg',
+    level: 'Beginner',
+    language: 'English',
+    updatedAt: '2026-11-20T00:00:00Z',
+    status: 'published',
+    featured: true,
+    formatLabel: 'Group Pass (15 Seats)',
+    learningOutcomes: [
+      'Group Admin registers 15 paid seats with a Group Representative (Group Admin)',
+      'Manage, assign and view group members via the admin dashboard (Group Memberships tab)',
+      'Every assigned member becomes a paid member of the group — no per-member invoices needed',
+      'Buy once with Paystack (₦75,000 lump sum), use Paystack for full volume payment',
+    ],
+    requirements: [
+      'Group Admin must hold DWC platform admin credentials',
+      'Enterprise seats are capped at 15 members per group pass',
+    ],
+  },
   {
     id: 'prod-vip-mastermind',
     slug: 'dwc-creator-mastermind-pass',
@@ -1931,6 +1970,36 @@ Before writing UI code for: [DESCRIBE IDEA IN 2 SENTENCES],
       },
     ],
     comments: [],
+  },
+];
+
+export const SEED_GROUP_MEMBERSHIPS: GroupMembership[] = [
+  {
+    id: 'grp-dwc-campus-1',
+    groupName: 'DWC Campus Representative Group',
+    slug: 'dwc-campus',
+    groupAdminId: 'user-admin-1',
+    purchasedAt: '2026-11-20T00:00:00Z',
+    activatedAt: '2026-11-20T00:00:00Z',
+    maxMembers: 15,
+  },
+];
+
+export const SEED_GROUP_MEMBERSHIP_SEATS: GroupMembershipSeat[] = [
+  {
+    id: 'seat-grp-dwc-campus-01',
+    groupSlug: 'dwc-campus',
+    groupName: 'DWC Campus Representative Group',
+    userId: 'user-student-1',
+    isActive: true,
+    assignedAt: '2026-11-20T00:00:00Z',
+  },
+  {
+    id: 'seat-grp-dwc-campus-02',
+    groupSlug: 'dwc-campus',
+    groupName: 'DWC Campus Representative Group',
+    label: 'Faculty seats — assign below',
+    isActive: false,
   },
 ];
 

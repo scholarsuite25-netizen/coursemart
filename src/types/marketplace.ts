@@ -991,5 +991,30 @@ export interface SavedCustomizedPrompt {
   notes?: string;
 }
 
+export interface GroupMembership {
+  id: string;
+  groupName: string;
+  slug: string;
+  /** User id of the group representative (admin) who purchased. */
+  groupAdminId?: string;
+  purchasedAt: string;
+  activatedAt?: string;
+  /** Maximum members a group can hold (paid seats). */
+  maxMembers: number;
+}
+
+export interface GroupMembershipSeat {
+  id: string;
+  groupSlug: string;
+  groupName: string;
+  /** Assigned member (user id). */
+  userId?: string;
+  /** Email or name if unassigned. */
+  label?: string;
+  assignedAt?: string;
+  /** Always true while the group is active — mirrors N25 "member" paid state. */
+  isActive?: boolean;
+}
+
 
 

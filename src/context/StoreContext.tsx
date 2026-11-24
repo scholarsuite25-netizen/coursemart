@@ -34,6 +34,8 @@ import type {
   ShowcaseSite,
   SocialPostDraft,
   StorefrontAppearance,
+  GroupMembership,
+  GroupMembershipSeat,
   UserAccount,
   UserMembership,
   UserRole,
@@ -301,6 +303,22 @@ export interface StoreContextValue {
   communityMessages: CommunityChatMessage[];
   forumThreads: CommunityForumThread[];
   forumReplies: CommunityForumReply[];
+
+  // Group Memberships (Phase 4)
+  groupMemberships: GroupMembership[];
+  groupMembershipSeats: GroupMembershipSeat[];
+  createGroupMembership: (input: {
+    groupName: string;
+    groupAdminName: string;
+    maxMembers?: number;
+    groupSlug?: string;
+  }) => { ok: boolean; membership: GroupMembership };
+  assignGroupMember: (groupSlug: string, userId: string | null, label?: string) => {
+    ok: boolean;
+    seat: GroupMembershipSeat;
+  };
+  removeGroupMember: (groupSlug: string, seatId: string) => { ok: boolean };
+  isGroupMember: (userId: string | null | undefined) => boolean;
   sendCommunityMessage: (
     channelId: string,
     content: string,
@@ -495,6 +513,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [communityChannels, setCommunityChannels] = useState<CommunityChannel[]>(() =>
     storageService.getCommunityChannels()
   );
+  const [groupMemberships, setGroupMemberships] = useState<GroupMembership[]>(() =>
+    storageService.getGroupMemberships()
+  );
+  const [groupMembershipSeats, setGroupMembershipSeats] = useState<GroupMembershipSeat[]>(() =>
+    storageService.getGroupMembershipSeats()
+  );
   const [communityMessages, setCommunityMessages] = useState<CommunityChatMessage[]>(() =>
     storageService.getCommunityMessages()
   );
@@ -551,6 +575,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     usersRef.current = users;
   }, [users]);
+  const groupMembershipsRef = useRef(groupMemberships);
+  useEffect(() => {
+    groupMembershipsRef.current = groupMemberships;
+  }, [groupMemberships]);
+  const groupMembershipSeatsRef = useRef(groupMembershipSeats);
+  useEffect(() => {
+    groupMembershipSeatsRef.current = groupMembershipSeats;
+  }, [groupMembershipSeats]);
   const syncValuesRef = useRef<Record<string, unknown>>({});
   const prevSyncRef = useRef<Record<string, unknown> | null>(null);
 
@@ -585,6 +617,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       social_drafts: socialDrafts,
       email_campaigns: emailCampaigns,
       community_channels: communityChannels,
+      group_memberships: groupMemberships,
+      group_membership_seats: groupMembershipSeats,
       community_messages: communityMessages,
       forum_threads: forumThreads,
       forum_replies: forumReplies,
@@ -613,6 +647,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       socialDrafts,
       emailCampaigns,
       communityChannels,
+      groupMemberships,
+      groupMembershipSeats,
       communityMessages,
       forumThreads,
       forumReplies,
@@ -660,6 +696,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       social_drafts: (v) => { if (Array.isArray(v)) setSocialDrafts(v as SocialPostDraft[]); },
       email_campaigns: (v) => { if (Array.isArray(v)) setEmailCampaigns(v as EmailBroadcastCampaign[]); },
       community_channels: (v) => { if (Array.isArray(v)) setCommunityChannels(v as CommunityChannel[]); },
+      group_memberships: (v) => { if (Array.isArray(v)) setGroupMemberships(v as GroupMembership[]); },
+      group_membership_seats: (v) => { if (Array.isArray(v)) setGroupMembershipSeats(v as GroupMembershipSeat[]); },
       community_messages: (v) => { if (Array.isArray(v)) setCommunityMessages(v as CommunityChatMessage[]); },
       forum_threads: (v) => { if (Array.isArray(v)) setForumThreads(v as CommunityForumThread[]); },
       forum_replies: (v) => { if (Array.isArray(v)) setForumReplies(v as CommunityForumReply[]); },
@@ -3252,6 +3290,65 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [showToast]
   );
 
+  const createGroupMembership = useCallback(
+    (input: { groupName: string; groupAdminName: string; maxMembers?: number; groupSlug?: string }) => {
+      const groupName = input.groupName.trim();
+      const maxMembers = input.maxMembers && input.maxMembers > 0 && input.maxMembers <= 20 ? input.maxMembers : 15;
+      const slug =
+        (input.groupSlug || `${groupName.toLowerCase().replace(/[^a-z0-9-]+/g, '-')}`).slice(0, 60) || `group-${Date.now()}`;
+      const id = `grp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const now = new Date().toISOString();
+
+      const next: GroupMembership = {
+        id,
+        groupName,
+        slug,
+        groupAdminId: currentUser?.id,
+        purchasedAt: now,
+        activatedAt: now,
+        maxMembers,
+      };
+
+      const existing = groupMembershipsRef.current;
+      setGroupMemberships((prev) => [next, ...prev]);
+      showToast(`Group created: ${groupName} — ${maxMembers} seats available.`);
+      return { ok: true as const, membership: next };
+    },
+    [currentUser, showToast, groupMembershipsRef]
+  );
+
+  const assignGroupMember = useCallback(
+    (groupSlug: string, userId: string | null, label?: string) => {
+      const newSeat: GroupMembershipSeat = {
+        id: `seat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        groupSlug,
+        groupName: groupMembershipsRef.current.find((g) => g.slug === groupSlug)?.groupName || groupSlug,
+        userId: userId || undefined,
+        label: (userId ? undefined : label?.trim()) || undefined,
+        isActive: true,
+        assignedAt: new Date().toISOString(),
+      };
+      setGroupMembershipSeats((prev) => [newSeat, ...prev]);
+      showToast('Group member assigned.');
+      return { ok: true as const, seat: newSeat };
+    },
+    [showToast, groupMembershipsRef]
+  );
+
+  const removeGroupMember = useCallback(
+    (groupSlug: string, seatId: string) => {
+      setGroupMembershipSeats((prev) => prev.filter((s) => s.id !== seatId));
+      showToast('Group member removed.');
+      return { ok: true as const };
+    },
+    [showToast]
+  );
+
+  const isGroupMember = useCallback((userId: string | null | undefined) => {
+    if (!userId) return false;
+    return groupMembershipSeatsRef.current.some((s) => s.isActive && s.userId === userId);
+  }, [groupMembershipSeatsRef]);
+
   const pinCommunityMessage = useCallback(
     (messageId: string, isPinned?: boolean) => {
       setCommunityMessages((prev) =>
@@ -3919,6 +4016,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     toggleWhatsAppGroupStatus,
     joinWhatsAppGroup,
     communityChannels,
+    groupMemberships,
+    groupMembershipSeats,
+    createGroupMembership,
+    assignGroupMember,
+    removeGroupMember,
+    isGroupMember,
     communityMessages,
     forumThreads,
     forumReplies,
