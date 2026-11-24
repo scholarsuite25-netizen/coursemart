@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -88,6 +88,12 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
 
   const accent = getAccentTheme(appearance.accentTheme);
   const product = products.find((p) => p.slug === slug);
+
+  // Analytics (fires on mount + slug change)
+  const trackPageView = useStore().trackPageView;
+  useEffect(() => {
+    if (product) trackPageView(`/product/${product.slug}`);
+  }, [product, trackPageView]);
 
   const [selectedTierId, setSelectedTierId] = useState<string>(
     product?.softwareData?.licenseTiers[0]?.id ?? ''

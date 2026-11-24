@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   BookOpen,
@@ -48,6 +48,7 @@ export const TutorialDetailPage: React.FC<TutorialDetailPageProps> = ({
   onNavigate,
 }) => {
   const { tutorials, currentUser, upsertTutorial, showToast } = useStore();
+  const trackPageView = useStore().trackPageView;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
@@ -65,6 +66,11 @@ export const TutorialDetailPage: React.FC<TutorialDetailPageProps> = ({
     if (!slug) return null;
     return tutorials.find((t) => t.slug === slug || t.id === slug) || null;
   }, [tutorials, slug]);
+
+  // Analytics: fire on mount + slug change
+  useEffect(() => {
+    if (activeTutorial) trackPageView(`/tutorials/${activeTutorial.slug}`);
+  }, [activeTutorial, trackPageView]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();

@@ -2539,6 +2539,33 @@ Requirements:
     res.json({ ok: true, configured: Boolean(user.twoFactorVerifiedAt) });
   });
 
+  // ---------- Analytics (event ingest) ----------
+  app.post('/api/track/event', async (req, res) => {
+    if (!checkRateLimit(req.ip || 'unknown', 'track-event', 120, 60_000)) {
+      res.status(429).json({ ok: false, error: 'Too many analytics events. Try again shortly.' });
+      return;
+    }
+    const body = (req.body || {}) as { event?: unknown; properties?: unknown };
+    const event = typeof body.event === 'string' ? body.event.trim() : '';
+    if (!event || event.length > 100) {
+      res.status(400).json({ ok: false, error: 'A valid analytics event name (1-100 chars) is required.' });
+      return;
+    }
+    const properties =
+      body.properties && typeof body.properties === 'object' && !Array.isArray(body.properties)
+        ? (body.properties as Record<string, unknown>)
+        : {};
+    try {
+      const raw = await readStoreKeyValue('analytics_events');
+      const list = Array.isArray(raw) ? raw : [];
+      const entry = { event, properties, ts: Date.now() };
+      await writeStoreKeyValue('analytics_events', list.concat(entry).slice(-500));
+      res.json({ ok: true });
+    } catch (err: unknown) {
+      res.status(500).json({ ok: false, error: 'Unable to record event.' });
+    }
+  });
+
   app.post('/api/automation/social-dispatch', async (req, res) => {
     if (!requireAdminSession(req, res)) return;
     if (!checkRateLimit(req.ip || 'unknown', 'social-dispatch', 10, 60_000)) {

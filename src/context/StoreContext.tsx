@@ -75,6 +75,7 @@ import {
 } from '../utils/commerce';
 import { formatNaira } from '../utils/currency';
 import { hashPassword, needsPasswordUpgrade, verifyPassword } from '../utils/passwordHash';
+import { trackEvent as trackEventClient, trackPageView as trackPageViewClient } from '../utils/analytics';
 
 export interface RouteState {
   path: string;
@@ -300,6 +301,10 @@ export interface StoreContextValue {
 
   // Community Module (R1)
   communityChannels: CommunityChannel[];
+
+  // Analytics (client -> server ingest, /api/track/event)
+  trackEvent: (event: string, properties?: Record<string, unknown>) => void;
+  trackPageView: (path: string) => void;
   communityMessages: CommunityChatMessage[];
   forumThreads: CommunityForumThread[];
   forumReplies: CommunityForumReply[];
@@ -608,6 +613,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, [toastMessage]);
 
   // The full set of collections synchronized through the server KV store.
+  const trackEvent = useCallback((event: string, properties?: Record<string, unknown>) => {
+    void trackEventClient(event, properties);
+  }, []);
+
+  const trackPageView = useCallback((path: string) => {
+    void trackPageViewClient(path);
+  }, []);
+
+  // Fire page-view analytics on every route change (guarded for SSR).
+  useEffect(() => {
+    trackPageView(route);
+  }, [route, trackPageView]);
+
   const syncValues = useMemo<Record<string, unknown>>(
     () => ({
       products,
@@ -664,6 +682,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       communityChannels,
       groupMemberships,
       groupMembershipSeats,
+      trackEvent,
+      trackPageView,
       communityMessages,
       forumThreads,
       forumReplies,
@@ -1242,6 +1262,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       };
       setUsers((prev) => (prev.some((u) => u.id === newUser.id) ? prev : [...prev, newUser]));
       setCurrentUserId(newUser.id);
+      trackEvent('sign_up', { userId: newUser.id, email: newUser.email });
 
       // Persist the account first so the server can authenticate it, then open
       // the session cookie. Both are best-effort: offline, the account stays
@@ -1521,6 +1542,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           { productId: product.id, tierId, tierName, seats, variantId, variantName, sku, unitPrice, isPremium: Boolean(product.isPremium) },
         ];
       });
+      trackEvent('add_to_cart', { productId: product.id, productType: product.type });
       setIsCartOpen(true);
       showToast(`Added "${product.title}" to cart`);
     },
@@ -3263,9 +3285,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         createdAt: now,
       };
       setCommunityMessages((prev) => [...prev, newMessage]);
+      trackEvent('community_message_posted', { channelId, length: trimmed.length });
       return { ok: true, message: newMessage };
     },
-    [currentUser, communityChannels]
+    [currentUser, communityChannels, trackEvent]
   );
 
   const toggleMessageReaction = useCallback(
@@ -3324,12 +3347,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         maxMembers,
       };
 
-      const existing = groupMembershipsRef.current;
+      trackEvent('group_membership_created', { slug });
       setGroupMemberships((prev) => [next, ...prev]);
       showToast(`Group created: ${groupName} — ${maxMembers} seats available.`);
       return { ok: true as const, membership: next };
     },
-    [currentUser, showToast, groupMembershipsRef]
+    [currentUser, showToast]
   );
 
   const createTwoFactorSetup = useCallback(async () => {
@@ -4092,6 +4115,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     toggleWhatsAppGroupStatus,
     joinWhatsAppGroup,
     communityChannels,
+    trackEvent,
+    trackPageView,
     groupMemberships,
     groupMembershipSeats,
     createGroupMembership,
