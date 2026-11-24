@@ -25,10 +25,19 @@ after(async () => {
 });
 
 describe('POST /api/repurpose/youtube', () => {
-  it('returns 400 when youtubeUrl is missing or not a string', async () => {
+  it('returns 401 when the caller has no admin session', async () => {
     const res = await fetch(`${baseUrl}/api/repurpose/youtube`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }),
+    });
+    assert.equal(res.status, 401);
+  });
+
+  it('returns 400 when youtubeUrl is missing or not a string', async () => {
+    const res = await fetch(`${baseUrl}/api/repurpose/youtube`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-test': 'true' },
       body: JSON.stringify({}),
     });
     assert.equal(res.status, 400);
@@ -40,7 +49,7 @@ describe('POST /api/repurpose/youtube', () => {
   it('returns 400 when youtubeUrl is not a valid YouTube URL', async () => {
     const res = await fetch(`${baseUrl}/api/repurpose/youtube`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-admin-test': 'true' },
       body: JSON.stringify({ youtubeUrl: 'https://vimeo.com/12345678' }),
     });
     assert.equal(res.status, 400);
@@ -52,7 +61,7 @@ describe('POST /api/repurpose/youtube', () => {
   it('returns 200 with course package and social snippets on valid YouTube URL', async () => {
     const res = await fetch(`${baseUrl}/api/repurpose/youtube`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-admin-test': 'true' },
       body: JSON.stringify({
         youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         customTitle: 'Autonomous Engineering Blueprint',

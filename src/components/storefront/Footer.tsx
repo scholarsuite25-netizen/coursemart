@@ -333,6 +333,18 @@ export function Footer() {
             <li>
               <button
                 type="button"
+                onClick={() => navigate('/tutorials')}
+                className="hover:text-[#f5c451] transition-colors cursor-pointer text-left flex items-center justify-between w-full group"
+              >
+                <span className="text-white group-hover:text-[#f5c451]">Tutorials &amp; Guides</span>
+                <span className="text-[9px] bg-sky-950 border border-sky-500/40 text-sky-300 px-1.5 py-0.5 rounded font-bold uppercase">
+                  Free
+                </span>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
                 onClick={() => navigate('/instructor')}
                 className="hover:text-[#f5c451] transition-colors cursor-pointer text-left flex items-center justify-between w-full group"
               >

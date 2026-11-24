@@ -1168,6 +1168,8 @@ export function createApiApp() {
   // YouTube URL Repurposing Engine (Feature 19)
   // --------------------------------------------------------------------------
   app.post('/api/repurpose/youtube', async (req, res) => {
+    // Admin-only tool (the Studio modal runs with an admin session); no public callers.
+    if (!requireAdminSession(req, res)) return;
     if (!checkRateLimit(req.ip || 'unknown', 'repurpose-youtube', 30, 60_000)) {
       res.status(429).json({ ok: false, error: 'Rate limit exceeded for YouTube repurposing. Please wait a minute.' });
       return;

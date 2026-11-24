@@ -477,7 +477,7 @@ export function AdminDashboardPage() {
           id: 'link-vault',
           label: 'Member Prompt Vault',
           icon: KeyRound,
-          route: '/prompt-vault',
+          route: '/vault',
         },
         {
           id: 'link-verify',
