@@ -78,6 +78,7 @@ import {
   detectResourceSharingAnomalies,
   buildBestsellerCoupon,
 } from '../utils/agentAutomation.ts';
+import { todayUtcKey } from '../utils/backups.ts';
 import {
   DEFAULT_DOWNLOAD_TTL_SECONDS,
   HMAC_SECRET,
@@ -2346,6 +2347,76 @@ Requirements:
       res.status(500).json({
         ok: false,
         error: err instanceof Error ? err.message : 'Could not persist automation log.',
+      });
+    }
+  });
+
+  // ---------- Backups ----------
+  app.post('/api/cron/daily-backup', async (req, res) => {
+    if (!isCronAuthorized(req)) {
+      res.status(401).json({ ok: false, error: 'Cron authorization required.' });
+      return;
+    }
+    try {
+      const supabase = createServerSupabaseClient();
+      if (!supabase) {
+        res.status(503).json({ ok: false, error: 'Backup requires SUPABASE_URL + key configured.' });
+        return;
+      }
+      const { data, error } = await supabase
+        .from('coursemart_kv_store')
+        .select('key, value')
+        .order('key', { ascending: true })
+        .limit(500);
+      if (error || !Array.isArray(data)) {
+        res.status(502).json({ ok: false, error: 'Unable to read KV store for backup.' });
+        return;
+      }
+      const entries = data
+        .filter((row) => Boolean(row && row.key))
+        .map((row) => ({
+          key: row.key as string,
+          value: row.value ?? null,
+          snapshottedAt: new Date().toISOString(),
+        }));
+      const backupKey = todayUtcKey();
+      await writeStoreKeyValue(backupKey, entries);
+      await writeStoreKeyValue('backup_latest', entries.map((e) => e.key));
+      const backup = await readStoreKeyValue(backupKey);
+      res.json({
+        ok: true,
+        keyCount: Array.isArray(backup) ? backup.length : entries.length,
+        backupKey,
+        snapshottedAt: new Date().toISOString(),
+      });
+    } catch (err: unknown) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Unable to run backup.',
+      });
+    }
+  });
+
+  app.get('/api/backup/status', async (req, res) => {
+    if (!requireAdminSession(req, res)) return;
+    try {
+      const backupKeys = await readStoreKeyValue('backup_latest');
+      const todayKey = todayUtcKey();
+      const latest = backupKeys ? (backupKeys as string[]).slice(-1)[0] : todayKey;
+      const latestBackup = (await readStoreKeyValue(latest)) as unknown[] | null;
+      const createdAt = new Date(latest.replace('backup_history_', '').replace('T00:00:00Z', '00:00:00')).toISOString();
+      res.json({
+        ok: true,
+        exists: Array.isArray(latestBackup) && latestBackup.length > 0,
+        keyCount: Array.isArray(latestBackup) ? latestBackup.length : 0,
+        backupKey: latest,
+        createdAt,
+        daysToRetain: 7,
+      });
+    } catch (err: unknown) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Unable to read backup status.',
       });
     }
   });

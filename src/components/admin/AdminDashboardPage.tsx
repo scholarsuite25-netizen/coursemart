@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Copy,
   Crown,
+  Database,
   Edit3,
   ExternalLink,
   FileText,
@@ -69,6 +70,7 @@ import { EventsManagerPanel } from './EventsManagerPanel';
 import { ProductEditorModal } from './ProductEditorModal';
 import { YouTubeRepurposerModal } from './YouTubeRepurposerModal';
 import { SocialQueuePanel } from './SocialQueuePanel';
+import { BackupsPanel } from './BackupsPanel';
 import { GroupMembershipPanel } from './GroupMembershipPanel';
 import { TutorialsManagerPanel } from './TutorialsManagerPanel';
 import { CommunityModerationPanel } from './CommunityModerationPanel';
@@ -83,6 +85,7 @@ type AdminTab =
   | 'events'
   | 'group-memberships'
   | 'tutorials'
+  | 'backups'
   | 'appointments'
   | 'blogs'
   | 'email'
@@ -456,6 +459,7 @@ export function AdminDashboardPage() {
         { id: 'events', label: 'Events & Masterclasses', icon: Calendar },
         { id: 'group-memberships', label: 'Group Memberships', icon: Users, badge: groupMemberships.length },
         { id: 'tutorials', label: 'Tutorials & Guides', icon: BookOpen, badge: tutorials.length },
+        { id: 'backups', label: 'Backups', icon: Database },
         { id: 'appointments', label: 'Facilitator Bookings', icon: CalendarCheck },
         {
           id: 'link-instructor',
@@ -2551,6 +2555,7 @@ export function AdminDashboardPage() {
           {activeTab === 'events' && <EventsManagerPanel />}
           {activeTab === 'group-memberships' && <GroupMembershipPanel />}
           {activeTab === 'tutorials' && <TutorialsManagerPanel />}
+          {activeTab === 'backups' && <BackupsPanel />}
 
           {/* 11B. FACILITATOR APPOINTMENTS & BOOKINGS */}
           {activeTab === 'appointments' && (
