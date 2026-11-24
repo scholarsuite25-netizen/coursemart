@@ -485,6 +485,14 @@ export interface CourseProgress {
   updatedAt: string;
 }
 
+export interface TwoFactorSetup {
+  /** Secret string; stored hashed on the user record when enabled. */
+  secret: string;
+  /** sha256 of the secret (safe to persist). */
+  secretHash: string;
+  createdAt: string;
+}
+
 export interface UserAccount {
   id: string;
   name: string;
@@ -496,6 +504,8 @@ export interface UserAccount {
   status?: 'active' | 'suspended' | string;
   newsletterOptIn?: boolean;
   newsletterOptedInAt?: string;
+  twoFactorSetup?: TwoFactorSetup;
+  twoFactorVerifiedAt?: string;
   purchasedProductIds?: string[];
   enrolledCourseIds?: string[];
   createdAt?: string;

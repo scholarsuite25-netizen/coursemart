@@ -10,6 +10,7 @@ export interface UserSessionPayload {
   sub: string;
   email: string;
   role: UserSessionRole;
+  twoFactorVerifiedAt?: string;
   iat: number;
   exp: number;
 }
@@ -20,7 +21,8 @@ export function createUserSessionToken(
   role: UserSessionRole,
   secret: string = getAdminSessionSecret(),
   nowMs: number = Date.now(),
-  ttlMs: number = DEFAULT_USER_TTL_MS
+  ttlMs: number = DEFAULT_USER_TTL_MS,
+  twoFactorVerifiedAt?: string
 ): string {
   const payload: UserSessionPayload = {
     sub: userId,
@@ -28,6 +30,7 @@ export function createUserSessionToken(
     role,
     iat: nowMs,
     exp: nowMs + ttlMs,
+    ...(twoFactorVerifiedAt ? { twoFactorVerifiedAt } : {}),
   };
   const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(encoded).digest('base64url');

@@ -319,6 +319,15 @@ export interface StoreContextValue {
   };
   removeGroupMember: (groupSlug: string, seatId: string) => { ok: boolean };
   isGroupMember: (userId: string | null | undefined) => boolean;
+
+  // Student 2FA (email-token setup + enable)
+  twoFactorSetupToken: string | null;
+  twoFactorSetupCreatedAt: string | null;
+  isEnablingTwoFactor: boolean;
+  twoFactorError: string | null;
+  createTwoFactorSetup: () => Promise<{ ok: boolean; alreadyEnabled?: boolean }>;
+  enableTwoFactor: (token: string) => Promise<{ ok: boolean }>;
+
   sendCommunityMessage: (
     channelId: string,
     content: string,
@@ -519,6 +528,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [groupMembershipSeats, setGroupMembershipSeats] = useState<GroupMembershipSeat[]>(() =>
     storageService.getGroupMembershipSeats()
   );
+
+  // Student 2FA (email-token setup + enable)
+  const [twoFactorSetupToken, setTwoFactorSetupToken] = useState<string | null>(null);
+  const [twoFactorSetupCreatedAt, setTwoFactorSetupCreatedAt] = useState<string | null>(null);
+  const [isEnablingTwoFactor, setIsEnablingTwoFactor] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
   const [communityMessages, setCommunityMessages] = useState<CommunityChatMessage[]>(() =>
     storageService.getCommunityMessages()
   );
@@ -3317,6 +3332,67 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [currentUser, showToast, groupMembershipsRef]
   );
 
+  const createTwoFactorSetup = useCallback(async () => {
+    setTwoFactorError(null);
+    try {
+      const res = await fetch('/api/users/2fa/setup', { method: 'POST' });
+      const json = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        configured?: boolean;
+        alreadyEnabled?: boolean;
+        setupToken?: string;
+        createdAt?: string;
+        error?: string;
+      } | null;
+      if (!res.ok || !json?.ok) {
+        setTwoFactorError(json?.error || 'Could not create 2FA setup.');
+        return { ok: false as const };
+      }
+      if (json.setupToken) {
+        setTwoFactorSetupToken(json.setupToken);
+        setTwoFactorSetupCreatedAt(json.createdAt ?? null);
+      }
+      return { ok: true as const, alreadyEnabled: Boolean(json.alreadyEnabled) };
+    } catch (err: unknown) {
+      setTwoFactorError(err instanceof Error ? err.message : 'Could not create 2FA setup.');
+      return { ok: false as const };
+    }
+  }, []);
+
+  const enableTwoFactor = useCallback(
+    async (token: string) => {
+      setIsEnablingTwoFactor(true);
+      setTwoFactorError(null);
+      try {
+        const res = await fetch('/api/users/2fa/enable', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token.trim() }),
+        });
+        const json = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+        if (!res.ok || !json?.ok) {
+          setTwoFactorError(json?.error || 'Invalid 2FA code.');
+          return { ok: false as const };
+        }
+        // Update users state so the rest of the app reflects the change.
+        const updated = usersRef.current.map((u) =>
+          currentUser?.id && u.id === currentUser.id ? { ...u, twoFactorVerifiedAt: new Date().toISOString() } : u
+        );
+        setUsers(updated);
+        showToast('Two-factor authentication enabled.');
+        setTwoFactorSetupToken(null);
+        setTwoFactorSetupCreatedAt(null);
+        return { ok: true as const };
+      } catch (err: unknown) {
+        setTwoFactorError(err instanceof Error ? err.message : 'Could not enable 2FA.');
+        return { ok: false as const };
+      } finally {
+        setIsEnablingTwoFactor(false);
+      }
+    },
+    [currentUser, showToast, usersRef]
+  );
+
   const assignGroupMember = useCallback(
     (groupSlug: string, userId: string | null, label?: string) => {
       const newSeat: GroupMembershipSeat = {
@@ -4022,6 +4098,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     assignGroupMember,
     removeGroupMember,
     isGroupMember,
+    twoFactorSetupToken,
+    twoFactorSetupCreatedAt,
+    isEnablingTwoFactor,
+    twoFactorError,
+    createTwoFactorSetup,
+    enableTwoFactor,
     communityMessages,
     forumThreads,
     forumReplies,

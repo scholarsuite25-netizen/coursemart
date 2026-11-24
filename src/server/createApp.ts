@@ -80,6 +80,11 @@ import {
 } from '../utils/agentAutomation.ts';
 import { todayUtcKey } from '../utils/backups.ts';
 import {
+  generateTwoFactorSetup,
+  verifyTwoFactorToken,
+  markTwoFactorVerified,
+} from '../utils/security2fa.ts';
+import {
   DEFAULT_DOWNLOAD_TTL_SECONDS,
   HMAC_SECRET,
   generateDownloadToken,
@@ -719,8 +724,22 @@ export function createApiApp() {
         res.status(401).json(genericError);
         return;
       }
+      // 2FA gate: if 2FA is set up, do not issue a session until it's verified.
+      const twoFactorSetup = match.twoFactorSetup as { secret?: string } | undefined;
+      if (twoFactorSetup && !match.twoFactorVerifiedAt) {
+        res.json({ ok: true, twoFactorRequired: true });
+        return;
+      }
       const role = match.role === 'instructor' || match.role === 'admin' ? match.role : 'customer';
-      const token = createUserSessionToken(String(match.id), normalized, role, getAdminSessionSecret());
+      const token = createUserSessionToken(
+        String(match.id),
+        normalized,
+        role,
+        getAdminSessionSecret(),
+        Date.now(),
+        DEFAULT_USER_TTL_MS,
+        match.twoFactorVerifiedAt as string | undefined
+      );
       setSessionCookie(res, USER_SESSION_COOKIE_NAME, token, Math.floor(DEFAULT_USER_TTL_MS / 1000), req);
       res.json({
         ok: true,
@@ -732,6 +751,7 @@ export function createApiApp() {
           avatar: match.avatar,
           title: match.title,
           newsletterOptIn: match.newsletterOptIn,
+          twoFactorVerifiedAt: match.twoFactorVerifiedAt,
           joinedAt: match.joinedAt,
         },
       });
@@ -2419,6 +2439,73 @@ Requirements:
         error: err instanceof Error ? err.message : 'Unable to read backup status.',
       });
     }
+  });
+
+  // ---------- Student 2FA ----------
+  app.post('/api/users/2fa/setup', async (req, res) => {
+    const user = readUserSession(req);
+    if (!user?.sub) {
+      res.status(401).json({ ok: false, error: 'Sign in to enable two-factor authentication.' });
+      return;
+    }
+    if (user.twoFactorVerifiedAt) {
+      res.json({ ok: true, configured: true, alreadyEnabled: true });
+      return;
+    }
+    const raw = (await readStoreKeyValue('users')) as unknown;
+    const users = Array.isArray(raw) ? raw.filter((u): u is UserAccount => Boolean(u && typeof u === 'object')) : [];
+    const found = users.find((u) => u.id === user.sub);
+    if (!found) {
+      res.status(404).json({ ok: false, error: 'User not found.' });
+      return;
+    }
+    const setup = generateTwoFactorSetup();
+    found.twoFactorSetup = setup;
+    await writeStoreKeyValue('users', users);
+    res.json({
+      ok: true,
+      configured: false,
+      setupToken: setup.secret,
+      createdAt: setup.createdAt,
+    });
+  });
+
+  app.post('/api/users/2fa/enable', async (req, res) => {
+    const user = readUserSession(req);
+    if (!user?.sub) {
+      res.status(401).json({ ok: false, error: 'Sign in to enable two-factor authentication.' });
+      return;
+    }
+    const { token } = req.body ?? {};
+    if (typeof token !== 'string' || !token.trim()) {
+      res.status(400).json({ ok: false, error: 'A 2FA code is required.' });
+      return;
+    }
+    const raw = (await readStoreKeyValue('users')) as unknown;
+    const users = Array.isArray(raw) ? raw.filter((u): u is UserAccount => Boolean(u && typeof u === 'object')) : [];
+    const found = users.find((u) => u.id === user.sub);
+    if (!found) {
+      res.status(404).json({ ok: false, error: 'User not found.' });
+      return;
+    }
+    const result = verifyTwoFactorToken(token, found.twoFactorSetup);
+    if (!result.ok) {
+      res.status(400).json({ ok: false, error: result.reason || 'Invalid 2FA code.' });
+      return;
+    }
+    markTwoFactorVerified(found);
+    delete found.twoFactorSetup;
+    await writeStoreKeyValue('users', users);
+    res.json({ ok: true, configured: true, verifiedAt: found.twoFactorVerifiedAt });
+  });
+
+  app.get('/api/users/2fa/status', async (req, res) => {
+    const user = readUserSession(req);
+    if (!user?.sub) {
+      res.json({ ok: true, configured: false });
+      return;
+    }
+    res.json({ ok: true, configured: Boolean(user.twoFactorVerifiedAt) });
   });
 
   app.post('/api/automation/social-dispatch', async (req, res) => {
