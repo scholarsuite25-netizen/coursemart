@@ -202,6 +202,24 @@ function mergeUsers(
     if (!password && typeof prev.password === 'string' && prev.password) {
       rec.password = prev.password; // never blank out an existing credential
     }
+    // Self-write allowlist: never permit role / twoFactorSetup to be
+    // overwritten by a non-admin caller, even when they are updating their own
+    // record. Only profile‑level fields may be changed. Password is preserved
+    // by the existing guard above (never blanked out).
+    if (!ctx.isAdmin && ctx.selfUserId && id === ctx.selfUserId) {
+      const allowedSelfKeys = new Set([
+        'id',
+        'name',
+        'email',
+        'avatar',
+        'title',
+        'newsletterOptIn',
+      ]);
+      const keysToRemove = Object.keys(rec).filter(
+        k => !allowedSelfKeys.has(k) && k !== 'password'
+      );
+      keysToRemove.forEach(k => delete rec[k]);
+    }
     merged.set(id, rec);
     updated += 1;
   }
