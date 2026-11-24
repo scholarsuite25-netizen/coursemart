@@ -23,18 +23,22 @@ import {
 import type { DocumentTutorial, TutorialStep } from '../../types/tutorial';
 import {
   createLocalTutorialDraft,
+  createTutorialFromUrl,
   formatTutorialAsHtml,
   formatTutorialAsJson,
   formatTutorialAsMarkdown,
 } from '../../utils/tutorialCreator';
+import { Link2 } from 'lucide-react';
 
-interface TutorialEditorModalProps {
+export interface TutorialEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTutorial?: DocumentTutorial | null;
   onSave: (tutorial: DocumentTutorial) => void;
   onPreviewVideo?: (tutorial: DocumentTutorial) => void;
 }
+
+const DEFAULT_IMPORT_URL = '';
 
 export const TutorialEditorModal: React.FC<TutorialEditorModalProps> = ({
   isOpen,
@@ -50,6 +54,29 @@ export const TutorialEditorModal: React.FC<TutorialEditorModalProps> = ({
       authorName: 'Platform Lead',
     })
   );
+  const [importUrl, setImportUrl] = useState<string>(DEFAULT_IMPORT_URL);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImportingFromUrl, setIsImportingFromUrl] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+
+  const handleImportFromUrl = () => {
+    const url = importUrl.trim();
+    if (!url) {
+      setImportError('Please enter a URL first.');
+      return;
+    }
+    setIsImportingFromUrl(true);
+    try {
+      const imported = createTutorialFromUrl(url);
+      setImportError(null);
+      onSave(imported);
+      setImportUrl('');
+      onClose();
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Unable to create tutorial from URL.');
+      setIsImportingFromUrl(false);
+    }
+  };
 
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
   const [tagsInput, setTagsInput] = useState<string>((tutorial.tags || []).join(', '));
@@ -226,6 +253,14 @@ export const TutorialEditorModal: React.FC<TutorialEditorModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              onClick={() => setIsImportOpen((v) => !v)}
+              className="px-4 py-2 bg-[#0a192f]/70 border border-[#233554] text-[#f5c451] hover:bg-[#162a4d] text-xs font-bold rounded-xl shadow inline-flex items-center gap-1.5 transition cursor-pointer"
+            >
+              <Link2 className="w-4 h-4" />
+              Import from URL
+            </button>
+            <button
               onClick={handleSave}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition"
             >
@@ -239,6 +274,37 @@ export const TutorialEditorModal: React.FC<TutorialEditorModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Import From URL (collapsible) */}
+        {isImportOpen && (
+          <div className="border-t border-slate-800 bg-slate-950/60 px-6 py-4 space-y-3">
+            <p className="text-xs text-slate-400">
+              Create a tutorial from a URL — paste any page or YouTube link. YouTube links auto-
+              generate steps, modules, cover and SEO tags.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={importUrl}
+                onChange={(e) => {
+                  setImportUrl(e.target.value);
+                  setImportError(null);
+                }}
+                placeholder="https://example.com/article  or  youtube.com/watch?v=..."
+                className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#f5c451]"
+              />
+              <button
+                type="button"
+                onClick={handleImportFromUrl}
+                disabled={isImportingFromUrl || !importUrl.trim()}
+                className="px-4 py-2 text-xs font-bold bg-[#f5c451] text-[#0a192f] hover:bg-[#d4af37] disabled:opacity-40 rounded-lg"
+              >
+                Create Tutorial
+              </button>
+            </div>
+            {importError && <p className="text-[11px] text-rose-400">{importError}</p>}
+          </div>
+        )}
 
         {/* Toolbar: Exporters */}
         <div className="bg-slate-950/80 border-b border-slate-800 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">

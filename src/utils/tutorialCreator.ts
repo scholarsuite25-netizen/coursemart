@@ -4,6 +4,8 @@ import type {
   VideoNarratorConfig,
   VideoScene,
 } from '../types/tutorial';
+import { repurposeYouTubeToCourse } from './youtubeRepurposer';
+import { parseYouTubeVideoId } from './youtubeRepurposer';
 
 /**
  * Escapes special XML / HTML characters to prevent XSS.
@@ -209,6 +211,100 @@ export function createLocalTutorialDraft(params: Partial<DocumentTutorial>): Doc
     ...(params.seoTitle ? { seoTitle: params.seoTitle } : {}),
     ...(params.seoDescription ? { seoDescription: params.seoDescription } : {}),
   };
+}
+
+function deriveTutorialSlugFromUrl(url: string): string {
+  const trimmed = url.trim();
+  const match = trimmed.match(/^(?:https?:\/\/)?(?:www\.|m\.)?(?:[^/]+\.)?[^/?#]+\/([^?#]+)/);
+  const path = match ? decodeURIComponent((match[1] || '').trim()) : '';
+  const lastSeg = path.split('/').filter(Boolean).slice(-1)[0] || trimmed;
+  return (
+    lastSeg
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'tutorial'
+  );
+}
+
+/**
+ * Creates a DocumentTutorial from a URL.
+ * - YouTube URLs → auto-generates from `repurposeYouTubeToCourse`
+ *   (title, modules, notes, embed URL, tags, cover).
+ * - Any other URL → a structured skeleton using the URL slug (modules from
+ *   the page path when available) so the editor starts fully-filled.
+ */
+export function createTutorialFromUrl(
+  url: string,
+  opts?: { customTitle?: string; customDescription?: string }
+): DocumentTutorial {
+  const trimmed = (url || '').trim();
+  const videoId = parseYouTubeVideoId(trimmed);
+
+  if (videoId) {
+    const pkg = repurposeYouTubeToCourse({
+      youtubeUrl: trimmed,
+      customTitle: opts?.customTitle || undefined,
+    });
+
+    const slug =
+      pkg.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .slice(0, 80) || `video-${videoId}`;
+
+    const pkgModules: TutorialStep[] = (pkg.modules || [])
+      .filter((m: any) => Array.isArray(m?.lectures) && m.lectures.length > 0)
+      .flatMap((m: any) => [{
+        stepNumber: 1,
+        title: `${m.title}`,
+        description: `Video walkthrough of "${m.title}".`,
+        codeSnippet: undefined,
+        checklist: [],
+        videoUrl: m.lectures[0]?.videoUrl,
+      }]);
+
+    return createLocalTutorialDraft({
+      id: `tut_yt_${videoId}`,
+      title: pkg.title || `YouTube Tutorial: ${videoId}`,
+      slug: opts?.customTitle ? deriveTutorialSlugFromUrl(trimmed) : slug,
+      subtitle: pkg.subtitle,
+      description: opts?.customDescription || pkg.description || 'Step-by-step walkthrough video.',
+      category: pkg.category || 'AI & Machine Learning',
+      tags: [...pkg.marketingAssets?.youtubeMetadata?.tags || ['video', 'tutorial']],
+      coverImage: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      readTimeMinutes: Math.max(10, Math.round(pkg.modules?.length || 1) * 8),
+      steps: pkgModules.length > 0 ? pkgModules : [{
+        stepNumber: 1,
+        title: 'Video Overview',
+        description: 'Watch the full video walkthrough.',
+      }],
+      status: 'draft',
+      difficulty: 'beginner',
+    });
+  }
+
+  // Non-YouTube URL: structured skeleton from the URL
+  return createLocalTutorialDraft({
+    title: opts?.customTitle || `Tutorial from ${trimmed.replace(/^https?:\/\//, '')}`.slice(0, 120),
+    description: opts?.customDescription || `Guide built around ${trimmed}.`,
+    slug: deriveTutorialSlugFromUrl(trimmed),
+    tags: ['import'],
+    status: 'draft',
+    difficulty: 'beginner',
+  });
+}
+
+/** True if the URL looks like it should become a tutorial. */
+export function looksLikeTutorialUrl(url: string): boolean {
+  const trimmed = (url || '').trim().toLowerCase();
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('www.') ||
+    trimmed.includes('/tutorial')
+  );
 }
 
 /**
