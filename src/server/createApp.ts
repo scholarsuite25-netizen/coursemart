@@ -1639,7 +1639,9 @@ export function createApiApp() {
         recipients: [{ email: cleanEmail, name: cleanName }],
         subject: welcomeSubject,
         html: welcomeHtml,
-      }).catch(() => {});
+      }).catch((error) => {
+        console.error('📧 Welcome email send failed (non-blocking):', error.message || error);
+      });
 
       res.json({ ok: true, message: 'Successfully subscribed to Digital Wealth Creators newsletter.' });
     } catch (err: unknown) {

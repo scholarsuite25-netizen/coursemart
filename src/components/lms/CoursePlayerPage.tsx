@@ -12,6 +12,8 @@ import {
   Clock,
   Download,
   FileText,
+  Headphones,
+  Image,
   Megaphone,
   MessageSquare,
   PanelRightClose,
@@ -671,20 +673,145 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
       {/* Main Split: Video Theater + Tabs Left, Curriculum Sidebar Right */}
       <div className="flex-1 flex flex-col lg:flex-row">
         <ContentProtectionWrapper enabled={isProtected} className="flex-1 min-w-0 flex flex-col">
-          {/* Theater Video Player OR Text Lesson Stage */}
+          {/* Theater Video Player OR Audio / Infographic / Text Lesson Stage */}
           {activeLecture && (() => {
-            const isTextLesson = activeLecture.lectureType === 'text' || activeLecture.lectureType === 'article' || (!activeLecture.videoUrl && Boolean(activeLecture.textContent));
+            const isAudioLesson =
+              activeLecture.lectureType === 'audio' ||
+              (!activeLecture.videoUrl && Boolean(activeLecture.audioUrl));
+            const isInfographicLesson =
+              activeLecture.lectureType === 'infographic' ||
+              activeLecture.lectureType === 'image' ||
+              (!activeLecture.videoUrl && !activeLecture.audioUrl && Boolean(activeLecture.infographicUrl || activeLecture.imageUrl));
+            const isTextLesson =
+              activeLecture.lectureType === 'text' ||
+              activeLecture.lectureType === 'article' ||
+              (!activeLecture.videoUrl &&
+                !activeLecture.audioUrl &&
+                !activeLecture.infographicUrl &&
+                !activeLecture.imageUrl &&
+                Boolean(activeLecture.textContent));
+            const visualUrl = activeLecture.infographicUrl || activeLecture.imageUrl;
             return (
               <div className={`transition-colors duration-300 text-white ${theaterMode ? 'bg-[#030712] py-4' : 'bg-[#081221]'}`}>
                 <div className={`mx-auto p-3 sm:p-6 space-y-4 transition-all duration-300 ${theaterMode ? 'max-w-7xl' : 'max-w-5xl'}`}>
-                  <div className="flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center justify-between text-xs text-slate-300 font-medium">
                     <span className="truncate pr-2">{activeLecture.moduleTitle}</span>
                     <span className="font-mono shrink-0">
                       Lecture {activeLectureIndex + 1} of {flatLectures.length}
                     </span>
                   </div>
 
-                  {isTextLesson ? (
+                  {isAudioLesson ? (
+                    /* Audio Podcast / Lecture Stage */
+                    <div className="w-full rounded-xl border border-[#233554] bg-[#0c1a30] p-5 sm:p-8 space-y-6 text-slate-100 shadow-2xl">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#233554] pb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-400/30 flex items-center justify-center font-bold shadow-inner">
+                            <Headphones className="w-5 h-5" />
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Audio Lesson / Podcast
+                              </span>
+                              <span className="text-xs text-slate-300 font-mono">
+                                ⏱ {activeLecture.durationMinutes} min listen
+                              </span>
+                            </div>
+                            <h2 className="font-display text-lg sm:text-2xl font-black text-white mt-1">
+                              {activeLecture.title}
+                            </h2>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleLectureComplete(product.id, activeLecture.id)}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow ${
+                            isCurrentCompleted
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-[#d4af37] text-[#0a192f] hover:bg-[#e5bf45]'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{isCurrentCompleted ? 'Lesson Completed' : 'Mark as Completed'}</span>
+                        </button>
+                      </div>
+
+                      {activeLecture.audioUrl ? (
+                        <div className="p-4 rounded-xl bg-[#112240] border border-[#263d66]">
+                          <audio controls className="w-full" src={activeLecture.audioUrl}>
+                            Your browser does not support the audio element.
+                          </audio>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-[#112240] border border-[#263d66] text-xs text-amber-200">
+                          Audio stream link not configured yet. Review the accompanying show notes and transcript below.
+                        </div>
+                      )}
+
+                      {(activeLecture.textContent || activeLecture.summary) && (
+                        <div className="space-y-2 text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                          {activeLecture.textContent || activeLecture.summary}
+                        </div>
+                      )}
+                    </div>
+                  ) : isInfographicLesson ? (
+                    /* Infographic & Visual Diagram Stage */
+                    <div className="w-full rounded-xl border border-[#233554] bg-[#0c1a30] p-5 sm:p-8 space-y-6 text-slate-100 shadow-2xl">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#233554] pb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/30 flex items-center justify-center font-bold shadow-inner">
+                            <Image className="w-5 h-5" />
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                Infographic & Visual Diagram
+                              </span>
+                              <span className="text-xs text-slate-300 font-mono">
+                                ⏱ {activeLecture.durationMinutes} min study
+                              </span>
+                            </div>
+                            <h2 className="font-display text-lg sm:text-2xl font-black text-white mt-1">
+                              {activeLecture.title}
+                            </h2>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleLectureComplete(product.id, activeLecture.id)}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow ${
+                            isCurrentCompleted
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-[#d4af37] text-[#0a192f] hover:bg-[#e5bf45]'
+                          }`}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{isCurrentCompleted ? 'Lesson Completed' : 'Mark as Completed'}</span>
+                        </button>
+                      </div>
+
+                      {visualUrl ? (
+                        <div className="rounded-xl overflow-hidden border border-[#263d66] bg-slate-950 flex justify-center">
+                          <img
+                            src={visualUrl}
+                            alt={activeLecture.title}
+                            className="max-h-[540px] w-auto object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl bg-[#112240] border border-[#263d66] text-xs text-emerald-200">
+                          Infographic image URL not set yet. Review the visual breakdown below.
+                        </div>
+                      )}
+
+                      {(activeLecture.textContent || activeLecture.summary) && (
+                        <div className="space-y-2 text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                          {activeLecture.textContent || activeLecture.summary}
+                        </div>
+                      )}
+                    </div>
+                  ) : isTextLesson ? (
                     /* Pure Text-Based Reading Lesson Workspace */
                     <div className="w-full rounded-xl border border-[#233554] bg-[#0c1a30] p-5 sm:p-8 space-y-6 text-slate-100 shadow-2xl">
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#233554] pb-4">
@@ -994,16 +1121,40 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                         </div>
                       </div>
 
-                      {/* Mixed / Companion Reading Guide (if mixed lesson) */}
-                      {(activeLecture.lectureType === 'mixed' || (activeLecture.videoUrl && activeLecture.textContent)) && (
-                        <div className="mt-4 p-5 rounded-xl bg-[#0c1a30] border border-[#233554] space-y-3">
+                      {/* Multimedia Companion Assets (Audio, Infographic & Reading Guide) */}
+                      {(activeLecture.lectureType === 'multimedia' ||
+                        activeLecture.lectureType === 'mixed' ||
+                        (activeLecture.videoUrl && (activeLecture.textContent || activeLecture.audioUrl || activeLecture.infographicUrl || activeLecture.imageUrl))) && (
+                        <div className="mt-4 p-5 rounded-xl bg-[#0c1a30] border border-[#233554] space-y-4">
                           <h4 className="text-xs font-bold text-[#f5c451] uppercase tracking-wider flex items-center gap-1.5">
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Companion Lesson Guide & Code</span>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Multimedia Companion Materials</span>
                           </h4>
-                          <div className="whitespace-pre-line text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
-                            {activeLecture.textContent || activeLecture.summary}
-                          </div>
+                          {activeLecture.audioUrl && (
+                            <div className="p-3 rounded-lg bg-[#112240] border border-[#263d66] space-y-1.5">
+                              <p className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                                <Headphones className="w-3.5 h-3.5" />
+                                <span>Companion Audio Briefing</span>
+                              </p>
+                              <audio controls className="w-full" src={activeLecture.audioUrl}>
+                                Your browser does not support the audio element.
+                              </audio>
+                            </div>
+                          )}
+                          {(activeLecture.infographicUrl || activeLecture.imageUrl) && (
+                            <div className="rounded-lg overflow-hidden border border-[#263d66] bg-slate-950 p-2 flex flex-col items-center gap-2">
+                              <img
+                                src={activeLecture.infographicUrl || activeLecture.imageUrl}
+                                alt={`${activeLecture.title} visual diagram`}
+                                className="max-h-[420px] w-auto object-contain rounded"
+                              />
+                            </div>
+                          )}
+                          {(activeLecture.textContent || activeLecture.summary) && (
+                            <div className="whitespace-pre-line text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+                              {activeLecture.textContent || activeLecture.summary}
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
@@ -1491,18 +1642,28 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                                 {lec.title}
                               </p>
                               <div className="text-[11px] text-slate-500 mt-1 tabular-nums flex items-center gap-1.5 flex-wrap">
-                                {lec.lectureType === 'text' || lec.lectureType === 'article' || (!lec.videoUrl && lec.textContent) ? (
-                                  <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
+                                {lec.lectureType === 'audio' || (!lec.videoUrl && lec.audioUrl) ? (
+                                  <span className="inline-flex items-center gap-0.5 text-amber-700 font-semibold">
+                                    <Headphones className="w-3 h-3" />
+                                    <span>Audio ({lec.durationMinutes}m)</span>
+                                  </span>
+                                ) : lec.lectureType === 'infographic' || lec.lectureType === 'image' ? (
+                                  <span className="inline-flex items-center gap-0.5 text-emerald-700 font-semibold">
+                                    <Image className="w-3 h-3" />
+                                    <span>Infographic ({lec.durationMinutes}m)</span>
+                                  </span>
+                                ) : lec.lectureType === 'text' || lec.lectureType === 'article' || (!lec.videoUrl && !lec.audioUrl && lec.textContent) ? (
+                                  <span className="inline-flex items-center gap-0.5 text-blue-600 font-semibold">
                                     <BookOpen className="w-3 h-3" />
                                     <span>Reading ({lec.durationMinutes}m)</span>
                                   </span>
-                                ) : lec.lectureType === 'mixed' ? (
-                                  <span className="inline-flex items-center gap-0.5 text-purple-600 font-medium">
+                                ) : lec.lectureType === 'multimedia' || lec.lectureType === 'mixed' ? (
+                                  <span className="inline-flex items-center gap-0.5 text-purple-600 font-semibold">
                                     <Sparkles className="w-3 h-3" />
-                                    <span>Mixed ({lec.durationMinutes}m)</span>
+                                    <span>Multimedia ({lec.durationMinutes}m)</span>
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-0.5 text-slate-500 font-medium">
+                                  <span className="inline-flex items-center gap-0.5 text-slate-600 font-semibold">
                                     <Video className="w-3 h-3" />
                                     <span>Video ({lec.durationMinutes}m)</span>
                                   </span>

@@ -287,15 +287,38 @@ export function ProductEditorModal({
     const allLectures = modules.flatMap((m) => m.lectures);
     const totalLecturesCount = allLectures.length;
     const hasVideo = allLectures.some((l) => Boolean(l.videoUrl && l.videoUrl.trim().length > 0));
-    const hasTextOnly = allLectures.some((l) => l.lectureType === 'text' || l.lectureType === 'article' || (!l.videoUrl && Boolean(l.textContent)));
-    const courseFormat: 'text' | 'video' | 'mixed' =
-      !hasVideo ? 'text' : hasTextOnly ? 'mixed' : 'video';
+    const hasAudio = allLectures.some((l) => l.lectureType === 'audio' || Boolean(l.audioUrl && l.audioUrl.trim().length > 0));
+    const hasInfographic = allLectures.some((l) => l.lectureType === 'infographic' || l.lectureType === 'image' || Boolean(l.infographicUrl || l.imageUrl));
+    const hasTextOnly = allLectures.some((l) => l.lectureType === 'text' || l.lectureType === 'article' || (!l.videoUrl && !l.audioUrl && Boolean(l.textContent)));
+    const isMultimedia =
+      allLectures.some((l) => l.lectureType === 'multimedia') ||
+      (hasVideo && (hasAudio || hasInfographic || hasTextOnly)) ||
+      (hasAudio && (hasInfographic || hasTextOnly));
+
+    const courseFormat: 'text' | 'video' | 'mixed' | 'audio' | 'infographic' | 'multimedia' =
+      isMultimedia
+        ? 'multimedia'
+        : hasAudio && !hasVideo
+        ? 'audio'
+        : hasInfographic && !hasVideo
+        ? 'infographic'
+        : !hasVideo
+        ? 'text'
+        : hasTextOnly
+        ? 'mixed'
+        : 'video';
 
     const resolvedDigitalSub = type === 'ebook' ? digitalSubType : undefined;
 
     const formatLabel =
       type === 'course'
-        ? courseFormat === 'text'
+        ? courseFormat === 'multimedia'
+          ? `${totalLecturesCount} Lessons · Multimedia (Video, Audio, Text & Infographics)`
+          : courseFormat === 'audio'
+          ? `${totalLecturesCount} Audio Lessons · Podcast`
+          : courseFormat === 'infographic'
+          ? `${totalLecturesCount} Lessons · Infographics & Visuals`
+          : courseFormat === 'text'
           ? `${totalLecturesCount} Text Lessons · Reading`
           : courseFormat === 'mixed'
           ? `${totalLecturesCount} Lessons · Mixed (Video & Text)`
@@ -760,8 +783,8 @@ export function ProductEditorModal({
                   <h3 className="font-display text-sm font-bold text-slate-900">
                     Curriculum Modules & Lectures
                   </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Build pure text-based reading courses (articles/guides), video courses, or mixed hybrid modules.
+                  <p className="text-[11px] text-slate-600 font-medium">
+                    Build multimedia courses combining video, audio/podcasts, text/articles, images/infographics, and downloadable toolkits.
                   </p>
                 </div>
                 <button
@@ -866,58 +889,82 @@ export function ProductEditorModal({
                             )}
                           </div>
 
-                          {/* Lecture Format Switcher: Video vs Text Only vs Mixed */}
+                          {/* Lecture Format Switcher: Video, Audio, Text, Infographic, Multimedia */}
                           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/60">
-                            <span className="text-[11px] font-bold text-slate-600">Lesson Type:</span>
-                            <div className="inline-flex items-center p-0.5 bg-slate-200/80 rounded-md">
+                            <span className="text-[11px] font-bold text-slate-700">Lesson Type:</span>
+                            <div className="inline-flex flex-wrap items-center p-0.5 bg-slate-200/80 rounded-md gap-0.5">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'video' })}
-                                className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
                                   currentFormat === 'video'
                                     ? 'bg-white text-slate-900 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900'
+                                    : 'text-slate-700 hover:text-slate-900'
                                 }`}
                               >
                                 <Video className="w-3 h-3 text-red-600" />
-                                <span>Video Lesson</span>
+                                <span>Video</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'audio' })}
+                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                  currentFormat === 'audio'
+                                    ? 'bg-white text-slate-900 shadow-xs'
+                                    : 'text-slate-700 hover:text-slate-900'
+                                }`}
+                              >
+                                <Headphones className="w-3 h-3 text-amber-600" />
+                                <span>Audio</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'text' })}
-                                className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
                                   currentFormat === 'text' || currentFormat === 'article'
                                     ? 'bg-white text-slate-900 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900'
+                                    : 'text-slate-700 hover:text-slate-900'
                                 }`}
                               >
                                 <BookOpen className="w-3 h-3 text-blue-600" />
-                                <span>Text Only (No Video)</span>
+                                <span>Text</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'mixed' })}
-                                className={`px-2.5 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
-                                  currentFormat === 'mixed'
+                                onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'infographic' })}
+                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                  currentFormat === 'infographic' || currentFormat === 'image'
                                     ? 'bg-white text-slate-900 shadow-xs'
-                                    : 'text-slate-600 hover:text-slate-900'
+                                    : 'text-slate-700 hover:text-slate-900'
+                                }`}
+                              >
+                                <Image className="w-3 h-3 text-emerald-600" />
+                                <span>Infographic/Image</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateLecture(mIdx, lIdx, { lectureType: 'multimedia' })}
+                                className={`px-2 py-1 text-[10px] font-bold rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                                  currentFormat === 'multimedia' || currentFormat === 'mixed'
+                                    ? 'bg-white text-slate-900 shadow-xs'
+                                    : 'text-slate-700 hover:text-slate-900'
                                 }`}
                               >
                                 <Sparkles className="w-3 h-3 text-purple-600" />
-                                <span>Mixed (Video + Reading)</span>
+                                <span>Multimedia</span>
                               </button>
                             </div>
                           </div>
 
-                          {/* Video Stream URL Input (for video or mixed) */}
-                          {(currentFormat === 'video' || currentFormat === 'mixed') && (
+                          {/* Video Stream URL Input (for video, mixed, or multimedia) */}
+                          {(currentFormat === 'video' || currentFormat === 'mixed' || currentFormat === 'multimedia') && (
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
                               <div className="flex-1 flex items-center gap-1.5">
-                                <Video className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <Video className="w-3.5 h-3.5 text-red-600 shrink-0" />
                                 <input
                                   type="url"
                                   value={lec.videoUrl ?? ''}
-                                  placeholder="Paste YouTube Unlisted, Google Drive, Vimeo, or MP4 link..."
+                                  placeholder="Paste YouTube Unlisted, Google Drive, Vimeo, or MP4 video link..."
                                   onChange={(e) =>
                                     handleUpdateLecture(mIdx, lIdx, { videoUrl: e.target.value })
                                   }
@@ -940,20 +987,67 @@ export function ProductEditorModal({
                                   {getProviderLabel(media.provider)}
                                 </span>
                               ) : (
-                                <span className="text-[10px] text-slate-400 shrink-0 italic">
+                                <span className="text-[10px] text-slate-500 shrink-0 italic">
                                   Canvas Narrator & Watermark Active
                                 </span>
                               )}
                             </div>
                           )}
 
-                          {/* Text/Article Reading Content textarea (for text or mixed) */}
-                          {(currentFormat === 'text' || currentFormat === 'article' || currentFormat === 'mixed') && (
+                          {/* Audio Stream URL Input (for audio or multimedia) */}
+                          {(currentFormat === 'audio' || currentFormat === 'multimedia') && (
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <Headphones className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <input
+                                type="url"
+                                value={lec.audioUrl ?? ''}
+                                placeholder="Paste MP3, WAV, SoundCloud, or Podcast audio stream URL..."
+                                onChange={(e) =>
+                                  handleUpdateLecture(mIdx, lIdx, { audioUrl: e.target.value })
+                                }
+                                className="flex-1 h-7 px-2 text-[11px] bg-white border border-slate-200 rounded focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                              />
+                            </div>
+                          )}
+
+                          {/* Infographic / Image URL Input (for infographic, image, or multimedia) */}
+                          {(currentFormat === 'infographic' || currentFormat === 'image' || currentFormat === 'multimedia') && (
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <Image className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <input
+                                type="url"
+                                value={lec.infographicUrl ?? lec.imageUrl ?? ''}
+                                placeholder="Paste Infographic, Architecture Diagram, or Slide Image URL (PNG/JPG/SVG/WebP)..."
+                                onChange={(e) =>
+                                  handleUpdateLecture(mIdx, lIdx, {
+                                    infographicUrl: e.target.value,
+                                    imageUrl: e.target.value,
+                                  })
+                                }
+                                className="flex-1 h-7 px-2 text-[11px] bg-white border border-slate-200 rounded focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </div>
+                          )}
+
+                          {/* Text/Article Reading Content textarea (for text, infographic, audio, or multimedia) */}
+                          {(currentFormat === 'text' ||
+                            currentFormat === 'article' ||
+                            currentFormat === 'mixed' ||
+                            currentFormat === 'multimedia' ||
+                            currentFormat === 'infographic' ||
+                            currentFormat === 'image' ||
+                            currentFormat === 'audio') && (
                             <div className="space-y-1 pt-1">
                               <div className="flex items-center justify-between">
                                 <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                                   <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>Text Lesson Content (Reading / Article / Guide / Code)</span>
+                                  <span>
+                                    {currentFormat === 'audio'
+                                      ? 'Audio Show Notes / Transcript'
+                                      : currentFormat === 'infographic' || currentFormat === 'image'
+                                      ? 'Infographic Analysis & Explanatory Notes'
+                                      : 'Text Lesson Content (Reading/Article/Guide/Code)'}
+                                  </span>
                                 </label>
                                 <span className="text-[10px] text-slate-400 font-mono">Supports formatted text & markdown</span>
                               </div>

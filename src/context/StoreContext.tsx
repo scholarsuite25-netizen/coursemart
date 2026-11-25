@@ -1295,8 +1295,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: normalizedEmail, name: name.trim() }),
         });
-      } catch {
-        // Email send failure is non-blocking; user is still registered.
+      } catch (error) {
+        console.error('📧 Welcome email send failed (non-blocking):', 
+          error instanceof Error ? error.message : String(error));
       }
 
       resyncPersonalKeys();
