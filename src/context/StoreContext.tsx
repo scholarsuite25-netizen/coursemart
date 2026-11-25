@@ -1286,6 +1286,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // Offline — local session only.
       }
 
+      // Send branded welcome email via the newsletter subscribe endpoint.
+      // Since the user just registered, they already exist in the store,
+      // so this will update their newsletterOptIn and trigger the email.
+      try {
+        await fetch('/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: normalizedEmail, name: name.trim() }),
+        });
+      } catch {
+        // Email send failure is non-blocking; user is still registered.
+      }
+
       resyncPersonalKeys();
       showToast(
         newsletterOptIn
