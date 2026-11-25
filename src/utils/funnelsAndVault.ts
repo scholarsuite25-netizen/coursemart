@@ -15,7 +15,7 @@ import type {
 } from '../types/marketplace';
 import { roundCurrency, migrateLegacyTier } from './commerce.ts';
 import { resolveInitialOrderStatus } from './automation.ts';
-import { SEED_PROMPT_VAULT_ITEMS } from '../data/promptVaultCatalog';
+import { SEED_PROMPT_VAULT_ITEMS } from '../data/promptVaultCatalog.ts';
 
 // ==========================================
 // Sales Funnel Calculations

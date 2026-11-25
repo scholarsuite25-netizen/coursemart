@@ -1,4 +1,4 @@
-import { escapeHtml } from './tutorialCreator';
+import { escapeHtml } from './tutorialCreator.ts';
 import type { DocumentTutorial } from '../types/tutorial';
 
 /**

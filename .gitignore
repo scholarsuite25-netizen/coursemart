@@ -15,3 +15,6 @@ public/assets/aistudio/*.txt
 .vercel
 .env*
 .agents/
+
+.vercel
+.env*

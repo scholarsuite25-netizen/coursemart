@@ -4,8 +4,8 @@ import type {
   VideoNarratorConfig,
   VideoScene,
 } from '../types/tutorial';
-import { repurposeYouTubeToCourse } from './youtubeRepurposer';
-import { parseYouTubeVideoId } from './youtubeRepurposer';
+import { repurposeYouTubeToCourse } from './youtubeRepurposer.ts';
+import { parseYouTubeVideoId } from './youtubeRepurposer.ts';
 
 /**
  * Escapes special XML / HTML characters to prevent XSS.

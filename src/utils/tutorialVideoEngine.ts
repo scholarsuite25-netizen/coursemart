@@ -1,5 +1,5 @@
 import type { VideoNarratorConfig, VideoScene } from '../types/tutorial';
-import { formatCanvasWatermark } from './contentProtection';
+import { formatCanvasWatermark } from './contentProtection.ts';
 
 export interface VideoRenderOptions {
   activeAudioLevel?: number; // 0..1 for animated waveform
