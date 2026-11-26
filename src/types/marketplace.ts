@@ -13,7 +13,11 @@ export type BlogCategory =
   | 'Mentorship'
   | 'Leadership'
   | 'Vibe Coding'
-  | 'Apps Deployment';
+  | 'Apps Deployment'
+  | 'Wealth Creation'
+  | 'E-Commerce'
+  | 'Digital Marketing'
+  | 'Freelancing';
 
 export type BlogStatus = 'published' | 'draft' | 'scheduled';
 

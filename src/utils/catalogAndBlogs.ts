@@ -93,9 +93,43 @@ export const BLOG_CATEGORY_ITEMS: BlogCategoryMeta[] = [
     description:
       'Zero-downtime releases, container hardening, Cloud Run / edge hosting, environment secrets, and observability.',
   },
+  {
+    category: 'Wealth Creation',
+    slug: 'wealth-creation',
+    route: '/blogs/category/wealth-creation',
+    description:
+      'Practical wealth building frameworks, currency hedging, foreign exchange income, and financial preservation strategies.',
+  },
+  {
+    category: 'E-Commerce',
+    slug: 'e-commerce',
+    route: '/blogs/category/e-commerce',
+    description:
+      'WhatsApp commerce, status selling funnels, digital product storefronts, and automated payment collection with Paystack.',
+  },
+  {
+    category: 'Digital Marketing',
+    slug: 'digital-marketing',
+    route: '/blogs/category/digital-marketing',
+    description:
+      'High-converting organic social funnels, direct-response copywriting, affiliate scaling, and lead generation.',
+  },
+  {
+    category: 'Freelancing',
+    slug: 'freelancing',
+    route: '/blogs/category/freelancing',
+    description:
+      'Landing high-paying overseas clients, Upwork optimization, dollar invoicing, and selling freelance services from Nigeria.',
+  },
 ];
 
 export const ALL_PRODUCT_TOPICS: string[] = [
+  'Wealth Creation',
+  'AI & Automation',
+  'WhatsApp & E-Commerce',
+  'Affiliate Marketing',
+  'Copywriting & Freelance',
+  'No-Code & Tech',
   'AI',
   'Mentorship',
   'Leadership',

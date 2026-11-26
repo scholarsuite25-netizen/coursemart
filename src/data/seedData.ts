@@ -28,6 +28,13 @@ import type {
   UserMembership,
   WhatsAppGroup,
 } from '../types/marketplace';
+import {
+  REAL_WEALTH_PRODUCTS,
+  REAL_WEALTH_BLOGS,
+  REAL_WEALTH_EVENTS,
+  INSTRUCTOR_BABATUNDE,
+  INSTRUCTOR_CHIOMA,
+} from './realWealthContent';
 
 export const HERO_BANNER_IMAGE =
   '/src/assets/images/hero_learning_workspace_1794890414767.jpg';
@@ -102,9 +109,32 @@ export const SEED_USERS: UserAccount[] = [
     newsletterOptIn: false,
     joinedAt: '2025-01-10T08:00:00Z',
   },
+  {
+    id: INSTRUCTOR_BABATUNDE.id,
+    name: INSTRUCTOR_BABATUNDE.name,
+    email: 'babatunde@digitalwealthcreators.com',
+    password: 'demo1234',
+    role: 'instructor',
+    avatar: INSTRUCTOR_BABATUNDE.avatar,
+    title: INSTRUCTOR_BABATUNDE.role,
+    newsletterOptIn: true,
+    joinedAt: '2025-02-01T09:00:00Z',
+  },
+  {
+    id: INSTRUCTOR_CHIOMA.id,
+    name: INSTRUCTOR_CHIOMA.name,
+    email: 'chioma@digitalwealthcreators.com',
+    password: 'demo1234',
+    role: 'instructor',
+    avatar: INSTRUCTOR_CHIOMA.avatar,
+    title: INSTRUCTOR_CHIOMA.role,
+    newsletterOptIn: true,
+    joinedAt: '2025-02-15T09:00:00Z',
+  },
 ];
 
 export const SEED_PRODUCTS: Product[] = [
+  ...REAL_WEALTH_PRODUCTS,
   {
     id: 'prod-group-membership',
     slug: 'dwc-group-membership-15',
@@ -1660,6 +1690,7 @@ export const SEED_PRODUCTS: Product[] = [
 ];
 
 export const SEED_BLOG_POSTS: BlogPost[] = [
+  ...REAL_WEALTH_BLOGS,
   {
     id: 'blog-1',
     slug: 'vibe-coding-with-production-guardrails',
@@ -2787,6 +2818,7 @@ export const SEED_SHOWCASE_SITES: ShowcaseSite[] = [
 ];
 
 export const SEED_EVENTS: CoursemartEvent[] = [
+  ...REAL_WEALTH_EVENTS,
   {
     id: 'evt-1',
     slug: 'vibe-coding-production-apps-workshop',

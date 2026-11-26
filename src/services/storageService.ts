@@ -26,6 +26,7 @@ import {
   SEED_GROUP_MEMBERSHIPS,
   SEED_GROUP_MEMBERSHIP_SEATS,
 } from '../data/seedData';
+import { REAL_WEALTH_TUTORIALS } from '../data/realWealthContent';
 import type {
   AffiliateConversion,
   AffiliatePayoutRequest,
@@ -230,6 +231,7 @@ export const SEED_FACILITATOR_BOOKINGS: FacilitatorBooking[] = [
 ];
 
 export const SEED_TUTORIALS: DocumentTutorial[] = [
+  ...REAL_WEALTH_TUTORIALS,
   {
     id: 'tut-ai-agents-automation',
     slug: 'building-autonomous-multi-model-ai-agents-with-typescript',
@@ -366,7 +368,10 @@ export const storageService = {
   getProducts: (): Product[] => {
     const list = readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
     if (!Array.isArray(list)) return [];
-    return list.map((p) => {
+    const existingIds = new Set(list.map((p) => p.id));
+    const missing = SEED_PRODUCTS.filter((p) => !existingIds.has(p.id));
+    const combined = missing.length > 0 ? [...missing, ...list] : list;
+    return combined.map((p) => {
       if (p && p.includedInMembershipTier && ['starter', 'pro', 'vip', 'enterprise'].includes(p.includedInMembershipTier as string)) {
         return {
           ...p,
@@ -378,10 +383,22 @@ export const storageService = {
   },
   saveProducts: (products: Product[]): void => writeStorage(STORAGE_KEYS.PRODUCTS, products),
 
-  getBlogPosts: (): BlogPost[] => readStorage(STORAGE_KEYS.BLOGS, SEED_BLOG_POSTS),
+  getBlogPosts: (): BlogPost[] => {
+    const list = readStorage(STORAGE_KEYS.BLOGS, SEED_BLOG_POSTS);
+    if (!Array.isArray(list)) return [];
+    const existingIds = new Set(list.map((b) => b.id));
+    const missing = SEED_BLOG_POSTS.filter((b) => !existingIds.has(b.id));
+    return missing.length > 0 ? [...missing, ...list] : list;
+  },
   saveBlogPosts: (posts: BlogPost[]): void => writeStorage(STORAGE_KEYS.BLOGS, posts),
 
-  getTutorials: (): DocumentTutorial[] => readStorage(STORAGE_KEYS.TUTORIALS, SEED_TUTORIALS),
+  getTutorials: (): DocumentTutorial[] => {
+    const list = readStorage(STORAGE_KEYS.TUTORIALS, SEED_TUTORIALS);
+    if (!Array.isArray(list)) return [];
+    const existingIds = new Set(list.map((t) => t.id));
+    const missing = SEED_TUTORIALS.filter((t) => !existingIds.has(t.id));
+    return missing.length > 0 ? [...missing, ...list] : list;
+  },
   saveTutorials: (tutorials: DocumentTutorial[]): void =>
     writeStorage(STORAGE_KEYS.TUTORIALS, tutorials),
 
@@ -507,8 +524,13 @@ export const storageService = {
   saveShowcaseSites: (list: ShowcaseSite[]): void =>
     writeStorage(STORAGE_KEYS.SHOWCASE_SITES, list),
 
-  getEvents: (): CoursemartEvent[] =>
-    readStorage(STORAGE_KEYS.EVENTS, SEED_EVENTS),
+  getEvents: (): CoursemartEvent[] => {
+    const list = readStorage(STORAGE_KEYS.EVENTS, SEED_EVENTS);
+    if (!Array.isArray(list)) return [];
+    const existingIds = new Set(list.map((e) => e.id));
+    const missing = SEED_EVENTS.filter((e) => !existingIds.has(e.id));
+    return missing.length > 0 ? [...missing, ...list] : list;
+  },
   saveEvents: (list: CoursemartEvent[]): void =>
     writeStorage(STORAGE_KEYS.EVENTS, list),
 
