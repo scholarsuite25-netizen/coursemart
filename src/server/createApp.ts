@@ -2955,8 +2955,9 @@ Requirements:
     }
 
     try {
-      const { question, context, category, userId: bodyUserId, userEmail: bodyUserEmail } = req.body ?? {};
-      const cleanQ = typeof question === 'string' ? question.trim() : '';
+      const { question, query, context, category, userId: bodyUserId, userEmail: bodyUserEmail } = req.body ?? {};
+      const rawPrompt = typeof question === 'string' && question.trim() ? question : typeof query === 'string' ? query : '';
+      const cleanQ = rawPrompt.trim();
 
       // Determine user tier: paid, free, or anonymous
       const userSession = readUserSession(req);

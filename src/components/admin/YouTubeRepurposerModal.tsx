@@ -217,7 +217,7 @@ export const YouTubeRepurposerModal: React.FC<YouTubeRepurposerModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Custom Title (Optional)</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Custom Title (Optional)</label>
                 <input
                   type="text"
                   placeholder="Leave empty for auto-title"
@@ -228,7 +228,7 @@ export const YouTubeRepurposerModal: React.FC<YouTubeRepurposerModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Category</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -243,7 +243,7 @@ export const YouTubeRepurposerModal: React.FC<YouTubeRepurposerModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Price (₦ NGN)</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Price (₦ NGN)</label>
                 <input
                   type="number"
                   value={targetPrice}
@@ -255,7 +255,7 @@ export const YouTubeRepurposerModal: React.FC<YouTubeRepurposerModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Difficulty Level</label>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Difficulty Level</label>
                 <select
                   value={level}
                   onChange={(e) => setLevel(e.target.value as any)}
