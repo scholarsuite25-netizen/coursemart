@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Award,
   BookOpen,
   Calendar,
   ChevronDown,
   Code2,
   Crown,
   FileText,
-  Film,
   Globe,
-  GraduationCap,
   Heart,
   LayoutDashboard,
   LogOut,
@@ -26,7 +23,6 @@ import {
   User,
   UserCheck,
   X,
-  Zap,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import {
@@ -225,19 +221,6 @@ export function Header() {
                   <Code2 className="w-3.5 h-3.5 text-[#d4af37]" />
                   <span>Software & Licenses</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => goToRoute('/funnel/ai-saas-accelerator')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-amber-50/70 flex items-center justify-between cursor-pointer border-t border-slate-100"
-                >
-                  <span className="flex items-center gap-2">
-                    <Zap className="w-3.5 h-3.5 text-amber-500" />
-                    <span>AI Launch Accelerator</span>
-                  </span>
-                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                    65% OFF
-                  </span>
-                </button>
               </div>
             )}
           </div>
@@ -302,21 +285,6 @@ export function Header() {
                   </span>
                 </button>
 
-                {/* Document Tutorials & Video Guides */}
-                <button
-                  type="button"
-                  onClick={() => goToRoute('/tutorials')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer border-b border-slate-100"
-                >
-                  <span className="flex items-center gap-2">
-                    <Film className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Tutorials & Video Guides</span>
-                  </span>
-                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                    Guides
-                  </span>
-                </button>
-
                 {/* Events & Masterclasses */}
                 <button
                   type="button"
@@ -347,51 +315,6 @@ export function Header() {
                   </span>
                 </button>
 
-                {/* Certificate Verification */}
-                <button
-                  type="button"
-                  onClick={() => goToRoute('/verify-certificate')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Award className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Verify Certificate</span>
-                  </span>
-                  <span className="text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
-                    Verify
-                  </span>
-                </button>
-
-                {/* AI Launch Accelerator Funnel */}
-                <button
-                  type="button"
-                  onClick={() => goToRoute('/funnel/ai-saas-accelerator')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <Zap className="w-3.5 h-3.5 text-amber-500" />
-                    <span>AI Launch Accelerator</span>
-                  </span>
-                  <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
-                    Funnel
-                  </span>
-                </button>
-
-                {/* Instructor Studio */}
-                <button
-                  type="button"
-                  onClick={() => goToRoute('/instructor')}
-                  className="w-full px-3.5 py-2 text-left text-xs font-semibold text-slate-800 hover:bg-slate-50 flex items-center justify-between cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    <GraduationCap className="w-3.5 h-3.5 text-[#0a192f]" />
-                    <span>Instructor Studio</span>
-                  </span>
-                  <span className="text-[9px] font-bold uppercase bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
-                    Teach
-                  </span>
-                </button>
-
                 {/* Promoter & Facilitator */}
                 <button
                   type="button"
@@ -418,7 +341,7 @@ export function Header() {
                     <span>Affiliate Program</span>
                   </span>
                   <span className="text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
-                    20%
+                    10%
                   </span>
                 </button>
 
@@ -911,38 +834,6 @@ export function Header() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => goToRoute('/tutorials')}
-                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-amber-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
-                  >
-                    <span>Tutorials & Video Guides</span>
-                    <span className="text-[9px] bg-amber-900/60 text-amber-200 px-1.5 py-0.5 rounded">AI Video</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => goToRoute('/verify-certificate')}
-                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-emerald-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
-                  >
-                    <span>Verify Certificate</span>
-                    <span className="text-[9px] bg-emerald-900 text-emerald-200 px-1.5 py-0.5 rounded">Verify</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => goToRoute('/funnel/ai-saas-accelerator')}
-                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-amber-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
-                  >
-                    <span>AI Launch Accelerator</span>
-                    <span className="text-[9px] bg-amber-900 text-amber-200 px-1.5 py-0.5 rounded">65% OFF</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => goToRoute('/instructor')}
-                    className="w-full py-1.5 px-2 text-left text-xs font-semibold text-blue-300 hover:bg-[#112240] rounded cursor-pointer flex items-center justify-between"
-                  >
-                    <span>Instructor Studio</span>
-                    <span className="text-[9px] bg-blue-900 text-blue-200 px-1.5 py-0.5 rounded">Teach</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => goToRoute('/events')}
                     className="w-full py-1.5 px-2 text-left text-xs text-slate-300 hover:text-white hover:bg-[#112240] rounded cursor-pointer"
                   >
@@ -953,7 +844,7 @@ export function Header() {
                     onClick={() => goToRoute('/affiliates')}
                     className="w-full py-1.5 px-2 text-left text-xs text-slate-300 hover:text-white hover:bg-[#112240] rounded cursor-pointer"
                   >
-                    Affiliate Program (20% Commission)
+                    Affiliate Program (10% Commission)
                   </button>
                   <button
                     type="button"

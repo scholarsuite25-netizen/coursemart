@@ -399,7 +399,7 @@ export function Footer() {
                 onClick={() => navigate('/affiliates')}
                 className="hover:text-[#f5c451] transition-colors cursor-pointer text-left"
               >
-                Affiliate Program (20%)
+                Affiliate Program (10%)
               </button>
             </li>
           </ul>
