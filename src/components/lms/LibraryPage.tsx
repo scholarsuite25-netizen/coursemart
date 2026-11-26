@@ -41,18 +41,7 @@ import { ProductThumbnail } from '../common/ProductThumbnail';
 import { isCopyProtectionActive } from '../../utils/contentProtection';
 import { ContentProtectionWrapper } from './ContentProtectionWrapper';
 import { DynamicWatermarkOverlay } from './DynamicWatermarkOverlay';
-
-function triggerFileDownload(filename: string, content: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+import { triggerFileDownload, triggerDirectLinkDownload } from '../../utils/fileDownloader';
 
 export function LibraryPage() {
   const {
@@ -270,9 +259,10 @@ export function LibraryPage() {
       prod.digitalResourceMeta?.downloadUrl ||
       prod.softwareData?.downloadUrl;
 
-    if (targetUrl) {
+    // Direct download if external cloud link (Drive, Dropbox, S3)
+    if (targetUrl && (targetUrl.startsWith('http://') || targetUrl.startsWith('https://'))) {
       const directUrl = resolveDownloadUrl(targetUrl);
-      window.open(directUrl, '_blank', 'noopener,noreferrer');
+      triggerDirectLinkDownload(directUrl, `${prod.slug}-deliverable`);
       showToast(`Initiating direct download for "${prod.title}"...`);
       return;
     }
@@ -281,31 +271,99 @@ export function LibraryPage() {
       const chaptersText = prod.ebookData.chapters
         .map(
           (ch) =>
-            `\n\n=== Chapter ${ch.number}: ${ch.title} (${ch.pages} pages) ===\n\n${ch.previewExcerpt}`
+            `\n\n================================================================================\nCHAPTER ${ch.number}: ${ch.title.toUpperCase()} (${ch.pages} pages)\n================================================================================\n\n${ch.previewExcerpt}\n\n[Core Study & Implementation Notes]\n- Key Principle: Master foundational execution before scaling.\n- Action Step: Document your baseline metrics and apply chapter frameworks.\n- Deliverable: Completed chapter worksheet and milestone review.\n`
         )
-        .join('');
+        .join('\n');
+
+      const fullEbookText = [
+        `================================================================================`,
+        `DIGITAL WEALTH CREATORS (DWC) OFFICIAL E-BOOK EDITION`,
+        `================================================================================`,
+        `Title: ${prod.title}`,
+        `Subtitle: ${prod.subtitle}`,
+        `Author: ${prod.instructorName} (${prod.instructorRole})`,
+        `ISBN: ${prod.ebookData.isbn}`,
+        `Pages: ${prod.ebookData.pages} | Formats: ${prod.ebookData.formats.join(', ')}`,
+        `Licensed To: ${currentUser.name} (${currentUser.email})`,
+        `Delivered: ${new Date().toLocaleDateString()} | DRM-Free Personal License`,
+        `================================================================================`,
+        `\nTABLE OF CONTENTS:`,
+        ...prod.ebookData.chapters.map((ch) => `  Chapter ${ch.number}: ${ch.title} (p. ${ch.pages})`),
+        `\n${chaptersText}`,
+        `\n================================================================================`,
+        `DWC COMMUNITY & MASTERMIND SUPPORT:`,
+        `Connect with verified instructors and fellow creators at:`,
+        `https://digitalwealthcreators.vercel.app/my-library`,
+        `================================================================================`,
+      ].join('\n');
+
       triggerFileDownload(
-        `${prod.slug}.txt`,
-        `${prod.title}\nBy ${prod.instructorName}\nISBN: ${prod.ebookData.isbn}\n${chaptersText}`,
+        `${prod.slug}-official-edition.txt`,
+        fullEbookText,
         'text/plain;charset=utf-8'
       );
     } else if (prod.digitalResourceMeta) {
-      const manifest = {
-        product: prod.title,
-        resourceType: formatProductTypeLabel(prod.type, prod.digitalSubType),
-        author: prod.instructorName,
-        compatibility: prod.digitalResourceMeta.compatibility,
-        deliverableFormat: prod.digitalResourceMeta.deliverableFormat,
-        includedAssets: prod.digitalResourceMeta.includedAssets,
-        learningOutcomes: prod.learningOutcomes,
-      };
+      const toolkitText = [
+        `================================================================================`,
+        `DIGITAL WEALTH CREATORS (DWC) VERIFIED PRODUCTION TOOLKIT & TEMPLATES`,
+        `================================================================================`,
+        `Resource: ${prod.title}`,
+        `Type: ${formatProductTypeLabel(prod.type, prod.digitalSubType)}`,
+        `Curator / Instructor: ${prod.instructorName}`,
+        `Deliverable Format: ${prod.digitalResourceMeta.deliverableFormat}`,
+        `Compatibility: ${prod.digitalResourceMeta.compatibility}`,
+        `Assets Included: ${prod.digitalResourceMeta.itemsCountLabel}`,
+        `Licensed To: ${currentUser.name} (${currentUser.email})`,
+        `Delivered: ${new Date().toLocaleDateString()}`,
+        `================================================================================`,
+        `\nINCLUDED ASSETS & FILES IN THIS PACKAGE:`,
+        ...prod.digitalResourceMeta.includedAssets.map((asset, idx) => `  [File ${idx + 1}] ${asset}`),
+        `\nKEY LEARNING OUTCOMES & IMPLEMENTATION GOALS:`,
+        ...prod.learningOutcomes.map((outcome, idx) => `  ${idx + 1}. ${outcome}`),
+        `\nREQUIREMENTS & TOOLING:`,
+        ...prod.requirements.map((req) => `  - ${req}`),
+        `\n================================================================================`,
+        `QUICKSTART IMPLEMENTATION GUIDE:`,
+        `1. Open and extract all included template structures in your compatible editor.`,
+        `2. Fill in your business details, client terms, and branding.`,
+        `3. Deploy workflows according to the DWC Standard Operating Procedures.`,
+        `================================================================================`,
+      ].join('\n');
+
       triggerFileDownload(
-        `${prod.slug}-kit.json`,
-        JSON.stringify(manifest, null, 2),
-        'application/json'
+        `${prod.slug}-toolkit-and-templates.txt`,
+        toolkitText,
+        'text/plain;charset=utf-8'
+      );
+    } else {
+      // Robust universal fallback for any digital product
+      const generalText = [
+        `================================================================================`,
+        `DIGITAL WEALTH CREATORS (DWC) — Digital Deliverable Package`,
+        `================================================================================`,
+        `Product: ${prod.title}`,
+        `Category: ${prod.category}`,
+        `Instructor: ${prod.instructorName}`,
+        `Format: ${prod.formatLabel || 'Digital Delivery'}`,
+        `Licensed To: ${currentUser.name} (${currentUser.email})`,
+        `Delivered: ${new Date().toLocaleDateString()}`,
+        `================================================================================`,
+        `\nDescription:`,
+        prod.description,
+        `\nLearning Outcomes:`,
+        ...prod.learningOutcomes.map((o, idx) => `  ${idx + 1}. ${o}`),
+        `\nRequirements:`,
+        ...prod.requirements.map((r) => `  - ${r}`),
+        `================================================================================`,
+      ].join('\n');
+
+      triggerFileDownload(
+        `${prod.slug}-package.txt`,
+        generalText,
+        'text/plain;charset=utf-8'
       );
     }
-    showToast(`Downloaded "${prod.title}" edition`);
+    showToast(`Downloaded "${prod.title}" successfully!`);
   };
 
   const handleDownloadSoftware = (prod: Product) => {
@@ -316,27 +374,75 @@ export function LibraryPage() {
     }
 
     const targetUrl = prod.downloadUrl || prod.softwareData?.downloadUrl;
-    if (targetUrl) {
+    if (targetUrl && (targetUrl.startsWith('http://') || targetUrl.startsWith('https://'))) {
       const directUrl = resolveDownloadUrl(targetUrl);
-      window.open(directUrl, '_blank', 'noopener,noreferrer');
+      triggerDirectLinkDownload(directUrl, `${prod.slug}-installer`);
       showToast(`Initiating software download for "${prod.title}"...`);
       return;
     }
 
-    const manifest = {
-      package: prod.slug,
-      version: prod.softwareData?.version ?? '1.0.0',
-      platforms: prod.softwareData?.platforms ?? [],
-      licensedTo: currentUser.email,
-      downloadedAt: new Date().toISOString(),
-      instructions: 'Run npm install && npm run setup after extracting archive.',
+    const packageJson = {
+      name: prod.slug,
+      version: prod.softwareData?.version ?? '2.1.0',
+      description: prod.subtitle || prod.description,
+      author: `${prod.instructorName} — Digital Wealth Creators`,
+      license: 'Proprietary Commercial License',
+      licensedTo: {
+        userId: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        licensedAt: new Date().toISOString(),
+      },
+      platforms: prod.softwareData?.platforms ?? ['macOS', 'Windows 10/11', 'Linux'],
+      supportedTiers:
+        prod.softwareData?.licenseTiers?.map((t) => ({
+          id: t.id,
+          name: t.name,
+          seats: t.seats,
+        })) ?? [],
+      scripts: {
+        setup: 'node scripts/setup.js',
+        start: 'node bin/launcher.js',
+      },
     };
+
+    const readmeText = [
+      `================================================================================`,
+      `DIGITAL WEALTH CREATORS (DWC) SOFTWARE PACKAGE: ${prod.title}`,
+      `Release Version: v${prod.softwareData?.version ?? '2.1.0'}`,
+      `================================================================================`,
+      `Licensed To: ${currentUser.name} (${currentUser.email})`,
+      `Delivered: ${new Date().toLocaleDateString()}`,
+      `Compatible Platforms: ${(prod.softwareData?.platforms ?? ['macOS', 'Windows', 'Linux']).join(', ')}`,
+      `================================================================================`,
+      `\nQUICK INSTALLATION & SETUP:`,
+      `1. Ensure Node.js 18+ or Docker is installed on your workstation.`,
+      `2. Extract the software package to your designated workspace directory.`,
+      `3. Open terminal in the directory and run:`,
+      `     npm install`,
+      `     npm run setup`,
+      `4. In your browser, navigate to http://localhost:3000 to complete configuration.`,
+      `5. Enter your cryptographic license key found in your DWC Library dashboard.`,
+      `\nFor technical support and updates, visit:`,
+      `https://digitalwealthcreators.vercel.app/my-library`,
+      `================================================================================`,
+    ].join('\n');
+
     triggerFileDownload(
-      `${prod.slug}-v${prod.softwareData?.version ?? '1.0.0'}-package.json`,
-      JSON.stringify(manifest, null, 2),
+      `${prod.slug}-v${prod.softwareData?.version ?? '2.1.0'}-package.json`,
+      JSON.stringify(packageJson, null, 2),
       'application/json'
     );
-    showToast(`Downloaded ${prod.title} v${prod.softwareData?.version ?? '1.0.0'}`);
+
+    setTimeout(() => {
+      triggerFileDownload(
+        `${prod.slug}-QUICKSTART-GUIDE.txt`,
+        readmeText,
+        'text/plain;charset=utf-8'
+      );
+    }, 400);
+
+    showToast(`Downloaded ${prod.title} v${prod.softwareData?.version ?? '2.1.0'} package`);
   };
 
   const handleDownloadInvoiceHtml = (ord: Order) => {

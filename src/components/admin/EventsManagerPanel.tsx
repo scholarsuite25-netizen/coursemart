@@ -26,17 +26,10 @@ import {
 } from '../../utils/events';
 import { formatNaira } from '../../utils/currency';
 import { slugifyText } from '../../utils/catalogAndBlogs';
+import { triggerFileDownload } from '../../utils/fileDownloader';
 
 function downloadCsv(filename: string, csvText: string) {
-  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  triggerFileDownload(filename, csvText, 'text/csv;charset=utf-8');
 }
 
 function toDatetimeLocal(iso: string): string {

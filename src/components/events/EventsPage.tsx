@@ -40,18 +40,7 @@ import { PaystackChannelPicker } from '../common/PaystackChannelPicker';
 import { SeoHead } from '../common/SeoHead';
 import { DEFAULT_SITE_URL } from '../../utils/seoHead';
 import { buildEventSchema } from '../../utils/seoSchema';
-
-function triggerDownload(filename: string, content: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+import { triggerFileDownload } from '../../utils/fileDownloader';
 
 export function EventsPage() {
   const {
@@ -244,7 +233,7 @@ export function EventsPage() {
 
   const handleDownloadIcs = (event: CoursemartEvent, code?: string) => {
     const ics = buildEventIcsContent(event, code);
-    triggerDownload(`${event.slug}.ics`, ics, 'text/calendar;charset=utf-8');
+    triggerFileDownload(`${event.slug}.ics`, ics, 'text/calendar;charset=utf-8');
     showToast('Downloaded calendar invite (.ics)');
   };
 
@@ -268,7 +257,7 @@ export function EventsPage() {
         (m, i) => `  ${i + 1}. [${m.type.toUpperCase()}] ${m.title}\n     ${m.summary}\n     Resource: ${m.urlOrNotes}`
       ),
     ].join('\n');
-    triggerDownload(`${event.slug}-pre-event-kit.txt`, lines, 'text/plain;charset=utf-8');
+    triggerFileDownload(`${event.slug}-pre-event-kit.txt`, lines, 'text/plain;charset=utf-8');
     showToast('Downloaded Pre-Event Preparation Kit');
   };
 

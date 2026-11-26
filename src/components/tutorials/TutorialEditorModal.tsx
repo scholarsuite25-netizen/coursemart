@@ -29,6 +29,7 @@ import {
   formatTutorialAsMarkdown,
 } from '../../utils/tutorialCreator';
 import { Link2 } from 'lucide-react';
+import { triggerFileDownload } from '../../utils/fileDownloader';
 
 export interface TutorialEditorModalProps {
   isOpen: boolean;
@@ -176,15 +177,7 @@ export const TutorialEditorModal: React.FC<TutorialEditorModalProps> = ({
   };
 
   const downloadTextFile = (content: string, filename: string, mime: string) => {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerFileDownload(filename, content, mime);
   };
 
   const handleExportMarkdown = () => {

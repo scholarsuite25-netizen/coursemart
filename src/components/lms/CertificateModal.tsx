@@ -7,6 +7,7 @@ import {
   generateVerificationUrl,
 } from '../../utils/certificateUtils';
 import { useStore } from '../../context/StoreContext';
+import { triggerFileDownload } from '../../utils/fileDownloader';
 
 export interface CertificateModalProps {
   isOpen: boolean;
@@ -252,15 +253,7 @@ export function CertificateModal({
 
   const handleDownloadHtml = () => {
     const certHtml = `<!doctype html><html><head><meta charset="utf-8"/><title>Certificate - ${studentName}</title><style>body{font-family:sans-serif;background:#fafaf9;padding:40px;color:#0a192f;text-align:center;}.box{max-width:800px;margin:auto;padding:40px;border:8px solid #0a192f;outline:3px solid #d4af37;outline-offset:-12px;background:#fff;}</style></head><body><div class="box"><h4 style="color:#d4af37;letter-spacing:2px;margin:0;">${ISSUER_NAME}</h4><h1 style="margin:12px 0;">VERIFIED CERTIFICATE OF COMPLETION</h1><p>Conferred upon</p><h2 style="font-size:32px;color:#0a192f;border-bottom:2px solid #d4af37;display:inline-block;padding:0 24px;">${studentName}</h2><p>For mastering</p><h3>${courseTitle}</h3><p><strong>Certificate ID:</strong> ${certificateCode}</p><p><strong>Issued:</strong> ${formattedDate}</p><p><strong>Authority:</strong> ${ISSUING_AUTHORITY}</p></div></body></html>`;
-    const blob = new Blob([certHtml], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `DWC-Certificate-${certificateCode}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerFileDownload(`DWC-Certificate-${certificateCode}.html`, certHtml, 'text/html;charset=utf-8');
     showToast('Certificate file downloaded');
   };
 

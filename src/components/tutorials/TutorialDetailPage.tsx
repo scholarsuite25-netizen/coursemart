@@ -37,6 +37,7 @@ import {
   formatTutorialAsMarkdown,
 } from '../../utils/tutorialCreator';
 import { printTutorial } from '../../utils/tutorialPdf';
+import { triggerFileDownload } from '../../utils/fileDownloader';
 
 interface TutorialDetailPageProps {
   slug?: string;
@@ -108,43 +109,19 @@ export const TutorialDetailPage: React.FC<TutorialDetailPageProps> = ({
 
   const handleDownloadMarkdown = (tut: DocumentTutorial) => {
     const md = formatTutorialAsMarkdown(tut);
-    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${tut.slug}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerFileDownload(`${tut.slug}.md`, md, 'text/markdown;charset=utf-8');
     showToast('Downloaded Markdown tutorial');
   };
 
   const handleDownloadHtml = (tut: DocumentTutorial) => {
     const html = formatTutorialAsHtml(tut);
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${tut.slug}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerFileDownload(`${tut.slug}.html`, html, 'text/html;charset=utf-8');
     showToast('Downloaded standalone HTML tutorial');
   };
 
   const handleDownloadJson = (tut: DocumentTutorial) => {
     const json = formatTutorialAsJson(tut);
-    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${tut.slug}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerFileDownload(`${tut.slug}.json`, json, 'application/json;charset=utf-8');
     showToast('Downloaded JSON tutorial');
   };
 

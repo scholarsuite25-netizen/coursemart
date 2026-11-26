@@ -21,6 +21,7 @@ import {
   renderSceneToCanvas,
 } from '../../utils/tutorialVideoEngine';
 import { lectureAudio } from '../../utils/audioNarrator';
+import { triggerFileDownload } from '../../utils/fileDownloader';
 
 interface TutorialVideoPlayerModalProps {
   isOpen: boolean;
@@ -161,14 +162,11 @@ export const TutorialVideoPlayerModal: React.FC<TutorialVideoPlayerModalProps> =
         destination ? destination.stream : undefined
       );
 
-      const url = URL.createObjectURL(videoBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${tutorial.slug || 'tutorial'}-ai-video-guide.webm`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      triggerFileDownload(
+        `${tutorial.slug || 'tutorial'}-ai-video-guide.webm`,
+        videoBlob,
+        'video/webm'
+      );
     } catch (err) {
       console.error('Video export failed:', err);
     } finally {

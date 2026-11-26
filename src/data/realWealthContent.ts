@@ -607,7 +607,6 @@ export const REAL_WEALTH_PRODUCTS: Product[] = [
       formats: ['PDF', 'EPUB', 'MP3 Audio Summary'],
       isbn: '978-978-790-214-1',
       fileSize: '18.4 MB',
-      downloadUrl: '/api/resources/download?productId=prod-ebook-dwc-whatsapp',
       chapters: [
         { id: 'ch-1', number: 1, title: 'The Anatomy of a ₦1M/Month WhatsApp Profile', pages: 22, previewExcerpt: 'Setting up your business bio, catalog, and greeting.' },
         { id: 'ch-2', number: 2, title: 'Organic Lead Generation: The 100 Contacts/Day System', pages: 38, previewExcerpt: 'Driving high-intent buyer contacts mutually saved.' },
@@ -697,6 +696,17 @@ export const REAL_WEALTH_PRODUCTS: Product[] = [
       'Borrow psychological authority hooks from million-dollar international sales campaigns',
     ],
     requirements: ['PDF reader or Notion account'],
+    digitalResourceMeta: {
+      deliverableFormat: 'PDF + Markdown + Notion Swipe Vault',
+      itemsCountLabel: '250+ Battle-Tested Headlines & Email Swipes',
+      compatibility: 'Any PDF Reader, Notion, Google Docs, Apple Notes',
+      includedAssets: [
+        'Direct-Response-Headline-Vault-250.pdf',
+        'High-Converting-Email-Sequences.docx',
+        'Sales-Letter-Bullet-Formulas.md',
+        'Nigerian-Market-Price-Objection-Scripts.pdf',
+      ],
+    },
   },
   {
     id: 'prod-tk-whatsapp-scripts',
@@ -732,6 +742,17 @@ export const REAL_WEALTH_PRODUCTS: Product[] = [
       'Systematically warm up new contacts and transition them into paying customers',
     ],
     requirements: ['Any text editor or PDF reader'],
+    digitalResourceMeta: {
+      deliverableFormat: 'PDF + Editable DOCX + 365-Day Rotation Calendar',
+      itemsCountLabel: '365 Daily Status & Broadcast Scripts',
+      compatibility: 'WhatsApp Business, Any Text Editor, Google Docs',
+      includedAssets: [
+        '365-Days-WhatsApp-Status-Calendar.pdf',
+        'Broadcast-Message-Sequences.docx',
+        'Flash-Sale-Announcement-Templates.docx',
+        'High-Ticket-DM-Closing-Flowcharts.pdf',
+      ],
+    },
   },
   {
     id: 'prod-sw-client-outreach-crm',
@@ -770,7 +791,6 @@ export const REAL_WEALTH_PRODUCTS: Product[] = [
       version: '2.1.0',
       platforms: ['Web', 'Windows', 'macOS'],
       fileSize: '42.8 MB',
-      downloadUrl: '/api/resources/download?productId=prod-sw-client-outreach-crm',
       licenseTiers: [
         {
           id: 'lic-outreach-single',

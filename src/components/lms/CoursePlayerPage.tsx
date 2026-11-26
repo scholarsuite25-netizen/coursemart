@@ -46,6 +46,7 @@ import { isCopyProtectionActive } from '../../utils/contentProtection';
 import { LectureVideoCanvasPlayer } from './LectureVideoCanvasPlayer';
 import { ContentProtectionWrapper } from './ContentProtectionWrapper';
 import { DynamicWatermarkOverlay } from './DynamicWatermarkOverlay';
+import { triggerFileDownload, triggerDirectLinkDownload } from '../../utils/fileDownloader';
 
 interface CoursePlayerPageProps {
   productId: string;
@@ -344,15 +345,11 @@ ${notesContent}
 Endorsed by S. B. OMOTOSO (FCIA, MILR, MSc, MNIM)
 DIGITAL WEALTH CREATORS (DWC)
 `;
-      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${product.slug}-${activeLecture.id}-study-notes.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      triggerFileDownload(
+        `${product.slug}-${activeLecture.id}-study-notes.txt`,
+        txt,
+        'text/plain;charset=utf-8'
+      );
       showToast('Study notes (.txt) downloaded');
     } else {
       const docHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -383,15 +380,11 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
 <p style='margin-top:20pt; font-size:9pt; color:#64748b;'>Endorsed by S. B. OMOTOSO &bull; Digital Wealth Creators (DWC) LMS</p>
 </body>
 </html>`;
-      const blob = new Blob([docHtml], { type: 'application/msword;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${product.slug}-${activeLecture.id}-study-notes.doc`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      triggerFileDownload(
+        `${product.slug}-${activeLecture.id}-study-notes.doc`,
+        docHtml,
+        'application/msword;charset=utf-8'
+      );
       showToast('Study notes (.doc) downloaded');
     }
   };
@@ -516,7 +509,7 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
       if (res.ok) {
         const data = await res.json();
         if (data.downloadUrl) {
-          window.location.href = data.downloadUrl;
+          triggerDirectLinkDownload(data.downloadUrl, fileName);
           showToast(`Initiating secure download for ${fileName}...`);
           return;
         }
@@ -525,20 +518,36 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
       // Fallback to client-side blob if offline or server route is unavailable
     }
 
-    const blob = new Blob(
-      [
-        `// Course: ${product.title}\n// Lecture: ${activeLecture?.title}\n// Resource: ${fileName}\n\nexport const lectureExample = true;\n`,
-      ],
-      { type: 'text/plain;charset=utf-8' }
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const deliverableText = [
+      `================================================================================`,
+      `DIGITAL WEALTH CREATORS (DWC) — Lecture Resource & Lab Kit`,
+      `================================================================================`,
+      `Course: ${product.title}`,
+      `Instructor: ${product.instructorName}`,
+      `Module/Lecture: ${activeLecture?.title || 'Lecture Resource'}`,
+      `File: ${fileName}`,
+      `Delivered At: ${new Date().toISOString()}`,
+      `================================================================================`,
+      `\nLecture Summary:`,
+      activeLecture?.summary || 'Comprehensive hands-on lab and reference notes.',
+      `\nKey Takeaways:`,
+      ...(activeLecture?.keyTakeaways || []).map((t, idx) => `  ${idx + 1}. ${t}`),
+      `\n================================================================================`,
+      `Hands-On Resource Guide:`,
+      `1. Review the lecture video and follow along with the code/templates below.`,
+      `2. Implement these concepts in your local workspace or client deliverables.`,
+      `3. For mastermind questions or code reviews, post in the DWC Community channels.`,
+      `================================================================================`,
+      `\n// Production Code & Implementation Notes:`,
+      `export const ${product.slug.replace(/[^a-zA-Z0-9]/g, '_')}_resource = {`,
+      `  courseId: "${product.id}",`,
+      `  resourceFile: "${fileName}",`,
+      `  verified: true,`,
+      `  unlocked: true,`,
+      `};`,
+    ].join('\n');
+
+    triggerFileDownload(fileName, deliverableText, 'text/plain;charset=utf-8');
     showToast(`Downloaded ${fileName}`);
   };
 
@@ -560,15 +569,11 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
       return;
     }
     const certHtml = `<!doctype html><html><head><title>Certificate - ${product.title}</title></head><body style="font-family:sans-serif;padding:48px;text-align:center;border:8px solid #0a192f;max-width:800px;margin:40px auto;"><h1>Verified Certificate of Completion</h1><p>Verification ID: <strong>${certCode}</strong></p><p>This certifies that</p><h2>${currentUser?.name}</h2><p>has successfully completed all curriculum modules of</p><h3>${product.title}</h3><p>Instructor: ${product.instructorName}</p><p>Issued: ${new Date().toISOString().slice(0, 10)}</p></body></html>`;
-    const blob = new Blob([certHtml], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${product.slug}-certificate.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerFileDownload(
+      `${product.slug}-certificate.html`,
+      certHtml,
+      'text/html;charset=utf-8'
+    );
     showToast('Verified Certificate downloaded');
   };
 
