@@ -1290,11 +1290,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       // Since the user just registered, they already exist in the store,
       // so this will update their newsletterOptIn and trigger the email.
       try {
-        await fetch('/api/newsletter/subscribe', {
+        const resp = await fetch('/api/newsletter/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: normalizedEmail, name: name.trim() }),
         });
+        const data = await resp.json();
+        // Non-blocking: log if email send failed, but don't block registration
+        if (!resp.ok || !data.ok) {
+          console.warn('📧 Welcome email failed to send (registration continues anyway):', data.error || resp.statusText);
+          // Optionally showToast('Welcome! Email delivery may be delayed.', { isError: false });
+        }
       } catch (error) {
         console.error('📧 Welcome email send failed (non-blocking):', 
           error instanceof Error ? error.message : String(error));

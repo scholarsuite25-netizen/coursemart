@@ -152,14 +152,14 @@ export function generateOfflineBlogDraftTemplate(
   const targetAudience = input.targetAudience || 'Digital creators, developers, and entrepreneurs';
   const author = input.author || {
     id: 'agent-blog-bot',
-    name: 'CourseMart Editorial Agent',
+    name: 'DWC Editorial Agent',
     role: 'Autonomous AI Editor',
     avatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150',
   };
 
   const keywords = input.keywords && input.keywords.length > 0
     ? input.keywords
-    : ['CourseMart', 'AI', 'Digital Skills', 'Future of Work'];
+    : ['Digital Wealth Creators', 'AI', 'Digital Skills', 'Future of Work'];
 
   const now = new Date();
   const scheduledAt = typeof input.scheduledInHours === 'number' && input.scheduledInHours > 0
@@ -244,7 +244,7 @@ export function generateOfflineBlogDraftTemplate(
     status: scheduledAt ? 'scheduled' : 'draft',
     featured: false,
     tags: Array.from(new Set([...keywords, category])),
-    seoTitle: `${cleanTopic} | CourseMart Insights`,
+    seoTitle: `${cleanTopic} | DWC Insights`,
     seoDescription: `Master ${cleanTopic} with practical architectures and blueprints designed for ${targetAudience}.`,
     focusKeyword: keywords[0] || cleanTopic,
     sections,
@@ -333,7 +333,7 @@ export function generateArticleOutlineToArticle(
     excerpt: opts?.customExcerpt || `Discover actionable strategies, technical architectures, and practical insights on ${topic}.`,
     category: 'AI',
     authorId: 'agent-blog-bot',
-    authorName: 'CourseMart Editorial Agent',
+    authorName: 'DWC Editorial Agent',
     authorRole: 'Autonomous AI Editor',
     authorAvatar: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150',
     coverImage: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200',
@@ -343,7 +343,7 @@ export function generateArticleOutlineToArticle(
     status: 'draft',
     featured: false,
     tags: Array.from(new Set([...(opts?.keywords || [topic]), 'Guide', 'Best Practices'])),
-    seoTitle: `${outline.title} | CourseMart Insights`,
+    seoTitle: `${outline.title} | DWC Insights`,
     seoDescription: `Master ${topic} with practical architectures and blueprints.`,
     focusKeyword: opts?.keywords?.[0] || topic,
     sections: bodySections,
@@ -402,7 +402,7 @@ export async function generateAutonomousBlogDraft(
           excerpt: `A detailed exploration of ${input.topic} covering foundational concepts and advanced tactics.`,
           category,
           authorId: input.author?.id || 'agent-gemini',
-          authorName: input.author?.name || 'CourseMart AI Co-Pilot',
+          authorName: input.author?.name || 'DWC AI Co-Pilot',
           authorRole: input.author?.role || 'Autonomous Writer',
           authorAvatar: input.author?.avatar || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150',
           coverImage: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200',
@@ -413,8 +413,8 @@ export async function generateAutonomousBlogDraft(
           status: scheduledAt ? 'scheduled' : 'draft',
           featured: false,
           tags: input.keywords || ['AI', 'Tech'],
-          seoTitle: `${input.topic} | CourseMart`,
-          seoDescription: `Read about ${input.topic} on CourseMart.`,
+          seoTitle: `${input.topic} | Digital Wealth Creators`,
+          seoDescription: `Read about ${input.topic} on Digital Wealth Creators.`,
           focusKeyword: input.keywords?.[0] || input.topic,
           sections: [
             {
@@ -524,8 +524,8 @@ export function buildEnquiryResponse(
   if (/\b(refund|refunds|money back)\b/i.test(cleanQ)) {
     const base: EnquiryResponse = {
       answer: isPaid
-        ? 'CourseMart offers a 30-day money-back guarantee on digital courses. Manual GTB transfers and completed card orders can request a refund in their account portal. As an active paid member, your refund requests receive priority processing within 3-5 business days back to your original payment method upon order reference submission.'
-        : 'CourseMart offers a 30-day money-back guarantee on digital courses. Manual GTB transfers and completed card orders can request a refund in their account portal.',
+        ? 'Digital Wealth Creators (DWC) offers a 30-day money-back guarantee on digital courses. Manual GTB transfers and completed card orders can request a refund in their account portal. As an active paid member, your refund requests receive priority processing within 3-5 business days back to your original payment method upon order reference submission.'
+        : 'Digital Wealth Creators (DWC) offers a 30-day money-back guarantee on digital courses. Manual GTB transfers and completed card orders can request a refund in their account portal.',
       matchedTopics: ['refunds', 'billing'],
       confidence: 0.95,
       suggestedForumThreadSlug: 'faq-refund-policy-and-settlements',
@@ -546,8 +546,8 @@ export function buildEnquiryResponse(
     return formatEnquiryTieredResponse(base, userTier);
   }
 
-  // 3. React/Hooks/Web Dev Curriculum
-  if (/\b(react|hooks?|usestate|useeffect|usecontext)\b/i.test(cleanQ)) {
+  // 3. React Hooks Curriculum (narrowed so general React architecture questions route to AI)
+  if (/\b(react\s+hooks?|hooks?|usestate|useeffect|usecontext)\b/i.test(cleanQ)) {
     const base: EnquiryResponse = {
       answer: isPaid
         ? `In ${context?.courseName || 'our engineering courses'}, React hooks must be called at the top level of your component. Check the lesson resources for sample code snippets. Never call hooks inside loops, conditions, or nested functions to ensure that React preserves state correctly across multiple renders. For advanced state management, explore custom hooks and reducer patterns in the curriculum.`
@@ -573,11 +573,11 @@ export function buildEnquiryResponse(
   }
 
   // 5. Membership Tiers & VIP Access
-  if (/\b(membership|memberships|vip|pro)\b/i.test(cleanQ)) {
+  if (/\b(membership|memberships|vip|master\s*class|standard\s*plan|pro)\b/i.test(cleanQ)) {
     const base: EnquiryResponse = {
       answer: isPaid
-        ? 'CourseMart memberships (Starter, Pro, and VIP) provide instant access to designated premium courses, full digital downloads, and member-only prompt vault access. As an active member, you enjoy unrestricted AI answers and complete access to all digital tools and masterclasses.'
-        : 'CourseMart memberships (Starter, Pro, and VIP) provide instant access to designated premium courses, full digital downloads, and member-only prompt vault access.',
+        ? 'Digital Wealth Creators (DWC) memberships include Free Member (₦0 forever), Standard 1-Year (₦10,000/yr for 100% courses, eBooks, templates, software, and 50% off Premium products), and Master Class 1-Year VIP (₦25,000/yr adding live online masterclass training, VIP AI Prompt Vault, and direct Facilitator Mentorship). As an active member, you enjoy unrestricted AI answers and full access to unlocked resources.'
+        : 'Digital Wealth Creators (DWC) memberships — Free Member (₦0), Standard 1-Year (₦10,000/yr), and Master Class VIP (₦25,000/yr) — provide instant access to courses, digital downloads, 50% Premium discounts, and the Prompt Vault.',
       matchedTopics: ['membership', 'subscriptions'],
       confidence: 0.9,
       suggestedForumThreadSlug: 'membership-tiers-and-benefits',
@@ -602,8 +602,8 @@ export function buildEnquiryResponse(
   if (/\b(affiliates?|promoter|referrals?|commission|earn\s*money|make\s*money|monetiz\w*)\b/i.test(cleanQ)) {
     const base: EnquiryResponse = {
       answer: isPaid
-        ? 'Digital Wealth Creators features a high-earning affiliate promoter program offering 20% to 50% commission per referral. Each promoter gets a unique tracking link, automated sales attribution, real-time analytics, and weekly payouts to their bank account. Paid members can access advanced promotional assets, custom campaign tracking, and prioritized affiliate payout processing in their partner dashboard.'
-        : 'Digital Wealth Creators features a high-earning affiliate promoter program offering 20% to 50% commission per referral. Each promoter gets a unique tracking link, automated sales attribution, real-time analytics, and weekly payouts to their bank account.',
+        ? 'Digital Wealth Creators (DWC) features a verified affiliate partner program offering a 10% standard commission on the first purchase of each new customer you introduce (one-time per customer, non-recurrent, with performance-based commission upgrades by admin and anti-self-referral fraud protection). Each partner gets a unique tracking link, verified directory profile, and bank/GTB payouts.'
+        : 'Digital Wealth Creators (DWC) features a verified affiliate partner program offering a 10% standard commission on the first purchase of each new customer you introduce (non-recurrent), with unique tracking links and anti-self-referral protection.',
       matchedTopics: ['affiliate', 'monetization'],
       confidence: 0.94,
       suggestedForumThreadSlug: 'how-affiliate-commissions-and-payouts-work',
@@ -686,8 +686,8 @@ export function buildEnquiryResponse(
   // 12. General Support Fallback
   const fallbackBase: EnquiryResponse = {
     answer: isPaid
-      ? 'Thank you for contacting CourseMart support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions or ask our AI assistant for in-depth technical details on any topic.'
-      : 'Thank you for contacting CourseMart support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions.',
+      ? 'Thank you for contacting Digital Wealth Creators (DWC) support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions or ask our AI assistant for in-depth technical details on any topic.'
+      : 'Thank you for contacting Digital Wealth Creators (DWC) support. A community mentor or instructor will follow up with you shortly. You can also search the community forum for similar questions.',
     matchedTopics: ['general-support'],
     confidence: 0.5,
   };
@@ -789,7 +789,7 @@ export function evaluateDynamicSiteUpdates(
     text:
       bestsellerIds.length > 0
         ? `🔥 Trending Now: Explore our ${bestsellerIds.length} verified bestseller courses today!`
-        : 'Welcome to CourseMart — Learn high-income digital skills.',
+        : 'Welcome to Digital Wealth Creators (DWC) — Learn high-income digital skills.',
     couponCode: bestsellerIds.length > 0 ? 'BESTSELLER10' : undefined,
   };
 

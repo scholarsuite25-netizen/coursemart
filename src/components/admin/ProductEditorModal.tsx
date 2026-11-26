@@ -1049,7 +1049,7 @@ export function ProductEditorModal({
                                       : 'Text Lesson Content (Reading/Article/Guide/Code)'}
                                   </span>
                                 </label>
-                                <span className="text-[10px] text-slate-400 font-mono">Supports formatted text & markdown</span>
+                                <span className="text-[10px] text-slate-500 font-mono">Supports formatted text & markdown</span>
                               </div>
                               <textarea
                                 rows={4}

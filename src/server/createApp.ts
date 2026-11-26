@@ -1639,11 +1639,32 @@ export function createApiApp() {
         recipients: [{ email: cleanEmail, name: cleanName }],
         subject: welcomeSubject,
         html: welcomeHtml,
-      }).catch((error) => {
+      })
+      .then((emailResult) => {
+        // The KV store subscription (user added/subscribed) already completed above.
+        // Report email outcome transparently so callers know whether the welcome
+        // email was delivered, while the subscription itself is always completed.
+        res.json({
+          ok: true,
+          message: 'Successfully subscribed to Digital Wealth Creators newsletter.',
+          // Transparently report email delivery status:
+          // ok=true means the subscription KV update succeeded.
+          // emailSent=true/false indicates whether the welcome email was attempted
+          // and its outcome (the .catch below ensures we always have a result).
+          emailSent: emailResult.ok ?? false,
+          emailError: emailResult.error,
+        });
+      })
+      .catch((error) => {
+        // KV store subscription already completed above; email send failed.
         console.error('📧 Welcome email send failed (non-blocking):', error.message || error);
+        res.json({
+          ok: true,
+          message: 'Successfully subscribed to Digital Wealth Creators newsletter.',
+          emailSent: false,
+          emailError: error.message || error,
+        });
       });
-
-      res.json({ ok: true, message: 'Successfully subscribed to Digital Wealth Creators newsletter.' });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Newsletter subscription failed';
       res.status(500).json({ ok: false, error: msg });
@@ -2934,7 +2955,7 @@ Requirements:
     }
 
     try {
-      const { question, context, category } = req.body ?? {};
+      const { question, context, category, userId: bodyUserId, userEmail: bodyUserEmail } = req.body ?? {};
       const cleanQ = typeof question === 'string' ? question.trim() : '';
 
       // Determine user tier: paid, free, or anonymous
@@ -2951,6 +2972,16 @@ Requirements:
         );
         const canonicalTier = migrateLegacyTier(activeMembership?.planId);
         userTier = canonicalTier === 'paid' ? 'paid' : 'free';
+      } else if (typeof bodyUserId === 'string' && bodyUserId.trim()) {
+        const memberships = await getEffectiveMemberships();
+        const activeMembership = memberships.find(
+          (m) => m.status === 'active' && m.userId === bodyUserId.trim()
+        );
+        if (activeMembership) {
+          userTier = migrateLegacyTier(activeMembership.planId) === 'paid' ? 'paid' : 'free';
+        } else {
+          userTier = 'free';
+        }
       }
 
       const isTeaser = userTier !== 'paid';
@@ -3633,7 +3664,7 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
         `Curriculum/Deliverable Outcomes:`,
         ...(product.learningOutcomes || []).map((o, idx) => `  ${idx + 1}. ${o}`),
         `================================================================================`,
-        `Notice: This digital content is protected by CourseMart LMS Anti-Copy Protection.`,
+        `Notice: This digital content is protected by Digital Wealth Creators (DWC) LMS Anti-Copy Protection.`,
         `Unauthorized sharing, reproduction, or redistribution is strictly prohibited.`,
       ].join('\n');
 

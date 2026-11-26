@@ -482,7 +482,7 @@ test('POST /api/agents/enquiry differentiates paid vs anonymous/free visitor res
   assert.equal(paidData.userTier, 'paid');
   assert.equal(paidData.cta, undefined);
   assert.ok(paidData.answer.length > anonData.answer.length);
-  assert.match(paidData.answer, /CourseMart memberships/i);
+  assert.match(paidData.answer, /Digital Wealth Creators \(DWC\) memberships/i);
 });
 
 test('POST /api/agents/enquiry auto-archives high-value inquiries to community discussions/FAQ', async () => {

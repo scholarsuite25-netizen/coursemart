@@ -27,7 +27,7 @@ const QUICK_SUGGESTIONS = [
 ];
 
 export function EnquiryAssistantWidget() {
-  const { navigate } = useStore();
+  const { navigate, currentUser, activeUserMembership } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [inputQuestion, setInputQuestion] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -71,11 +71,25 @@ export function EnquiryAssistantWidget() {
       cta?: { text: string; link: string };
     };
 
+    const localTier: 'paid' | 'free' | 'anonymous' =
+      currentUser?.role === 'admin' ||
+      currentUser?.role === 'instructor' ||
+      (activeUserMembership && activeUserMembership.planId === 'paid' && activeUserMembership.status === 'active')
+        ? 'paid'
+        : currentUser
+        ? 'free'
+        : 'anonymous';
+
     try {
       const resp = await fetch('/api/agents/enquiry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: text }),
+        body: JSON.stringify({
+          question: text,
+          userId: currentUser?.id,
+          userEmail: currentUser?.email,
+          userTier: localTier,
+        }),
       });
       const json = (await resp.json().catch(() => null)) as {
         answer?: string;
@@ -98,17 +112,20 @@ export function EnquiryAssistantWidget() {
       };
     } catch {
       // Local deterministic knowledge base keeps the widget working offline.
-      const offline = runEnquiryAgent(text);
+      const offline = runEnquiryAgent(text, { userTier: localTier });
       response = {
         answer: offline.answer,
         matchedTopics: offline.matchedTopics,
         suggestedForumThreadSlug: offline.suggestedForumThreadSlug,
-        isTeaser: offline.isTeaser ?? true,
-        userTier: offline.userTier ?? 'anonymous',
-        cta: offline.cta ?? {
-          text: 'Upgrade to Paid Membership to unlock unrestricted AI answers',
-          link: '/membership',
-        },
+        isTeaser: offline.isTeaser ?? localTier !== 'paid',
+        userTier: offline.userTier ?? localTier,
+        cta:
+          localTier === 'paid'
+            ? undefined
+            : offline.cta ?? {
+                text: 'Upgrade to Paid Membership to unlock unrestricted AI answers',
+                link: '/membership',
+              },
       };
     }
 

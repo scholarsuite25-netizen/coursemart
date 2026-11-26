@@ -201,7 +201,7 @@ export function AffiliateManagementPanel() {
                     </td>
                     <td className="px-4 py-3 align-top">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        ✓ {aff.idType || 'NIN / Gov ID'}
+                        ✓ {aff.idType || 'NIN/Gov ID'}
                       </span>
                       {aff.idNumber && (
                         <p className="text-[10px] font-mono text-slate-600 mt-1">

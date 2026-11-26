@@ -272,13 +272,13 @@ test('buildEnquiryResponse and runEnquiryAgent handle customer and student queri
   const memberRes = buildEnquiryResponse('Tell me about the VIP membership and prompt vault.');
   assert.ok(memberRes.confidence >= 0.9);
   assert.ok(memberRes.matchedTopics.includes('membership'));
-  assert.match(memberRes.answer, /Starter, Pro, and VIP/i);
+  assert.match(memberRes.answer, /Free Member.*Standard.*Master Class VIP/i);
 
   // Unrecognized query fallback
   const fallbackRes = buildEnquiryResponse('What is the weather like in Lagos right now?');
   assert.equal(fallbackRes.confidence, 0.5);
   assert.ok(fallbackRes.matchedTopics.includes('general-support'));
-  assert.match(fallbackRes.answer, /contacting CourseMart support/i);
+  assert.match(fallbackRes.answer, /contacting Digital Wealth Creators \(DWC\) support/i);
 
   // Test exact E2E alias
   const aliasRes = runEnquiryAgent('Can I request a refund?', { courseName: 'Test Course' });
@@ -423,7 +423,7 @@ test('evaluateDynamicSiteUpdates and evaluateBestsellersAndBanners assign bestse
   const emptyResult = evaluateDynamicSiteUpdates(products, [], { salesThreshold: 50 });
   assert.equal(emptyResult.bestsellerIds.length, 0);
   assert.equal(emptyResult.announcement.couponCode, undefined);
-  assert.match(emptyResult.announcement.text, /Welcome to CourseMart/);
+  assert.match(emptyResult.announcement.text, /Welcome to Digital Wealth Creators/);
 
   // Test alias
   const aliasRes = evaluateBestsellersAndBanners(products, orders, { salesThreshold: 5 });
@@ -602,7 +602,7 @@ test('adversarial regression: enquiry agent rejects substring collisions and ope
     );
     assert.match(
       res.answer,
-      /CourseMart support/i,
+      /Digital Wealth Creators.*support/i,
       `Expected general support fallback message for query: "${query}"`
     );
   }

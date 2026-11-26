@@ -133,9 +133,11 @@ export async function generateAiCompletion(
     : prompt;
 
   let fallbackOccurred = false;
+  const skipLocalProxy =
+    Boolean(process.env.VERCEL) && !process.env.GOOGLE_GEMINI_BASE_URL && !options.mockFetch;
 
-  // 1. Iterate through free model pools via local proxy (http://localhost:8080)
-  for (let i = 0; i < modelPool.length; i++) {
+  // 1. Iterate through free model pools via local proxy (http://localhost:8080) when available
+  for (let i = 0; i < (skipLocalProxy ? 0 : modelPool.length); i++) {
     const candidateModel = modelPool[i];
     if (i > 0) {
       fallbackOccurred = true;

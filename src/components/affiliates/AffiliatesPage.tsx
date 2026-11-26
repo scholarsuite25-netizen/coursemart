@@ -225,7 +225,7 @@ export function AffiliatesPage() {
                 </div>
                 <div>
                   <label htmlFor="aff-statecity" className="block text-xs font-bold text-slate-700 mb-1">
-                    State / City Location *
+                    State/City Location *
                   </label>
                   <input
                     id="aff-statecity"
@@ -283,15 +283,15 @@ export function AffiliatesPage() {
                   >
                     <option value="WhatsApp Groups & Communities">WhatsApp Groups & Communities</option>
                     <option value="Social Media (Facebook/Instagram/X)">Social Media (Facebook/Instagram/X)</option>
-                    <option value="YouTube / Podcasts / Webinars">YouTube / Podcasts / Webinars</option>
+                    <option value="YouTube/Podcasts/Webinars">YouTube/Podcasts/Webinars</option>
                     <option value="Blog, Website & SEO">Blog, Website & SEO</option>
                     <option value="Email Newsletter">Email Newsletter</option>
-                    <option value="Direct / In-Person Professional Network">Direct / In-Person Professional Network</option>
+                    <option value="Direct/In-Person Professional Network">Direct/In-Person Professional Network</option>
                   </select>
                 </div>
                 <div>
                   <label htmlFor="aff-audience" className="block text-xs font-bold text-slate-700 mb-1">
-                    Audience Reach / Profile URL
+                    Audience Reach/Profile URL
                   </label>
                   <input
                     id="aff-audience"
@@ -323,7 +323,7 @@ export function AffiliatesPage() {
                 </div>
                 <div>
                   <label htmlFor="aff-idnum" className="block text-xs font-bold text-slate-700 mb-1">
-                    ID / NIN Number *
+                    ID/NIN Number *
                   </label>
                   <input
                     id="aff-idnum"
