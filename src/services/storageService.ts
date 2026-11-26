@@ -106,6 +106,7 @@ const STORAGE_KEYS = {
   CART: 'cm_session_cart_ngn_v1',
   WISHLIST: 'cm_session_wishlist_v1',
   AUTH_USER_ID: 'cm_session_user_id_v1',
+  DELETED_CONTENT_IDS: 'cm_db_deleted_content_ids_v1',
 } as const;
 
 function readStorage<T>(key: string, fallback: T): T {
@@ -365,13 +366,25 @@ export const SEED_TUTORIALS: DocumentTutorial[] = [
 ];
 
 export const storageService = {
+  getDeletedIds: (): Set<string> => {
+    const list = readStorage<string[]>(STORAGE_KEYS.DELETED_CONTENT_IDS, []);
+    return new Set(Array.isArray(list) ? list : []);
+  },
+  recordDeletedId: (id: string): void => {
+    const list = readStorage<string[]>(STORAGE_KEYS.DELETED_CONTENT_IDS, []);
+    const set = new Set(Array.isArray(list) ? list : []);
+    set.add(id);
+    writeStorage(STORAGE_KEYS.DELETED_CONTENT_IDS, Array.from(set));
+  },
+
   getProducts: (): Product[] => {
     const list = readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
     if (!Array.isArray(list)) return [];
+    const deletedIds = storageService.getDeletedIds();
     const existingIds = new Set(list.map((p) => p.id));
-    const missing = SEED_PRODUCTS.filter((p) => !existingIds.has(p.id));
+    const missing = SEED_PRODUCTS.filter((p) => !existingIds.has(p.id) && !deletedIds.has(p.id));
     const combined = missing.length > 0 ? [...missing, ...list] : list;
-    return combined.map((p) => {
+    return combined.filter((p) => !deletedIds.has(p.id)).map((p) => {
       if (p && p.includedInMembershipTier && ['starter', 'pro', 'vip', 'enterprise'].includes(p.includedInMembershipTier as string)) {
         return {
           ...p,
@@ -386,18 +399,22 @@ export const storageService = {
   getBlogPosts: (): BlogPost[] => {
     const list = readStorage(STORAGE_KEYS.BLOGS, SEED_BLOG_POSTS);
     if (!Array.isArray(list)) return [];
+    const deletedIds = storageService.getDeletedIds();
     const existingIds = new Set(list.map((b) => b.id));
-    const missing = SEED_BLOG_POSTS.filter((b) => !existingIds.has(b.id));
-    return missing.length > 0 ? [...missing, ...list] : list;
+    const missing = SEED_BLOG_POSTS.filter((b) => !existingIds.has(b.id) && !deletedIds.has(b.id));
+    const combined = missing.length > 0 ? [...missing, ...list] : list;
+    return combined.filter((b) => !deletedIds.has(b.id));
   },
   saveBlogPosts: (posts: BlogPost[]): void => writeStorage(STORAGE_KEYS.BLOGS, posts),
 
   getTutorials: (): DocumentTutorial[] => {
     const list = readStorage(STORAGE_KEYS.TUTORIALS, SEED_TUTORIALS);
     if (!Array.isArray(list)) return [];
+    const deletedIds = storageService.getDeletedIds();
     const existingIds = new Set(list.map((t) => t.id));
-    const missing = SEED_TUTORIALS.filter((t) => !existingIds.has(t.id));
-    return missing.length > 0 ? [...missing, ...list] : list;
+    const missing = SEED_TUTORIALS.filter((t) => !existingIds.has(t.id) && !deletedIds.has(t.id));
+    const combined = missing.length > 0 ? [...missing, ...list] : list;
+    return combined.filter((t) => !deletedIds.has(t.id));
   },
   saveTutorials: (tutorials: DocumentTutorial[]): void =>
     writeStorage(STORAGE_KEYS.TUTORIALS, tutorials),
@@ -527,9 +544,11 @@ export const storageService = {
   getEvents: (): CoursemartEvent[] => {
     const list = readStorage(STORAGE_KEYS.EVENTS, SEED_EVENTS);
     if (!Array.isArray(list)) return [];
+    const deletedIds = storageService.getDeletedIds();
     const existingIds = new Set(list.map((e) => e.id));
-    const missing = SEED_EVENTS.filter((e) => !existingIds.has(e.id));
-    return missing.length > 0 ? [...missing, ...list] : list;
+    const missing = SEED_EVENTS.filter((e) => !existingIds.has(e.id) && !deletedIds.has(e.id));
+    const combined = missing.length > 0 ? [...missing, ...list] : list;
+    return combined.filter((e) => !deletedIds.has(e.id));
   },
   saveEvents: (list: CoursemartEvent[]): void =>
     writeStorage(STORAGE_KEYS.EVENTS, list),

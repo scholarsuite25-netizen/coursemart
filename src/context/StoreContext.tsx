@@ -2803,6 +2803,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const deleteProduct = useCallback(
     (productId: string) => {
+      storageService.recordDeletedId(productId);
       setProducts((prev) => prev.filter((p) => p.id !== productId));
       showToast('Product deleted');
     },
@@ -3030,6 +3031,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const deleteBlogPost = useCallback(
     (postId: string) => {
+      storageService.recordDeletedId(postId);
       setBlogPosts((prev) => prev.filter((p) => p.id !== postId));
       showToast('Blog post deleted');
     },
@@ -3105,6 +3107,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const deleteTutorial = useCallback(
     (tutorialId: string) => {
+      storageService.recordDeletedId(tutorialId);
       setTutorials((prev) => prev.filter((t) => t.id !== tutorialId));
       showToast('Tutorial deleted');
     },
@@ -3144,6 +3147,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const deleteEvent = useCallback(
     (eventId: string) => {
+      storageService.recordDeletedId(eventId);
       setEvents((prev) => prev.filter((e) => e.id !== eventId));
       showToast('Event deleted');
     },
