@@ -251,7 +251,7 @@ export const SEED_TUTORIALS: DocumentTutorial[] = [
     difficulty: 'intermediate',
     readTimeMinutes: 12,
     estimatedMinutes: 12,
-    status: 'published',
+    status: 'draft',
     featured: true,
     publishedAt: '2026-11-20T10:00:00.000Z',
     createdAt: '2026-11-20T10:00:00.000Z',
@@ -381,18 +381,24 @@ export const storageService = {
     const list = readStorage(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
     if (!Array.isArray(list)) return [];
     const deletedIds = storageService.getDeletedIds();
+    const seedStatusMap = new Map(SEED_PRODUCTS.map((p) => [p.id, p.status]));
     const existingIds = new Set(list.map((p) => p.id));
     const missing = SEED_PRODUCTS.filter((p) => !existingIds.has(p.id) && !deletedIds.has(p.id));
     const combined = missing.length > 0 ? [...missing, ...list] : list;
-    return combined.filter((p) => !deletedIds.has(p.id)).map((p) => {
-      if (p && p.includedInMembershipTier && ['starter', 'pro', 'vip', 'enterprise'].includes(p.includedInMembershipTier as string)) {
-        return {
-          ...p,
-          includedInMembershipTier: migrateLegacyTier(p.includedInMembershipTier),
-        };
-      }
-      return p;
-    });
+    return combined
+      .filter((p) => !deletedIds.has(p.id))
+      .map((p) => {
+        const seedStatus = seedStatusMap.get(p.id);
+        const effectiveStatus = seedStatus === 'draft' ? 'draft' : p.status;
+        let item = p.status !== effectiveStatus ? { ...p, status: effectiveStatus } : p;
+        if (item && item.includedInMembershipTier && ['starter', 'pro', 'vip', 'enterprise'].includes(item.includedInMembershipTier as string)) {
+          return {
+            ...item,
+            includedInMembershipTier: migrateLegacyTier(item.includedInMembershipTier),
+          };
+        }
+        return item;
+      });
   },
   saveProducts: (products: Product[]): void => writeStorage(STORAGE_KEYS.PRODUCTS, products),
 
@@ -400,10 +406,17 @@ export const storageService = {
     const list = readStorage(STORAGE_KEYS.BLOGS, SEED_BLOG_POSTS);
     if (!Array.isArray(list)) return [];
     const deletedIds = storageService.getDeletedIds();
+    const seedStatusMap = new Map(SEED_BLOG_POSTS.map((b) => [b.id, b.status]));
     const existingIds = new Set(list.map((b) => b.id));
     const missing = SEED_BLOG_POSTS.filter((b) => !existingIds.has(b.id) && !deletedIds.has(b.id));
     const combined = missing.length > 0 ? [...missing, ...list] : list;
-    return combined.filter((b) => !deletedIds.has(b.id));
+    return combined
+      .filter((b) => !deletedIds.has(b.id))
+      .map((b) => {
+        const seedStatus = seedStatusMap.get(b.id);
+        const effectiveStatus = seedStatus === 'draft' ? 'draft' : b.status;
+        return b.status !== effectiveStatus ? { ...b, status: effectiveStatus } : b;
+      });
   },
   saveBlogPosts: (posts: BlogPost[]): void => writeStorage(STORAGE_KEYS.BLOGS, posts),
 
@@ -411,10 +424,17 @@ export const storageService = {
     const list = readStorage(STORAGE_KEYS.TUTORIALS, SEED_TUTORIALS);
     if (!Array.isArray(list)) return [];
     const deletedIds = storageService.getDeletedIds();
+    const seedStatusMap = new Map(SEED_TUTORIALS.map((t) => [t.id, t.status]));
     const existingIds = new Set(list.map((t) => t.id));
     const missing = SEED_TUTORIALS.filter((t) => !existingIds.has(t.id) && !deletedIds.has(t.id));
     const combined = missing.length > 0 ? [...missing, ...list] : list;
-    return combined.filter((t) => !deletedIds.has(t.id));
+    return combined
+      .filter((t) => !deletedIds.has(t.id))
+      .map((t) => {
+        const seedStatus = seedStatusMap.get(t.id);
+        const effectiveStatus = seedStatus === 'draft' ? 'draft' : t.status;
+        return t.status !== effectiveStatus ? { ...t, status: effectiveStatus } : t;
+      });
   },
   saveTutorials: (tutorials: DocumentTutorial[]): void =>
     writeStorage(STORAGE_KEYS.TUTORIALS, tutorials),
@@ -545,10 +565,17 @@ export const storageService = {
     const list = readStorage(STORAGE_KEYS.EVENTS, SEED_EVENTS);
     if (!Array.isArray(list)) return [];
     const deletedIds = storageService.getDeletedIds();
+    const seedStatusMap = new Map(SEED_EVENTS.map((e) => [e.id, e.status]));
     const existingIds = new Set(list.map((e) => e.id));
     const missing = SEED_EVENTS.filter((e) => !existingIds.has(e.id) && !deletedIds.has(e.id));
     const combined = missing.length > 0 ? [...missing, ...list] : list;
-    return combined.filter((e) => !deletedIds.has(e.id));
+    return combined
+      .filter((e) => !deletedIds.has(e.id))
+      .map((e) => {
+        const seedStatus = seedStatusMap.get(e.id);
+        const effectiveStatus = seedStatus === 'draft' ? 'draft' : e.status;
+        return e.status !== effectiveStatus ? { ...e, status: effectiveStatus } : e;
+      });
   },
   saveEvents: (list: CoursemartEvent[]): void =>
     writeStorage(STORAGE_KEYS.EVENTS, list),
