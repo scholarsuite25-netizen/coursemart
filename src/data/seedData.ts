@@ -2050,6 +2050,28 @@ export const SEED_REVIEWS: ProductReview[] = [
 
 export const SEED_COUPONS: Coupon[] = [
   {
+    id: 'coup-dwc100vip',
+    code: 'DWC100VIP',
+    discountType: 'percent',
+    value: 100,
+    minSpend: 0,
+    active: true,
+    usageCount: 0,
+    maxUses: 99999,
+    expiresAt: '2030-12-31T23:59:59Z',
+  },
+  {
+    id: 'coup-viptest',
+    code: 'VIPTEST',
+    discountType: 'percent',
+    value: 100,
+    minSpend: 0,
+    active: true,
+    usageCount: 0,
+    maxUses: 99999,
+    expiresAt: '2030-12-31T23:59:59Z',
+  },
+  {
     id: 'coup-save85',
     code: 'SAVE85',
     discountType: 'percent',

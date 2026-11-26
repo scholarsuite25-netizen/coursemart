@@ -474,7 +474,42 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<UserAccount[]>(() => storageService.getUsers());
   const [orders, setOrders] = useState<Order[]>(() => storageService.getOrders());
   const [licenses, setLicenses] = useState<LicenseKey[]>(() => storageService.getLicenses());
-  const [coupons, setCoupons] = useState<Coupon[]>(() => storageService.getCoupons());
+  const [coupons, setCoupons] = useState<Coupon[]>(() => {
+    const existing = storageService.getCoupons();
+    const hasDwc100 = existing.some((c) => c.code.toUpperCase() === 'DWC100VIP');
+    const hasVipTest = existing.some((c) => c.code.toUpperCase() === 'VIPTEST');
+    if (!hasDwc100 || !hasVipTest) {
+      const merged = [...existing];
+      if (!hasDwc100) {
+        merged.unshift({
+          id: 'coup-dwc100vip',
+          code: 'DWC100VIP',
+          discountType: 'percent',
+          value: 100,
+          minSpend: 0,
+          active: true,
+          usageCount: 0,
+          maxUses: 99999,
+          expiresAt: '2030-12-31T23:59:59Z',
+        });
+      }
+      if (!hasVipTest) {
+        merged.unshift({
+          id: 'coup-viptest',
+          code: 'VIPTEST',
+          discountType: 'percent',
+          value: 100,
+          minSpend: 0,
+          active: true,
+          usageCount: 0,
+          maxUses: 99999,
+          expiresAt: '2030-12-31T23:59:59Z',
+        });
+      }
+      return merged;
+    }
+    return existing;
+  });
   const [reviews, setReviews] = useState<ProductReview[]>(() => storageService.getReviews());
   const [progressList, setProgressList] = useState<CourseProgress[]>(() =>
     storageService.getProgressList()

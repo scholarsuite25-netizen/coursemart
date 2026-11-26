@@ -283,7 +283,7 @@ export interface OrderItem {
 
 export type OrderStatus = 'completed' | 'pending' | 'refunded';
 
-export type PaymentMethod = 'paystack' | 'card' | 'gtb_whatsapp';
+export type PaymentMethod = 'paystack' | 'card' | 'gtb_whatsapp' | 'free';
 
 export interface Order {
   id: string;

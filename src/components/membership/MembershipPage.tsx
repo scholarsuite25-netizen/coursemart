@@ -6,11 +6,14 @@ import {
   Landmark,
   MessageCircle,
   ShieldCheck,
+  Sparkles,
+  Tag,
   X,
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
-import type { MembershipPlan, PaymentMethod } from '../../types/marketplace';
+import type { Coupon, MembershipPlan, PaymentMethod } from '../../types/marketplace';
 import { formatNaira } from '../../utils/currency';
+import { validateCouponCode } from '../../utils/commerce';
 import {
   resolvePaystackChannels,
   type PaystackPaymentOptionId,
@@ -34,6 +37,7 @@ export function MembershipPage() {
     publicServerConfig,
     navigate,
     products,
+    coupons,
     showToast,
   } = useStore();
 
@@ -42,6 +46,9 @@ export function MembershipPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paystack');
   const [paystackOption, setPaystackOption] = useState<PaystackPaymentOptionId>('all');
   const [transferRef, setTransferRef] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [processingPaystack, setProcessingPaystack] = useState(false);
   const [verifyingPaystack, setVerifyingPaystack] = useState(false);
@@ -52,6 +59,9 @@ export function MembershipPage() {
     setError(null);
     setPaystackAuthUrl(null);
     setPendingPayRef(null);
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponError(null);
     if (!currentUser) {
       showToast('Sign in or use Demo Student Sign In to subscribe');
       navigate('/login');
@@ -60,11 +70,66 @@ export function MembershipPage() {
     setCheckoutPlan(plan);
   };
 
+  const currentPlanRawPrice =
+    !checkoutPlan || checkoutPlan.id === 'free'
+      ? 0
+      : billingCycle === 'masterclass'
+        ? (checkoutPlan.masterclassPrice ?? 25000)
+        : checkoutPlan.annualPrice;
+
+  const discountAmount = appliedCoupon
+    ? appliedCoupon.discountType === 'percent'
+      ? (currentPlanRawPrice * appliedCoupon.value) / 100
+      : Math.min(currentPlanRawPrice, appliedCoupon.value)
+    : 0;
+
+  const effectiveCharge = Math.max(0, currentPlanRawPrice - discountAmount);
+  const isZeroBypass = appliedCoupon !== null && effectiveCharge === 0;
+
+  const handleApplyCoupon = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const clean = couponCode.trim().toUpperCase();
+    if (!clean) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+
+    const { coupon, error: valErr } = validateCouponCode(clean, coupons, currentPlanRawPrice);
+    if (!coupon || valErr) {
+      setCouponError(valErr || 'Invalid or expired coupon code.');
+      setAppliedCoupon(null);
+      return;
+    }
+    setAppliedCoupon(coupon);
+    setCouponError(null);
+    showToast(`Coupon "${coupon.code}" applied!`);
+  };
+
   const handleConfirmSubscription = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkoutPlan || processingPaystack) return;
     setError(null);
     setPaystackAuthUrl(null);
+
+    // Instant Bypass Flow: 100% coupon or ₦0 price requires zero payment
+    if (isZeroBypass || effectiveCharge === 0) {
+      const couponRef = `COUPON-${appliedCoupon?.code || 'VIP100'}-${Date.now()}`;
+      const res = subscribeMembership(checkoutPlan.id, billingCycle, {
+        paymentMethod: 'free',
+        paymentReference: couponRef,
+        paystackVerified: true,
+      });
+      if (!res.ok) {
+        setError(res.error ?? 'Unable to activate membership.');
+        return;
+      }
+      showToast(`🎉 Congratulations! Your ${checkoutPlan.name} VIP membership is active with 100% discount!`);
+      setCheckoutPlan(null);
+      setCouponCode('');
+      setAppliedCoupon(null);
+      setTransferRef('');
+      return;
+    }
 
     if (paymentMethod === 'gtb_whatsapp' && transferRef.trim().length < 3) {
       setError('Enter your GTB transfer sender name or reference to submit.');
@@ -73,12 +138,6 @@ export function MembershipPage() {
 
     let payRef = transferRef;
     let paystackVerified = false;
-    const chargeAmount =
-      checkoutPlan.id === 'free'
-        ? 0
-        : billingCycle === 'masterclass'
-          ? (checkoutPlan.masterclassPrice ?? 25000)
-          : checkoutPlan.annualPrice;
 
     if ((paymentMethod === 'paystack' || paymentMethod === 'card') && currentUser) {
       setProcessingPaystack(true);
@@ -89,7 +148,7 @@ export function MembershipPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: currentUser.email,
-            amountNgn: chargeAmount,
+            amountNgn: effectiveCharge,
             channels: resolvePaystackChannels(paystackOption),
             reference: ref,
             callbackUrl:
@@ -781,77 +840,192 @@ export function MembershipPage() {
                     50% Off Premium Products
                   </p>
                 </div>
-                <span className="font-display text-xl font-extrabold text-[#0a192f] tabular-nums">
-                  {formatNaira(
-                    billingCycle === 'masterclass'
-                      ? (checkoutPlan.masterclassPrice ?? 25000)
-                      : checkoutPlan.annualPrice
+                <div className="text-right">
+                  {appliedCoupon && discountAmount > 0 && (
+                    <span className="block text-xs text-slate-400 line-through tabular-nums font-semibold">
+                      {formatNaira(currentPlanRawPrice)}
+                    </span>
                   )}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('paystack')}
-                  className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${paymentMethod === 'paystack' || paymentMethod === 'card'
-                    ? 'border-[#0a192f] bg-[#0a192f] text-white'
-                    : 'border-slate-300 text-slate-700'
-                    }`}
-                >
-                  Paystack / Instant Card
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('gtb_whatsapp')}
-                  className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${paymentMethod === 'gtb_whatsapp'
-                    ? 'border-[#d4af37] bg-amber-50 text-[#0a192f]'
-                    : 'border-slate-300 text-slate-700'
-                    }`}
-                >
-                  GTB Bank + WhatsApp
-                </button>
-              </div>
-
-              {(paymentMethod === 'paystack' || paymentMethod === 'card') && !paystackAuthUrl && (
-                <PaystackChannelPicker
-                  selectedOption={paystackOption}
-                  onSelect={setPaystackOption}
-                  paystackConfigured={publicServerConfig.paystackConfigured}
-                />
-              )}
-
-              {paymentMethod === 'gtb_whatsapp' && (
-                <div className="p-3.5 rounded-lg bg-[#0a192f] text-white text-xs space-y-2">
-                  <div className="flex items-center gap-2 text-[#f5c451] font-bold">
-                    <Landmark className="w-4 h-4" />
-                    <span>{TINTOL_PAYMENT_DETAILS.bankFullName}</span>
-                  </div>
-                  <p className="font-mono font-bold text-sm text-[#f5c451]">
-                    {TINTOL_PAYMENT_DETAILS.accountNumber} · {TINTOL_PAYMENT_DETAILS.accountName}
-                  </p>
-                  <input
-                    type="text"
-                    value={transferRef}
-                    onChange={(e) => setTransferRef(e.target.value)}
-                    placeholder="Transfer sender name or reference"
-                    className="w-full h-9 px-3 rounded bg-[#112240] border border-[#2a436e] text-white placeholder:text-slate-400"
-                  />
-                  <a
-                    href={buildWhatsAppUrl(
-                      `Hello ${TINTOL_PAYMENT_DETAILS.accountName}, I am activating the ${checkoutPlan.name} (${billingCycle === 'masterclass'
-                        ? '₦25,000 1-Year Master Class Pass with Online Training'
-                        : '₦10,000 1-Year Standard Pass without masterclass training'
-                      }) membership via GTB transfer.`
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-emerald-300 font-semibold hover:underline"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>Send proof on WhatsApp Desk</span>
-                  </a>
+                  <span className={`font-display text-xl font-extrabold tabular-nums ${isZeroBypass ? 'text-emerald-700' : 'text-[#0a192f]'}`}>
+                    {isZeroBypass ? '₦0 (FREE VIP)' : formatNaira(effectiveCharge)}
+                  </span>
                 </div>
+              </div>
+
+              {/* Bypass / Promo Coupon Box */}
+              <div className="p-3.5 rounded-lg border border-slate-200 bg-amber-50/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="membership-coupon" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-amber-600" />
+                    <span>VIP Bypass / Promo Coupon</span>
+                  </label>
+                  {appliedCoupon && (
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      {appliedCoupon.code} ({appliedCoupon.value}% OFF)
+                    </span>
+                  )}
+                </div>
+
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between p-2.5 rounded bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>
+                        <strong>{appliedCoupon.code}</strong> applied: 100% discount. No payment required!
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppliedCoupon(null);
+                        setCouponCode('');
+                        setCouponError(null);
+                      }}
+                      className="text-xs font-semibold text-rose-600 hover:underline cursor-pointer ml-2 shrink-0"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        id="membership-coupon"
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => {
+                          setCouponCode(e.target.value);
+                          setCouponError(null);
+                        }}
+                        placeholder="Enter coupon code (e.g. DWC100VIP)"
+                        className="flex-1 h-9 px-3 rounded text-xs border border-slate-300 uppercase tracking-wide font-mono focus:border-blue-600 focus:outline-none bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleApplyCoupon()}
+                        className="px-3.5 h-9 text-xs font-bold rounded bg-[#0a192f] text-white hover:bg-[#112240] cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px] text-slate-500 font-medium">Quick 1-Click Bypass:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCouponCode('DWC100VIP');
+                          const { coupon } = validateCouponCode('DWC100VIP', coupons, currentPlanRawPrice);
+                          if (coupon) {
+                            setAppliedCoupon(coupon);
+                            setCouponError(null);
+                            showToast('Coupon "DWC100VIP" applied!');
+                          }
+                        }}
+                        className="px-2 py-0.5 text-[11px] font-mono font-bold rounded bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 cursor-pointer"
+                      >
+                        DWC100VIP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCouponCode('VIPTEST');
+                          const { coupon } = validateCouponCode('VIPTEST', coupons, currentPlanRawPrice);
+                          if (coupon) {
+                            setAppliedCoupon(coupon);
+                            setCouponError(null);
+                            showToast('Coupon "VIPTEST" applied!');
+                          }
+                        }}
+                        className="px-2 py-0.5 text-[11px] font-mono font-bold rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 cursor-pointer"
+                      >
+                        VIPTEST
+                      </button>
+                    </div>
+
+                    {couponError && (
+                      <p className="mt-1.5 text-xs font-semibold text-rose-600">{couponError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {isZeroBypass ? (
+                <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-300 text-center space-y-1">
+                  <p className="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-600" />
+                    <span>100% Free VIP Access Unlocked</span>
+                  </p>
+                  <p className="text-[11px] text-emerald-700">
+                    Click the button below to instantly activate your 1-Year {checkoutPlan.name} without paying any fee.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('paystack')}
+                      className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${paymentMethod === 'paystack' || paymentMethod === 'card'
+                        ? 'border-[#0a192f] bg-[#0a192f] text-white'
+                        : 'border-slate-300 text-slate-700'
+                        }`}
+                    >
+                      Paystack / Instant Card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('gtb_whatsapp')}
+                      className={`py-2.5 px-3 text-xs font-bold rounded-md border cursor-pointer ${paymentMethod === 'gtb_whatsapp'
+                        ? 'border-[#d4af37] bg-amber-50 text-[#0a192f]'
+                        : 'border-slate-300 text-slate-700'
+                        }`}
+                    >
+                      GTB Bank + WhatsApp
+                    </button>
+                  </div>
+
+                  {(paymentMethod === 'paystack' || paymentMethod === 'card') && !paystackAuthUrl && (
+                    <PaystackChannelPicker
+                      selectedOption={paystackOption}
+                      onSelect={setPaystackOption}
+                      paystackConfigured={publicServerConfig.paystackConfigured}
+                    />
+                  )}
+
+                  {paymentMethod === 'gtb_whatsapp' && (
+                    <div className="p-3.5 rounded-lg bg-[#0a192f] text-white text-xs space-y-2">
+                      <div className="flex items-center gap-2 text-[#f5c451] font-bold">
+                        <Landmark className="w-4 h-4" />
+                        <span>{TINTOL_PAYMENT_DETAILS.bankFullName}</span>
+                      </div>
+                      <p className="font-mono font-bold text-sm text-[#f5c451]">
+                        {TINTOL_PAYMENT_DETAILS.accountNumber} · {TINTOL_PAYMENT_DETAILS.accountName}
+                      </p>
+                      <input
+                        type="text"
+                        value={transferRef}
+                        onChange={(e) => setTransferRef(e.target.value)}
+                        placeholder="Transfer sender name or reference"
+                        className="w-full h-9 px-3 rounded bg-[#112240] border border-[#2a436e] text-white placeholder:text-slate-400"
+                      />
+                      <a
+                        href={buildWhatsAppUrl(
+                          `Hello ${TINTOL_PAYMENT_DETAILS.accountName}, I am activating the ${checkoutPlan.name} (${billingCycle === 'masterclass'
+                            ? '₦25,000 1-Year Master Class Pass with Online Training'
+                            : '₦10,000 1-Year Standard Pass without masterclass training'
+                          }) membership via GTB transfer.`
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-emerald-300 font-semibold hover:underline"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>Send proof on WhatsApp Desk</span>
+                      </a>
+                    </div>
+                  )}
+                </>
               )}
 
               {error && <p className="text-xs font-semibold text-rose-700">{error}</p>}
@@ -902,18 +1076,31 @@ export function MembershipPage() {
                 <button
                   type="submit"
                   disabled={processingPaystack}
-                  className="w-full py-3 text-sm font-bold text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45] rounded-md cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                  className={`w-full py-3 text-sm font-bold rounded-md cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-60 ${
+                    isZeroBypass
+                      ? 'text-white bg-emerald-700 hover:bg-emerald-800 shadow-md'
+                      : 'text-[#0a192f] bg-[#d4af37] hover:bg-[#e5bf45]'
+                  }`}
                 >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>
-                    {processingPaystack
-                      ? 'Connecting Paystack...'
-                      : paymentMethod === 'gtb_whatsapp'
-                        ? 'Submit Transfer & Activate Pending Pass'
-                        : publicServerConfig.paystackConfigured
-                          ? 'Pay via Paystack & Activate'
-                          : 'Proceed to Paystack Settlement'}
-                  </span>
+                  {isZeroBypass ? (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Instant Activate {checkoutPlan.name} (₦0 VIP Bypass)</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>
+                        {processingPaystack
+                          ? 'Connecting Paystack...'
+                          : paymentMethod === 'gtb_whatsapp'
+                            ? 'Submit Transfer & Activate Pending Pass'
+                            : publicServerConfig.paystackConfigured
+                              ? 'Pay via Paystack & Activate'
+                              : 'Proceed to Paystack Settlement'}
+                      </span>
+                    </>
+                  )}
                 </button>
               )}
             </form>
