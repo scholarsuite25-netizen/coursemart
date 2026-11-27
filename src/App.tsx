@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
 import { AnnouncementBar } from './components/storefront/AnnouncementBar';
 import { CartDrawer } from './components/storefront/CartDrawer';
@@ -132,6 +132,17 @@ function PageFallback() {
 function AppRouter() {
   const { route, toastMessage } = useStore();
   const parsed = parseAppRoute(route);
+
+  // Preload course detail, course player, and library chunks in background after
+  // initial paint so clicking any course opens instantaneously with zero spinner.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void import('./components/storefront/ProductDetailPage');
+      void import('./components/lms/CoursePlayerPage');
+      void import('./components/lms/LibraryPage');
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const isStandaloneShell =
     parsed.page === 'admin' ||

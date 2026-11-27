@@ -35,7 +35,7 @@ import {
   INSTRUCTOR_BABATUNDE,
   INSTRUCTOR_CHIOMA,
 } from './realWealthContent.ts';
-import { generateProductCoverDataUri } from '../utils/coverGenerator';
+import { generateProductCoverDataUri } from '../utils/coverGenerator.ts';
 import { ensureFullCourseCurriculum } from './fullCourseCurricula.ts';
 
 export const HERO_BANNER_IMAGE =
