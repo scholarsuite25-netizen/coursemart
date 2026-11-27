@@ -996,6 +996,63 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       return next;
     });
+    // One-time tester account reset for Kolade Erinle (kederinle@gmail.com) so he can
+    // test sequential course gating, 80% quiz passmark, randomized quiz options,
+    // 3-download limit, and affiliate form from a clean state.
+    const TESTER_RESET_KEY = 'dwc_tester_reset_kolade_2026_11_27_v1';
+    try {
+      if (localStorage.getItem(TESTER_RESET_KEY) !== 'done') {
+        const koladeIds = new Set(
+          usersRef.current
+            .filter(
+              (u) =>
+                (u.email || '').trim().toLowerCase() === RETRY_EMAIL ||
+                (u.name || '').trim().toLowerCase() === 'kolade erinle'
+            )
+            .map((u) => u.id)
+        );
+        const matchesKolade =
+          koladeIds.size > 0 ||
+          orders.some((o) => (o.customerEmail || '').trim().toLowerCase() === RETRY_EMAIL);
+
+        if (matchesKolade) {
+          // 1. Reset course progress, quiz scores & certificates
+          setProgressList((prev) => prev.filter((p) => !koladeIds.has(p.userId)));
+
+          // 2. Reset download counts on completed orders and clear pending orders
+          setOrders((prev) =>
+            prev
+              .filter(
+                (o) =>
+                  !(
+                    ((o.customerEmail || '').trim().toLowerCase() === RETRY_EMAIL ||
+                      koladeIds.has(o.userId)) &&
+                    o.status === 'pending'
+                  )
+              )
+              .map((o) =>
+                (o.customerEmail || '').trim().toLowerCase() === RETRY_EMAIL ||
+                koladeIds.has(o.userId)
+                  ? { ...o, downloadCounts: {} }
+                  : o
+              )
+          );
+
+          // 3. Reset affiliate profile so he can test the affiliate registration form afresh
+          setAffiliates((prev) =>
+            prev.filter((a) => !koladeIds.has(a.userId))
+          );
+
+          // 4. Reset popup dismissal flags for fresh testing
+          localStorage.removeItem('dwc_tripwire_dismissed');
+          localStorage.removeItem('dwc_exit_intent_dismissed');
+          localStorage.setItem(TESTER_RESET_KEY, 'done');
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+
     // Note: the standard sync effect below will persist the healed statuses.
     if (changed && typeof console !== 'undefined') {
       console.info('🔧 Self-healed pending zero-total / 100%-coupon orders and cleared retry-account pending orders.');
