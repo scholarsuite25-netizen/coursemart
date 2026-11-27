@@ -9,28 +9,28 @@ export const INSTRUCTOR_BABATUNDE = {
   id: 'user-instructor-2',
   name: 'Babatunde Adeyemi',
   role: 'Senior AI Automation Engineer & Lead Growth Architect',
-  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces',
+  avatar: '/images/avatars/babatunde-adeyemi.jpg',
 };
 
 export const INSTRUCTOR_CHIOMA = {
   id: 'user-instructor-3',
   name: 'Chioma Okonkwo',
   role: 'WhatsApp Commerce & High-Ticket Copywriting Specialist',
-  avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&h=200&fit=crop&crop=faces',
+  avatar: '/images/avatars/chioma-okonkwo.jpg',
 };
 
 export const INSTRUCTOR_ELENA = {
   id: 'user-instructor-1',
   name: 'Dr. Elena Vance',
   role: 'Principal Systems Architect & Author',
-  avatar: '/src/assets/images/avatar_instructor_elena_1794890420841.jpg',
+  avatar: '/images/avatars/african-instructor-default.jpg',
 };
 
 export const INSTRUCTOR_OMOTOSO = {
   id: 'inst-omotoso',
   name: 'S. B. OMOTOSO, FCIA',
   role: 'Managing Consultant, Tintol Business Services (Scholar Suite)',
-  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
+  avatar: '/images/avatars/sb-omotoso.jpg',
 };
 
 export const REAL_WEALTH_PRODUCTS: Product[] = [

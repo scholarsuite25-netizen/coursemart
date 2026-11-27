@@ -318,7 +318,7 @@ export const SEED_TUTORIALS: DocumentTutorial[] = [
     authorName: 'Cephas Growth Lead',
     authorRole: 'Platform Lead',
     authorAvatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces',
+      '/images/avatars/babatunde-adeyemi.jpg',
     coverImage:
       'https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=1200&h=630&fit=crop',
     difficulty: 'beginner',
@@ -394,6 +394,16 @@ export const storageService = {
         let item = p.status !== effectiveStatus ? { ...p, status: effectiveStatus } : p;
         if (seedProduct && p.id === 'prod-ebook-enquiry-to-customer') {
           item = { ...seedProduct, status: effectiveStatus };
+        }
+        // Upgrade legacy non-African instructor avatars cached in localStorage
+        if (
+          seedProduct &&
+          item.instructorAvatar &&
+          (item.instructorAvatar.includes('avatar_instructor_elena') ||
+            item.instructorAvatar.includes('photo-1507003211169') ||
+            item.instructorAvatar.includes('photo-1573496359142'))
+        ) {
+          item = { ...item, instructorAvatar: seedProduct.instructorAvatar };
         }
         if (seedProduct && seedProduct.type === 'course') {
           if (item.status !== 'published') {

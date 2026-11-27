@@ -42,7 +42,7 @@ export const HERO_BANNER_IMAGE =
   '/src/assets/images/hero_learning_workspace_1794890414767.jpg';
 
 export const INSTRUCTOR_AVATAR =
-  '/src/assets/images/avatar_instructor_elena_1794890420841.jpg';
+  '/images/avatars/african-instructor-default.jpg';
 
 export const PROMPT_PACK_COVER =
   '/src/assets/images/digital_prompt_pack_cover_1794925520575.jpg';
