@@ -122,7 +122,10 @@ export function CartDrawer() {
     }
 
     let paystackRef = transferRef;
-    let paystackVerified = false;
+    // A zero-total cart (100% coupon like VIPTEST/DWC100VIP, or free products)
+    // requires no payment. Mark it verified so the order is completed and the
+    // items are delivered into the customer's Learning & Digital Library.
+    let paystackVerified = totals.grandTotal === 0;
 
     if ((paymentMethod === 'paystack' || paymentMethod === 'card') && totals.grandTotal > 0) {
       setIsProcessingPaystack(true);
@@ -565,7 +568,7 @@ export function CartDrawer() {
                         value={couponInput}
                         onChange={(e) => setCouponInput(e.target.value)}
                         placeholder="Enter coupon code"
-                        className="w-full h-9 pl-8 pr-3 text-sm font-mono uppercase bg-white border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                        className="w-full h-9 pl-8 pr-3 text-sm font-mono font-bold tracking-wide text-slate-900 uppercase bg-white border border-slate-300 rounded-md focus:outline-none focus:border-slate-900 placeholder:font-semibold placeholder:text-slate-500"
                       />
                     </div>
                     <button

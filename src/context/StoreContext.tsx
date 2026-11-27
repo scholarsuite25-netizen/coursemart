@@ -1676,11 +1676,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
 
       const paymentMethod: PaymentMethod = options?.paymentMethod ?? 'paystack';
-      const orderStatus = resolveInitialOrderStatus(
-        paymentMethod,
-        options?.paystackVerified === true
-      );
-      const isPendingTransfer = orderStatus === 'pending';
 
       const userMem = userMemberships.find(
         (m) => m.userId === activeUser.id && m.status === 'active'
@@ -1702,6 +1697,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         userTier,
         0
       );
+
+      // A zero-total cart (100% coupon such as VIPTEST/DWC100VIP, or entirely
+      // free products) requires no payment. Complete it immediately so the
+      // items are delivered into the customer's Learning & Digital Library.
+      const orderStatus: OrderStatus =
+        totals.grandTotal === 0
+          ? 'completed'
+          : resolveInitialOrderStatus(paymentMethod, options?.paystackVerified === true);
+      const isPendingTransfer = orderStatus === 'pending';
       const orderId = `ORD-${Math.floor(1050 + Math.random() * 8900)}`;
       const nowIso = new Date().toISOString();
 

@@ -898,7 +898,7 @@ export function MembershipPage() {
                           setCouponError(null);
                         }}
                         placeholder="Enter coupon code (e.g. DWC100VIP)"
-                        className="flex-1 h-9 px-3 rounded text-xs border border-slate-300 uppercase tracking-wide font-mono focus:border-blue-600 focus:outline-none bg-white"
+                        className="flex-1 h-9 px-3 rounded text-xs font-bold tracking-wide text-slate-900 border border-slate-300 uppercase font-mono focus:border-blue-600 focus:outline-none bg-white placeholder:font-semibold placeholder:text-slate-500"
                       />
                       <button
                         type="button"
