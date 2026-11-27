@@ -945,6 +945,60 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
   }, [syncSetters]);
 
+  // Self-heal pending zero-total / 100%-coupon orders on load so affected
+  // customers regain access automatically — no admin action required. For
+  // all-access coupons the order items are expanded to the full published paid
+  // catalog. A specific test account (Kolade Erinle) has its pending orders
+  // cleared instead so he can re-run the VIPTEST checkout from a clean state.
+  useEffect(() => {
+    if (!hydrated || typeof window === 'undefined') return;
+    let changed = false;
+    const RETRY_EMAIL = 'kederinle@gmail.com';
+    setOrders((prev) => {
+      const next: Order[] = [];
+      for (const o of prev) {
+        const email = (o.customerEmail || '').trim().toLowerCase();
+        const isRetryAccount = email === RETRY_EMAIL;
+        const isZeroTotal = o.total === 0;
+        const hasFullDiscountCoupon =
+          typeof o.couponCode === 'string' &&
+          ['VIPTEST', 'DWC100VIP'].includes(o.couponCode.trim().toUpperCase());
+
+        // Clear this test user's pending orders so he can retry VIPTEST cleanly.
+        if (isRetryAccount && o.status === 'pending') {
+          changed = true;
+          continue;
+        }
+
+        if (o.status !== 'pending' || (!isZeroTotal && !hasFullDiscountCoupon)) {
+          next.push(o);
+          continue;
+        }
+
+        changed = true;
+        let items = o.items;
+        if (hasFullDiscountCoupon) {
+          const existingIds = new Set(items.map((i) => i.productId));
+          const catalogItems = products
+            .filter((p) => p.status === 'published' && p.price > 0 && !existingIds.has(p.id))
+            .map((p) => ({
+              productId: p.id,
+              productTitle: p.title,
+              productType: p.type,
+              price: p.price,
+            }));
+          items = [...items, ...catalogItems];
+        }
+        next.push({ ...o, status: 'completed' as OrderStatus, items });
+      }
+      return next;
+    });
+    // Note: the standard sync effect below will persist the healed statuses.
+    if (changed && typeof console !== 'undefined') {
+      console.info('🔧 Self-healed pending zero-total / 100%-coupon orders and cleared retry-account pending orders.');
+    }
+  }, [hydrated, products]);
+
   const applyVerifiedPaystackReference = useCallback((verifiedRef: string) => {
     let matchedOrder: Order | undefined;
     setOrders((prev) =>
@@ -1709,7 +1763,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const orderId = `ORD-${Math.floor(1050 + Math.random() * 8900)}`;
       const nowIso = new Date().toISOString();
 
-      const orderItems = cart
+      // All-access coupons (VIPTEST / DWC100VIP) grant the full published
+      // catalog. Build the order items from every published paid product so
+      // the Library (which derives ownership from completed order items) shows
+      // all of them. For a normal checkout, use only the cart items.
+      const allAccessCoupon =
+        typeof totals.appliedCoupon?.code === 'string' &&
+        ['VIPTEST', 'DWC100VIP'].includes(totals.appliedCoupon.code.trim().toUpperCase());
+
+      const cartItems = cart
         .map((cartItem) => {
           const product = products.find((p) => p.id === cartItem.productId);
           if (!product) return null;
@@ -1725,6 +1787,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           };
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
+
+      let orderItems = cartItems;
+      if (allAccessCoupon) {
+        const existingIds = new Set(cartItems.map((i) => i.productId));
+        const catalogItems = products
+          .filter((p) => p.status === 'published' && p.price > 0 && !existingIds.has(p.id))
+          .map((p) => ({
+            productId: p.id,
+            productTitle: p.title,
+            productType: p.type,
+            price: p.price,
+            tierName: undefined,
+            seats: undefined,
+            variantName: undefined,
+            sku: undefined,
+          }));
+        orderItems = [...cartItems, ...catalogItems];
+      }
 
       const newOrder: Order = {
         id: orderId,
