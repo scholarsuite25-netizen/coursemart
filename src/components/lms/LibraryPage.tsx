@@ -42,6 +42,7 @@ import { isCopyProtectionActive } from '../../utils/contentProtection';
 import { ContentProtectionWrapper } from './ContentProtectionWrapper';
 import { DynamicWatermarkOverlay } from './DynamicWatermarkOverlay';
 import { triggerFileDownload, triggerDirectLinkDownload } from '../../utils/fileDownloader';
+import { generateAndDownloadEbookPdf } from '../../utils/pdfEbookGenerator';
 
 export function LibraryPage() {
   const {
@@ -268,40 +269,9 @@ export function LibraryPage() {
     }
 
     if (prod.ebookData) {
-      const chaptersText = prod.ebookData.chapters
-        .map(
-          (ch) =>
-            `\n\n================================================================================\nCHAPTER ${ch.number}: ${ch.title.toUpperCase()} (${ch.pages} pages)\n================================================================================\n\n${ch.previewExcerpt}\n\n[Core Study & Implementation Notes]\n- Key Principle: Master foundational execution before scaling.\n- Action Step: Document your baseline metrics and apply chapter frameworks.\n- Deliverable: Completed chapter worksheet and milestone review.\n`
-        )
-        .join('\n');
-
-      const fullEbookText = [
-        `================================================================================`,
-        `DIGITAL WEALTH CREATORS (DWC) OFFICIAL E-BOOK EDITION`,
-        `================================================================================`,
-        `Title: ${prod.title}`,
-        `Subtitle: ${prod.subtitle}`,
-        `Author: ${prod.instructorName} (${prod.instructorRole})`,
-        `ISBN: ${prod.ebookData.isbn}`,
-        `Pages: ${prod.ebookData.pages} | Formats: ${prod.ebookData.formats.join(', ')}`,
-        `Licensed To: ${currentUser.name} (${currentUser.email})`,
-        `Delivered: ${new Date().toLocaleDateString()} | DRM-Free Personal License`,
-        `================================================================================`,
-        `\nTABLE OF CONTENTS:`,
-        ...prod.ebookData.chapters.map((ch) => `  Chapter ${ch.number}: ${ch.title} (p. ${ch.pages})`),
-        `\n${chaptersText}`,
-        `\n================================================================================`,
-        `DWC COMMUNITY & MASTERMIND SUPPORT:`,
-        `Connect with verified instructors and fellow creators at:`,
-        `https://digitalwealthcreators.vercel.app/my-library`,
-        `================================================================================`,
-      ].join('\n');
-
-      triggerFileDownload(
-        `${prod.slug}-official-edition.txt`,
-        fullEbookText,
-        'text/plain;charset=utf-8'
-      );
+      generateAndDownloadEbookPdf(prod, currentUser);
+      showToast(`Downloaded complete PDF edition for "${prod.title}"`);
+      return;
     } else if (prod.digitalResourceMeta) {
       const toolkitText = [
         `================================================================================`,
@@ -1184,7 +1154,7 @@ export function LibraryPage() {
                                 <Download className="w-3.5 h-3.5" />
                                 <span>
                                   {prod.ebookData
-                                    ? 'Download'
+                                    ? 'Download PDF Book'
                                     : `Download ${formatProductTypeLabel(
                                         prod.type,
                                         prod.digitalSubType
@@ -1529,7 +1499,7 @@ export function LibraryPage() {
                   className="px-3 py-1.5 text-xs font-semibold border border-slate-300 rounded-md hover:bg-slate-50 inline-flex items-center gap-1 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Save Copy</span>
+                  <span>Download PDF Book</span>
                 </button>
                 <button
                   type="button"
@@ -1593,23 +1563,31 @@ export function LibraryPage() {
                       <h4 className="font-display text-2xl font-extrabold text-slate-900">
                         {activeChap.title}
                       </h4>
-                      <p
-                        className={`text-slate-800 leading-relaxed ${
-                          readerFontLarge ? 'text-lg' : 'text-base'
-                        }`}
-                      >
-                        {activeChap.previewExcerpt}
-                      </p>
-                      <p
-                        className={`text-slate-700 leading-relaxed ${
-                          readerFontLarge ? 'text-lg' : 'text-base'
-                        }`}
-                      >
-                        In production systems, disciplined boundaries reduce regression risk across
-                        releases. Apply these patterns incrementally: start at module seams, enforce
-                        exhaustive checks in continuous integration, and document invariants right
-                        next to the domain model.
-                      </p>
+                      {(() => {
+                        const isEnquiry = readerEbook.id === 'prod-ebook-enquiry-to-customer' || readerEbook.slug.includes('enquiry-to-customer');
+                        return (
+                          <div className={`space-y-4 text-slate-800 leading-relaxed ${readerFontLarge ? 'text-lg' : 'text-base'}`}>
+                            <div className="p-4 rounded-lg bg-slate-50 border-l-4 border-[#0a192f] space-y-2">
+                              <p className="text-xs font-bold uppercase tracking-wider text-[#0a192f]">Opening Scenario</p>
+                              <p className="text-sm italic text-slate-700">{activeChap.previewExcerpt}</p>
+                            </div>
+                            <div className="p-4 rounded-lg bg-[#0a192f] text-white space-y-2">
+                              <p className="text-xs font-bold uppercase tracking-wider text-[#d4af37]">Core Learning Objectives & Execution</p>
+                              <p className="text-sm leading-relaxed text-slate-200">
+                                Master foundational customer communication: ask qualifying discovery questions, structure transparent pricing with delivery timelines, verify bank transfers independently, and comply with NDPA 2023 and FCCPA 2018.
+                              </p>
+                            </div>
+                            <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 space-y-2 text-slate-800">
+                              <p className="text-xs font-bold uppercase tracking-wider text-amber-800">Action Checklist</p>
+                              <ul className="text-xs space-y-1 text-slate-700 list-disc list-inside">
+                                <li>Respond to incoming enquiries within stated business hours using the 5-point structure.</li>
+                                <li>Confirm item specifications, total charges, and delivery landmark before sending account details.</li>
+                                <li>Verify cleared funds in banking app prior to courier dispatch.</li>
+                              </ul>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </>
                   );
                 })()}

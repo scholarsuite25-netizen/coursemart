@@ -388,9 +388,13 @@ export const storageService = {
     return combined
       .filter((p) => !deletedIds.has(p.id))
       .map((p) => {
+        const seedProduct = SEED_PRODUCTS.find((sp) => sp.id === p.id);
         const seedStatus = seedStatusMap.get(p.id);
         const effectiveStatus = seedStatus === 'draft' ? 'draft' : p.status;
         let item = p.status !== effectiveStatus ? { ...p, status: effectiveStatus } : p;
+        if (seedProduct && p.id === 'prod-ebook-enquiry-to-customer') {
+          item = { ...seedProduct, status: effectiveStatus };
+        }
         if (item && item.includedInMembershipTier && ['starter', 'pro', 'vip', 'enterprise'].includes(item.includedInMembershipTier as string)) {
           return {
             ...item,

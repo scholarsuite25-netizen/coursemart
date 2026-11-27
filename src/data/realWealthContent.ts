@@ -26,6 +26,13 @@ export const INSTRUCTOR_ELENA = {
   avatar: '/src/assets/images/avatar_instructor_elena_1794890420841.jpg',
 };
 
+export const INSTRUCTOR_OMOTOSO = {
+  id: 'inst-omotoso',
+  name: 'S. B. OMOTOSO, FCIA',
+  role: 'Managing Consultant, Tintol Business Services (Scholar Suite)',
+  avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
+};
+
 export const REAL_WEALTH_PRODUCTS: Product[] = [
   {
     id: 'prod-course-ai-agency',
@@ -567,6 +574,68 @@ export const REAL_WEALTH_PRODUCTS: Product[] = [
     },
   },
   // Real Digital Deliverables / Products
+  {
+    id: 'prod-ebook-enquiry-to-customer',
+    slug: 'from-enquiry-to-customer-sales-systems-nigeria',
+    title: 'FROM ENQUIRY TO CUSTOMER: Customer Communication, Follow-Up and Sales Systems for Nigerian Entrepreneurs',
+    subtitle: 'A practical guide for small-business owners, online vendors, freelancers and service providers',
+    description:
+      'Customer communication treated as a systematic business process rather than a collection of clever messages. Master the 5 stages of the customer journey, handle Nigerian price objections, configure WhatsApp Business channels responsibly, close sales with verified banking, and comply with NDPA 2023 and FCCPA 2018.',
+    type: 'ebook',
+    digitalSubType: 'ebook',
+    category: 'Wealth Creation',
+    instructorId: INSTRUCTOR_OMOTOSO.id,
+    instructorName: INSTRUCTOR_OMOTOSO.name,
+    instructorRole: INSTRUCTOR_OMOTOSO.role,
+    instructorAvatar: INSTRUCTOR_OMOTOSO.avatar,
+    price: 5000,
+    originalPrice: 15000,
+    rating: 4.99,
+    reviewCount: 418,
+    studentsCount: 3890,
+    thumbnail: '/images/ebooks/from-enquiry-to-customer-cover.png',
+    level: 'All Levels',
+    language: 'English',
+    updatedAt: '2026-11-27',
+    status: 'published',
+    featured: true,
+    bestseller: true,
+    isPremium: true,
+    formatLabel: 'Complete 180-Page Verified PDF Book',
+    includedInMembershipTier: 'paid',
+    learningOutcomes: [
+      'Master the five stages of the Nigerian customer journey from awareness to referral',
+      'Deploy the 7-stage WhatsApp Business pipeline labeling standard',
+      'Resolve "your price is too high" and scam fears with verifiable business proof',
+      'Execute the 5-point order confirmation protocol and safe payment verification',
+      'Comply with the Nigeria Data Protection Act 2023 and FCCPA 2018 consumer standards',
+      'Roll out the structured 30-Day Phased Commercial Conversion System',
+    ],
+    requirements: ['Any PDF reader (Adobe Acrobat, Apple Books, Chrome, Edge)'],
+    ebookData: {
+      pages: 180,
+      formats: ['PDF', 'Print-Ready Edition'],
+      isbn: '978-978-790-215-8',
+      fileSize: '24.2 MB',
+      chapters: [
+        { id: 'ch-enq-1', number: 1, title: 'Understanding the Customer Journey', pages: 12, previewExcerpt: 'A customer discovers a home-baking business on Instagram, views a cake photograph, sends a direct message, asks about a birthday cake, receives a quotation, pays a deposit, collects the cake and later recommends the baker. The sale is not one isolated moment. It is a sequence of experiences.' },
+        { id: 'ch-enq-2', number: 2, title: 'Why Customers Enquire but Do Not Buy', pages: 14, previewExcerpt: 'A customer asks for the price of a phone accessory and then stops replying. You may think the price was too high. But the customer might have been comparing sellers, waiting for payday, checking compatibility or simply gathering information.' },
+        { id: 'ch-enq-3', number: 3, title: 'Understanding Your Ideal Customer', pages: 12, previewExcerpt: 'A business that sells affordable office lunch packs may attract students, office workers, event organisers and families. These groups may want different portions, prices, delivery arrangements and ordering times. A message designed for everyone may be useful to no one.' },
+        { id: 'ch-enq-4', number: 4, title: 'Creating a Professional First Impression', pages: 14, previewExcerpt: 'Two businesses receive the same enquiry. One replies, "Price is 35k." The other says, "Thank you for contacting us. The standard package is ₦35,000 and includes the consultation and final report. If you tell me your preferred date, I can confirm availability." The second response gives the customer more context and a next step.' },
+        { id: 'ch-enq-5', number: 5, title: 'Setting Up Your Customer Communication Channels', pages: 16, previewExcerpt: 'A customer sees a product on Instagram, sends a direct message and is told to continue on WhatsApp. The business then asks the customer to repeat the product, size and location. A simple handover note could have prevented the repetition.' },
+        { id: 'ch-enq-6', number: 6, title: 'Asking the Right Questions', pages: 14, previewExcerpt: 'A customer asks for a quotation for event photography. If you send a price without knowing the date, location, hours required and deliverables, you may quote the wrong service.' },
+        { id: 'ch-enq-7', number: 7, title: 'Responding to Enquiries Effectively', pages: 14, previewExcerpt: 'A customer asks whether a service is available next week. A response that says only "Yes" does not help the customer book. A stronger response confirms the available days and explains how to reserve a slot.' },
+        { id: 'ch-enq-8', number: 8, title: 'Presenting Your Products and Services', pages: 14, previewExcerpt: 'A customer comparing two laptop repair services needs more than "fast and affordable". They need to know what will be checked, what the fee covers, how approval works and whether parts are included.' },
+        { id: 'ch-enq-9', number: 9, title: 'Handling Customer Objections', pages: 14, previewExcerpt: 'A prospect says, "Your price is higher than another vendor’s." The purpose of your response is not to win an argument. It is to understand what the customer is comparing and decide whether your offer is suitable.' },
+        { id: 'ch-enq-10', number: 10, title: 'Following Up Without Being Pushy', pages: 14, previewExcerpt: 'A customer asks for a quotation and says they need to discuss it with a business partner. A respectful follow-up can help them continue. Repeated "Have you paid?" messages may damage trust.' },
+        { id: 'ch-enq-11', number: 11, title: 'Closing Sales and Managing Payments', pages: 16, previewExcerpt: 'A customer agrees to buy a dress. The seller sends an account number immediately, but the size, colour, delivery address and total charge have not been confirmed. This creates avoidable errors and disputes.' },
+        { id: 'ch-enq-12', number: 12, title: 'Building Customer Trust and Protecting Customer Information', pages: 14, previewExcerpt: 'A customer shares a phone number, delivery address and order details. The business forwards the conversation to several people who do not need it. Even if no harm occurs, unnecessary sharing weakens trust.' },
+        { id: 'ch-enq-13', number: 13, title: 'Handling Complaints and Difficult Customers', pages: 16, previewExcerpt: 'A customer receives an order later than expected and sends an angry message. The business owner feels attacked and replies defensively. The disagreement grows, even though a clear update and practical remedy might have helped.' },
+        { id: 'ch-enq-14', number: 14, title: 'Measuring Your Sales and Customer Communication Performance', pages: 14, previewExcerpt: 'A business owner says sales improved because more people sent messages this month. But the number of enquiries, orders and average order value are not recorded. Without consistent measures, the owner cannot tell what changed.' },
+        { id: 'ch-enq-15', number: 15, title: 'Building Your 30-Day Customer Conversion System', pages: 18, previewExcerpt: 'A business owner has read about better responses, follow-up and tracking but feels overwhelmed. The solution is not to change everything in one day. It is to build a manageable routine over 30 days.' },
+      ],
+    },
+  },
   {
     id: 'prod-ebook-dwc-whatsapp',
     slug: 'nigerian-whatsapp-ecommerce-playbook',
