@@ -107,7 +107,7 @@ export function VerifyCertificatePage({ certificateId }: VerifyCertificatePagePr
       size: 140,
       fgColor: '#0a192f',
       bgColor: '#ffffff',
-      margin: 2,
+      margin: 4,
     });
   }, [verificationResult]);
 

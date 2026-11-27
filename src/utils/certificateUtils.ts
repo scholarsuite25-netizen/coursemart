@@ -5,6 +5,7 @@
  * progress registry, and a pure-TypeScript, zero-external-dependency SVG QR Code generator.
  */
 
+import QRCode from 'qrcode';
 import type { CourseProgress, Product, UserAccount } from '../types/marketplace';
 
 export interface CertificateVerificationResult {
@@ -79,7 +80,9 @@ export function formatCertificateCode(raw: string): string {
  * Builds the canonical public verification URL for a given certificate.
  */
 export function generateVerificationUrl(certificateCode: string, origin?: string): string {
-  const base = origin || (typeof window !== 'undefined' ? window.location.origin : 'https://coursemart.ng');
+  const base =
+    origin ||
+    (typeof window !== 'undefined' ? window.location.origin : 'https://digitalwealthcreators.org.ng');
   return `${base}/verify-certificate?id=${encodeURIComponent(certificateCode)}`;
 }
 
@@ -239,283 +242,36 @@ export function verifyCertificate(
 }
 
 /* =========================================================================
-   PURE TYPESCRIPT REED-SOLOMON & QR MATRIX GENERATOR (ZERO DEPENDENCY)
+   ISO/IEC 18004 COMPLIANT QR MATRIX & SVG GENERATOR
    ========================================================================= */
 
-// Precomputed GF(256) tables for QR polynomial operations
-const GF_EXP = new Uint8Array(512);
-const GF_LOG = new Uint8Array(256);
-(() => {
-  let v = 1;
-  for (let i = 0; i < 255; i++) {
-    GF_EXP[i] = v;
-    GF_LOG[v] = i;
-    v <<= 1;
-    if (v & 0x100) v ^= 0x11d;
-  }
-  for (let i = 255; i < 512; i++) {
-    GF_EXP[i] = GF_EXP[i - 255];
-  }
-})();
-
-function gfMul(x: number, y: number): number {
-  if (x === 0 || y === 0) return 0;
-  return GF_EXP[GF_LOG[x] + GF_LOG[y]];
-}
-
-function rsGenPoly(degree: number): number[] {
-  let poly = [1];
-  for (let i = 0; i < degree; i++) {
-    const next = new Array(poly.length + 1).fill(0);
-    for (let j = 0; j < poly.length; j++) {
-      next[j] ^= poly[j];
-      next[j + 1] ^= gfMul(poly[j], GF_EXP[i]);
-    }
-    poly = next;
-  }
-  return poly;
-}
-
-function rsEncode(data: Uint8Array, ecCount: number): Uint8Array {
-  const gen = rsGenPoly(ecCount);
-  const remainder = new Uint8Array(ecCount);
-  for (let i = 0; i < data.length; i++) {
-    const factor = data[i] ^ remainder[0];
-    for (let j = 0; j < ecCount - 1; j++) {
-      remainder[j] = remainder[j + 1] ^ gfMul(factor, gen[j + 1]);
-    }
-    remainder[ecCount - 1] = gfMul(factor, gen[ecCount]);
-  }
-  return remainder;
-}
-
-interface QrVersionSpec {
-  version: number;
-  totalCodewords: number;
-  dataCodewords: number;
-  ecCodewords: number;
-  alignmentPositions: number[];
-}
-
-const QR_SPECS: QrVersionSpec[] = [
-  { version: 1, totalCodewords: 26, dataCodewords: 19, ecCodewords: 7, alignmentPositions: [] },
-  { version: 2, totalCodewords: 44, dataCodewords: 34, ecCodewords: 10, alignmentPositions: [6, 18] },
-  { version: 3, totalCodewords: 70, dataCodewords: 55, ecCodewords: 15, alignmentPositions: [6, 22] },
-  { version: 4, totalCodewords: 100, dataCodewords: 80, ecCodewords: 20, alignmentPositions: [6, 26] },
-  { version: 5, totalCodewords: 134, dataCodewords: 108, ecCodewords: 26, alignmentPositions: [6, 30] },
-  { version: 6, totalCodewords: 172, dataCodewords: 136, ecCodewords: 36, alignmentPositions: [6, 34] },
-  { version: 7, totalCodewords: 196, dataCodewords: 156, ecCodewords: 40, alignmentPositions: [6, 22, 38] },
-  { version: 8, totalCodewords: 242, dataCodewords: 194, ecCodewords: 48, alignmentPositions: [6, 24, 42] },
-];
-
 /**
- * Generates a 2D boolean matrix representing an authentic, scannable QR Code.
+ * Generates a 2D boolean matrix representing an authentic, ISO/IEC 18004
+ * compliant, scannable QR Code using Error Correction Level M.
  */
 export function generateQrMatrix(text: string): boolean[][] {
-  const utf8Bytes = new TextEncoder().encode(text);
-  const dataLen = utf8Bytes.length;
-
-  // Pick smallest fitting version
-  const spec = QR_SPECS.find((s) => s.dataCodewords >= dataLen + 3) || QR_SPECS[QR_SPECS.length - 1];
-  const size = spec.version * 4 + 17;
-
-  // 1. Bit buffer encoding: Byte Mode (0100) + 8-bit length + data + terminator + padding
-  const bits: number[] = [0, 1, 0, 0]; // Byte mode indicator
-  const lenBits = spec.version <= 9 ? 8 : 16;
-  for (let i = lenBits - 1; i >= 0; i--) {
-    bits.push((dataLen >> i) & 1);
-  }
-  for (let i = 0; i < dataLen; i++) {
-    const b = utf8Bytes[i];
-    for (let j = 7; j >= 0; j--) {
-      bits.push((b >> j) & 1);
+  const qr = QRCode.create(text || 'https://digitalwealthcreators.org.ng', {
+    errorCorrectionLevel: 'M',
+  });
+  const size = qr.modules.size;
+  const data = qr.modules.data;
+  const matrix: boolean[][] = [];
+  for (let r = 0; r < size; r++) {
+    const row: boolean[] = [];
+    for (let c = 0; c < size; c++) {
+      row.push(Boolean(data[r * size + c]));
     }
+    matrix.push(row);
   }
-
-  // Terminator (up to 4 zeroes)
-  const maxDataBits = spec.dataCodewords * 8;
-  const termLen = Math.min(4, maxDataBits - bits.length);
-  for (let i = 0; i < termLen; i++) bits.push(0);
-
-  // Pad to multiple of 8
-  while (bits.length % 8 !== 0) bits.push(0);
-
-  // Pad bytes: 0xEC (11101100), 0x11 (00010001)
-  const padPatterns = [
-    [1, 1, 1, 0, 1, 1, 0, 0],
-    [0, 0, 0, 1, 0, 0, 0, 1],
-  ];
-  let padIdx = 0;
-  while (bits.length < maxDataBits) {
-    bits.push(...padPatterns[padIdx % 2]);
-    padIdx++;
-  }
-
-  // Convert bits to data codewords
-  const dataCodewords = new Uint8Array(spec.dataCodewords);
-  for (let i = 0; i < spec.dataCodewords; i++) {
-    let b = 0;
-    for (let j = 0; j < 8; j++) {
-      b = (b << 1) | bits[i * 8 + j];
-    }
-    dataCodewords[i] = b;
-  }
-
-  // Compute Reed-Solomon error correction codewords
-  const ecCodewords = rsEncode(dataCodewords, spec.ecCodewords);
-
-  // Combine data + EC into allCodewords
-  const allCodewords = new Uint8Array(spec.totalCodewords);
-  allCodewords.set(dataCodewords, 0);
-  allCodewords.set(ecCodewords, spec.dataCodewords);
-
-  // Convert all codewords to bit stream
-  const finalBits: number[] = [];
-  for (let i = 0; i < allCodewords.length; i++) {
-    const byte = allCodewords[i];
-    for (let j = 7; j >= 0; j--) {
-      finalBits.push((byte >> j) & 1);
-    }
-  }
-
-  // 2. Setup matrix and reserved flags
-  const matrix: (number | null)[][] = Array.from({ length: size }, () => new Array(size).fill(null));
-  const reserved: boolean[][] = Array.from({ length: size }, () => new Array(size).fill(false));
-
-  // Helper to place finder pattern + separator
-  const placeFinder = (r0: number, c0: number) => {
-    for (let r = -1; r <= 7; r++) {
-      for (let c = -1; c <= 7; c++) {
-        const nr = r0 + r;
-        const nc = c0 + c;
-        if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
-          reserved[nr][nc] = true;
-          if (r >= 0 && r <= 6 && c >= 0 && c <= 6) {
-            const isBlack =
-              r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4);
-            matrix[nr][nc] = isBlack ? 1 : 0;
-          } else {
-            matrix[nr][nc] = 0; // white separator
-          }
-        }
-      }
-    }
-  };
-
-  placeFinder(0, 0);
-  placeFinder(0, size - 7);
-  placeFinder(size - 7, 0);
-
-  // Timing patterns
-  for (let c = 8; c < size - 8; c++) {
-    reserved[6][c] = true;
-    matrix[6][c] = c % 2 === 0 ? 1 : 0;
-  }
-  for (let r = 8; r < size - 8; r++) {
-    reserved[r][6] = true;
-    matrix[r][6] = r % 2 === 0 ? 1 : 0;
-  }
-
-  // Alignment patterns
-  const alignCoords = spec.alignmentPositions;
-  for (const ar of alignCoords) {
-    for (const ac of alignCoords) {
-      // Don't overlap with finders
-      if ((ar === 6 && ac === 6) || (ar === 6 && ac === size - 7) || (ar === size - 7 && ac === 6)) {
-        continue;
-      }
-      for (let r = -2; r <= 2; r++) {
-        for (let c = -2; c <= 2; c++) {
-          const nr = ar + r;
-          const nc = ac + c;
-          reserved[nr][nc] = true;
-          const isBlack = Math.abs(r) === 2 || Math.abs(c) === 2 || (r === 0 && c === 0);
-          matrix[nr][nc] = isBlack ? 1 : 0;
-        }
-      }
-    }
-  }
-
-  // Dark module
-  reserved[size - 8][8] = true;
-  matrix[size - 8][8] = 1;
-
-  // Reserve format info areas
-  for (let i = 0; i <= 8; i++) {
-    reserved[8][i] = true;
-    reserved[i][8] = true;
-  }
-  for (let i = 0; i < 8; i++) {
-    reserved[8][size - 1 - i] = true;
-    reserved[size - 1 - i][8] = true;
-  }
-
-  // 3. Format bits (Level L = 01, Mask 0 = 000 -> 01000b = 8)
-  const formatData = (1 << 3) | 0; // L level, mask 0
-  let formatShift = formatData << 10;
-  const poly = 0x537;
-  for (let i = 14; i >= 10; i--) {
-    if ((formatShift >> i) & 1) formatShift ^= poly << (i - 10);
-  }
-  const formatBitsVal = ((formatData << 10) | formatShift) ^ 0x5412;
-
-  // Place format bits:
-  // Top-left finder
-  const formatCoordsTopLeft: [number, number][] = [
-    [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 7], [8, 8],
-    [7, 8], [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8],
-  ];
-  for (let i = 0; i < 15; i++) {
-    const bit = (formatBitsVal >> i) & 1;
-    const [r, c] = formatCoordsTopLeft[i];
-    matrix[r][c] = bit;
-  }
-
-  // Split around top-right & bottom-left
-  for (let i = 0; i < 7; i++) {
-    const bit = (formatBitsVal >> i) & 1;
-    matrix[size - 1 - i][8] = bit;
-  }
-  for (let i = 7; i < 15; i++) {
-    const bit = (formatBitsVal >> i) & 1;
-    matrix[8][size - 15 + i] = bit;
-  }
-
-  // 4. Place data bits in zigzag 2-column paths
-  let bitIdx = 0;
-  let upwards = true;
-  for (let col = size - 1; col > 0; col -= 2) {
-    if (col === 6) col--; // Skip vertical timing column
-    const rows = upwards
-      ? Array.from({ length: size }, (_, i) => size - 1 - i)
-      : Array.from({ length: size }, (_, i) => i);
-
-    for (const row of rows) {
-      for (const c of [col, col - 1]) {
-        if (!reserved[row][c]) {
-          let bit = bitIdx < finalBits.length ? finalBits[bitIdx] : 0;
-          bitIdx++;
-
-          // Apply mask pattern 0: (row + col) % 2 === 0
-          if ((row + c) % 2 === 0) {
-            bit ^= 1;
-          }
-          matrix[row][c] = bit;
-        }
-      }
-    }
-    upwards = !upwards;
-  }
-
-  // Convert to clean boolean[][]
-  return matrix.map((row) => row.map((cell) => cell === 1));
+  return matrix;
 }
 
 /**
- * Generates an executive SVG string of the QR Code without any external network dependencies.
+ * Generates an executive SVG string of the QR Code with an ISO-compliant
+ * 4-module quiet zone so phone cameras and QR scanners decode reliably.
  */
 export function generateQrCodeSvg(text: string, options: QrSvgOptions = {}): string {
-  const { size = 180, fgColor = '#0a192f', bgColor = '#ffffff', margin = 2 } = options;
+  const { size = 180, fgColor = '#0a192f', bgColor = '#ffffff', margin = 4 } = options;
   const matrix = generateQrMatrix(text);
   const matrixSize = matrix.length;
   const viewBoxSize = matrixSize + margin * 2;
