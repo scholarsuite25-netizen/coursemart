@@ -14,6 +14,7 @@ import {
   FileText,
   Headphones,
   Image,
+  Lock,
   Megaphone,
   MessageSquare,
   PanelRightClose,
@@ -36,8 +37,15 @@ import {
 import { useStore } from '../../context/StoreContext';
 import type { CourseModule } from '../../types/marketplace';
 import {
+  CERTIFICATE_PASS_MARK,
   calculateModuleProgress,
+  canIssueCourseCertificate,
   getCourseProgressSummary,
+  isLectureUnlocked,
+  isModuleCompleted,
+  isModuleQuizUnlocked,
+  isModuleUnlocked,
+  shuffleQuestionOptionIndices,
 } from '../../utils/commerce';
 import { generateCertificateCode } from '../../utils/certificateUtils';
 import { CertificateModal } from './CertificateModal';
@@ -117,6 +125,9 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   const [activeQuizModule, setActiveQuizModule] = useState<CourseModule | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizOptionOrderByQuestion, setQuizOptionOrderByQuestion] = useState<
+    Record<string, number[]>
+  >({});
 
   const activeLectureIndex = Math.max(
     0,
@@ -145,8 +156,10 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
             toggleLectureComplete(product.id, activeLecture.id);
           }
           if (autoAdvance && activeLectureIndex < flatLectures.length - 1) {
-            const nextLec = flatLectures[activeLectureIndex + 1];
-            if (nextLec) setActiveLectureId(nextLec.id);
+            const assumed = activeLecture
+              ? Array.from(new Set([...completedIds, activeLecture.id]))
+              : completedIds;
+            tryAdvanceToNextLecture(assumed);
           }
           return totalLectureSeconds;
         }
@@ -216,16 +229,31 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   const activeTimestampedNotes =
     (activeLecture && progress?.timestampedNotesByLecture?.[activeLecture.id]) ?? [];
 
-  // Auto-open certificate modal when course reaches 100% completion
+  const modules = product?.courseData?.modules ?? [];
+  const quizScoresByModule = progress?.quizScoresByModule;
+  const certificateEligibility = useMemo(() => {
+    if (!product) {
+      return { eligible: false, completionPercent: 0, unpassedQuizModules: [] as string[] };
+    }
+    return canIssueCourseCertificate(product, completedIds, quizScoresByModule);
+  }, [product, completedIds, quizScoresByModule]);
+
+  // Auto-open certificate modal ONLY when all sequential steps and 80%+ quizzes are passed
   useEffect(() => {
-    if (product && progressPct === 100 && !autoOpenedCert) {
+    if (product && certificateEligibility.eligible && !autoOpenedCert) {
       if (!progress?.certificateCode) {
         issueCourseCertificate(product.id);
       }
       setCertificateOpen(true);
       setAutoOpenedCert(true);
     }
-  }, [product, progressPct, autoOpenedCert, progress?.certificateCode, issueCourseCertificate]);
+  }, [
+    product,
+    certificateEligibility.eligible,
+    autoOpenedCert,
+    progress?.certificateCode,
+    issueCourseCertificate,
+  ]);
 
   const formatTimer = (sec: number) => {
     const mins = Math.floor(sec / 60);
@@ -551,21 +579,37 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
     showToast(`Downloaded ${fileName}`);
   };
 
+  const tryAdvanceToNextLecture = (assumedCompletedIds: string[] = completedIds) => {
+    if (activeLectureIndex >= flatLectures.length - 1) return;
+    const nextLec = flatLectures[activeLectureIndex + 1];
+    if (!nextLec) return;
+    if (isLectureUnlocked(modules, nextLec.id, assumedCompletedIds, quizScoresByModule)) {
+      setActiveLectureId(nextLec.id);
+    } else {
+      showToast(
+        `Complete all lessons and pass the section quiz (${CERTIFICATE_PASS_MARK}%+) before moving to the next section.`
+      );
+    }
+  };
+
   const handleOpenCertificate = () => {
-    if (progressPct === 100 && !progress?.certificateCode) {
+    if (certificateEligibility.eligible && !progress?.certificateCode) {
       issueCourseCertificate(product.id);
     }
     setCertificateOpen(true);
   };
 
   const handleDownloadCertificate = () => {
-    if (progressPct !== 100) {
-      showToast('Complete 100% of the course lectures to download your certificate.');
+    if (!certificateEligibility.eligible) {
+      showToast(
+        certificateEligibility.reason ||
+          `Complete 100% of all sections and pass all quizzes (${CERTIFICATE_PASS_MARK}%+) to download your certificate.`
+      );
       return;
     }
     const certCode = progress?.certificateCode || issueCourseCertificate(product.id);
     if (!certCode) {
-      showToast('Certificate is not available yet. Complete all lectures and try again.');
+      showToast('Certificate is not available yet. Complete all sections and quizzes (80%+) first.');
       return;
     }
     const certHtml = `<!doctype html><html><head><title>Certificate - ${product.title}</title></head><body style="font-family:sans-serif;padding:48px;text-align:center;border:8px solid #0a192f;max-width:800px;margin:40px auto;"><h1>Verified Certificate of Completion</h1><p>Verification ID: <strong>${certCode}</strong></p><p>This certifies that</p><h2>${currentUser?.name}</h2><p>has successfully completed all curriculum modules of</p><h3>${product.title}</h3><p>Instructor: ${product.instructorName}</p><p>Issued: ${new Date().toISOString().slice(0, 10)}</p></body></html>`;
@@ -577,10 +621,19 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
     showToast('Verified Certificate downloaded');
   };
 
+  const buildShuffledOptionOrders = (mod: CourseModule) => {
+    const orders: Record<string, number[]> = {};
+    for (const q of mod.quiz?.questions ?? []) {
+      orders[q.id] = shuffleQuestionOptionIndices(q.options.length);
+    }
+    return orders;
+  };
+
   const handleOpenModuleQuiz = (mod: CourseModule) => {
     setActiveQuizModule(mod);
     setQuizAnswers({});
     setQuizSubmitted(false);
+    setQuizOptionOrderByQuestion(buildShuffledOptionOrders(mod));
   };
 
   const handleSubmitQuiz = (e: React.FormEvent) => {
@@ -867,9 +920,7 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                             <button
                               type="button"
                               disabled={activeLectureIndex >= flatLectures.length - 1}
-                              onClick={() =>
-                                setActiveLectureId(flatLectures[activeLectureIndex + 1].id)
-                              }
+                              onClick={() => tryAdvanceToNextLecture(completedIds)}
                               aria-label="Next lecture"
                               className="p-2 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
                             >
@@ -932,8 +983,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                               toggleLectureComplete(product.id, activeLecture.id);
                             }
                             if (autoAdvance && activeLectureIndex < flatLectures.length - 1) {
-                              const nextLec = flatLectures[activeLectureIndex + 1];
-                              if (nextLec) setActiveLectureId(nextLec.id);
+                              const assumed = Array.from(new Set([...completedIds, activeLecture.id]));
+                              tryAdvanceToNextLecture(assumed);
                             }
                           }}
                         />
@@ -1113,9 +1164,7 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                               <button
                                 type="button"
                                 disabled={activeLectureIndex >= flatLectures.length - 1}
-                                onClick={() =>
-                                  setActiveLectureId(flatLectures[activeLectureIndex + 1].id)
-                                }
+                                onClick={() => tryAdvanceToNextLecture(completedIds)}
                                 aria-label="Next lecture"
                                 className="p-1 rounded bg-slate-800 disabled:opacity-40 hover:bg-slate-700 cursor-pointer"
                               >
@@ -1571,26 +1620,36 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
             </div>
 
             <div className="divide-y divide-slate-200">
-              {product.courseData.modules.map((mod) => {
+              {product.courseData.modules.map((mod, mIdx) => {
                 const modStats = calculateModuleProgress(mod, completedIds);
                 const modQuizResult = progress?.quizScoresByModule?.[mod.id];
+                const modUnlocked = isModuleUnlocked(modules, mIdx, completedIds, quizScoresByModule);
+                const modDone = isModuleCompleted(mod, completedIds, quizScoresByModule);
+                const quizUnlocked = isModuleQuizUnlocked(modules, mIdx, completedIds, quizScoresByModule);
+                const requiredPass = Math.max(mod.quiz?.passingScore ?? CERTIFICATE_PASS_MARK, CERTIFICATE_PASS_MARK);
+
                 return (
-                  <div key={mod.id}>
+                  <div key={mod.id} className={modUnlocked ? '' : 'opacity-70'}>
                     <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 space-y-2">
                       <div className="flex items-start gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => toggleModuleComplete(product.id, mod.id)}
-                          aria-label={`Mark module "${mod.title}" as ${modStats.isCompleted ? 'incomplete' : 'complete'
-                            }`}
-                          className="mt-0.5 text-slate-500 hover:text-[#0a192f] shrink-0 cursor-pointer"
+                        <span
+                          aria-label={
+                            !modUnlocked
+                              ? `Section "${mod.title}" is locked until previous section is completed`
+                              : modDone
+                                ? `Section "${mod.title}" completed`
+                                : `Section "${mod.title}" in progress`
+                          }
+                          className="mt-0.5 text-slate-500 shrink-0"
                         >
-                          {modStats.isCompleted ? (
+                          {!modUnlocked ? (
+                            <Lock className="w-4 h-4 text-slate-400" />
+                          ) : modDone ? (
                             <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                           ) : (
                             <Circle className="w-4 h-4" />
                           )}
-                        </button>
+                        </span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <p className="font-display text-xs font-bold text-slate-900 leading-snug">
@@ -1602,7 +1661,7 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                           </div>
                           <div className="mt-1.5 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className={`h-full transition-all duration-300 ${modStats.isCompleted ? 'bg-emerald-600' : 'bg-[#5624d0]'
+                              className={`h-full transition-all duration-300 ${modDone ? 'bg-emerald-600' : 'bg-[#5624d0]'
                                 }`}
                               style={{ width: `${modStats.percent}%` }}
                             />
@@ -1615,20 +1674,46 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                       {mod.lectures.map((lec) => {
                         const isActive = lec.id === activeLecture?.id;
                         const isDone = completedIds.includes(lec.id);
+                        const lecUnlocked = isLectureUnlocked(
+                          modules,
+                          lec.id,
+                          completedIds,
+                          quizScoresByModule
+                        );
                         return (
                           <div
                             key={lec.id}
-                            className={`px-4 py-3 flex items-start gap-3 transition-colors ${isActive ? 'bg-[#f3effc]' : 'hover:bg-slate-50'
+                            className={`px-4 py-3 flex items-start gap-3 transition-colors ${isActive
+                              ? 'bg-[#f3effc]'
+                              : lecUnlocked
+                                ? 'hover:bg-slate-50'
+                                : 'bg-slate-50/60'
                               }`}
                           >
                             <button
                               type="button"
-                              onClick={() => toggleLectureComplete(product.id, lec.id)}
-                              aria-label={`Mark "${lec.title}" as ${isDone ? 'incomplete' : 'complete'
+                              onClick={() => {
+                                if (!lecUnlocked && !isDone) {
+                                  showToast(
+                                    `Complete the previous step / section (including ${CERTIFICATE_PASS_MARK}% quiz passmark) first.`
+                                  );
+                                  return;
+                                }
+                                toggleLectureComplete(product.id, lec.id);
+                              }}
+                              aria-label={
+                                !lecUnlocked && !isDone
+                                  ? `"${lec.title}" is locked`
+                                  : `Mark "${lec.title}" as ${isDone ? 'incomplete' : 'complete'}`
+                              }
+                              className={`mt-0.5 shrink-0 ${lecUnlocked || isDone
+                                ? 'text-slate-500 hover:text-[#5624d0] cursor-pointer'
+                                : 'text-slate-400 cursor-not-allowed'
                                 }`}
-                              className="mt-0.5 text-slate-500 hover:text-[#5624d0] shrink-0 cursor-pointer"
                             >
-                              {isDone ? (
+                              {!lecUnlocked && !isDone ? (
+                                <Lock className="w-4 h-4 text-slate-400" />
+                              ) : isDone ? (
                                 <CheckCircle2 className="w-4 h-4 text-[#5624d0]" />
                               ) : (
                                 <Circle className="w-4 h-4" />
@@ -1637,8 +1722,18 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
 
                             <button
                               type="button"
-                              onClick={() => setActiveLectureId(lec.id)}
-                              className="flex-1 text-left cursor-pointer"
+                              onClick={() => {
+                                if (!lecUnlocked) {
+                                  showToast(
+                                    !modUnlocked
+                                      ? `Complete the previous section and pass its quiz (${CERTIFICATE_PASS_MARK}%+) to unlock this section.`
+                                      : 'Complete the previous lesson first to unlock this step.'
+                                  );
+                                  return;
+                                }
+                                setActiveLectureId(lec.id);
+                              }}
+                              className={`flex-1 text-left ${lecUnlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-75'}`}
                             >
                               <p
                                 className={`text-xs font-semibold leading-snug ${isActive ? 'text-[#5624d0]' : 'text-slate-900'
@@ -1685,23 +1780,36 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                         <div className="px-4 py-3 bg-[#f8fafc] flex items-center justify-between gap-2">
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
-                              <ClipboardCheck className="w-3.5 h-3.5 text-[#b4690e] shrink-0" />
+                              {quizUnlocked ? (
+                                <ClipboardCheck className="w-3.5 h-3.5 text-[#b4690e] shrink-0" />
+                              ) : (
+                                <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              )}
                               <span className="truncate">{mod.quiz.title}</span>
                             </p>
                             <p className="text-[11px] text-slate-500 tabular-nums mt-0.5">
-                              {mod.quiz.questions.length} questions · Pass {mod.quiz.passingScore}%
+                              {mod.quiz.questions.length} questions · Pass {requiredPass}%
                               {modQuizResult
-                                ? ` · Score ${modQuizResult.scorePercent}% (${modQuizResult.passed ? 'Passed' : 'Retry'
+                                ? ` · Score ${modQuizResult.scorePercent}% (${modQuizResult.passed && modQuizResult.scorePercent >= requiredPass ? 'Passed' : 'Retry'
                                 })`
                                 : ''}
                             </p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleOpenModuleQuiz(mod)}
-                            className="px-2.5 py-1 text-[11px] font-bold bg-[#0a192f] text-[#f5c451] rounded hover:bg-[#112240] shrink-0 cursor-pointer"
+                            onClick={() => {
+                              if (!quizUnlocked) {
+                                showToast('Complete all lessons in this section first to unlock the quiz.');
+                                return;
+                              }
+                              handleOpenModuleQuiz(mod);
+                            }}
+                            className={`px-2.5 py-1 text-[11px] font-bold rounded shrink-0 ${quizUnlocked
+                              ? 'bg-[#0a192f] text-[#f5c451] hover:bg-[#112240] cursor-pointer'
+                              : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                              }`}
                           >
-                            {modQuizResult ? 'Retake Quiz' : 'Start Quiz'}
+                            {!quizUnlocked ? 'Locked' : modQuizResult ? 'Retake Quiz' : 'Start Quiz'}
                           </button>
                         </div>
                       )}
@@ -1753,31 +1861,38 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                       {qIdx + 1}. {q.prompt}
                     </p>
                     <div className="space-y-2">
-                      {q.options.map((opt, optIdx) => (
-                        <label
-                          key={optIdx}
-                          className={`flex items-center gap-2.5 p-2.5 rounded border text-xs cursor-pointer ${quizSubmitted && optIdx === q.correctIndex
-                            ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-semibold'
-                            : quizSubmitted && selectedIdx === optIdx && !isCorrect
-                              ? 'bg-rose-50 border-rose-300 text-rose-900'
-                              : selectedIdx === optIdx
-                                ? 'bg-amber-50 border-[#0a192f] text-slate-900 font-semibold'
-                                : 'bg-white border-slate-200 text-slate-900 hover:bg-slate-100'
-                            }`}
-                        >
-                          <input
-                            type="radio"
-                            name={q.id}
-                            checked={selectedIdx === optIdx}
-                            onChange={() =>
-                              setQuizAnswers((prev) => ({ ...prev, [q.id]: optIdx }))
-                            }
-                            disabled={quizSubmitted}
-                            className="accent-[#0a192f]"
-                          />
-                          <span>{opt}</span>
-                        </label>
-                      ))}
+                      {(quizOptionOrderByQuestion[q.id] || q.options.map((_, idx) => idx)).map(
+                        (origIdx, displayIdx) => {
+                          const opt = q.options[origIdx];
+                          const letter = String.fromCharCode(65 + displayIdx);
+                          return (
+                            <label
+                              key={`${q.id}-${origIdx}`}
+                              className={`flex items-center gap-2.5 p-2.5 rounded border text-xs cursor-pointer ${quizSubmitted && origIdx === q.correctIndex
+                                ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-semibold'
+                                : quizSubmitted && selectedIdx === origIdx && !isCorrect
+                                  ? 'bg-rose-50 border-rose-300 text-rose-900'
+                                  : selectedIdx === origIdx
+                                    ? 'bg-amber-50 border-[#0a192f] text-slate-900 font-semibold'
+                                    : 'bg-white border-slate-200 text-slate-900 hover:bg-slate-100'
+                                }`}
+                            >
+                              <input
+                                type="radio"
+                                name={q.id}
+                                checked={selectedIdx === origIdx}
+                                onChange={() =>
+                                  setQuizAnswers((prev) => ({ ...prev, [q.id]: origIdx }))
+                                }
+                                disabled={quizSubmitted}
+                                className="accent-[#0a192f]"
+                              />
+                              <span className="font-bold text-slate-500 shrink-0">{letter}.</span>
+                              <span>{opt}</span>
+                            </label>
+                          );
+                        }
+                      )}
                     </div>
                     {quizSubmitted && (
                       <p className="text-xs text-slate-700 bg-white border border-slate-200 rounded p-2.5">
@@ -1805,6 +1920,9 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                     onClick={() => {
                       setQuizAnswers({});
                       setQuizSubmitted(false);
+                      if (activeQuizModule) {
+                        setQuizOptionOrderByQuestion(buildShuffledOptionOrders(activeQuizModule));
+                      }
                     }}
                     className="px-5 py-2 text-xs font-bold bg-[#0a192f] text-[#f5c451] rounded-md cursor-pointer"
                   >
@@ -1826,7 +1944,7 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
 
       {/* Certificate Modal */}
       {certificateOpen && (
-        progressPct === 100 ? (
+        certificateEligibility.eligible ? (
           <CertificateModal
             isOpen={certificateOpen}
             onClose={() => setCertificateOpen(false)}
@@ -1875,11 +1993,17 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
 
               <div className="space-y-2">
                 <h3 className="font-display text-xl font-bold text-slate-900">
-                  Complete All Lectures to Unlock Certificate
+                  Complete All Sections & Quizzes ({CERTIFICATE_PASS_MARK}%+) to Unlock Certificate
                 </h3>
                 <p className="text-sm text-slate-600">
-                  You are currently at <strong className="text-slate-900">{progressPct}%</strong> completion ({completedIds.length} of {flatLectures.length} lectures).
+                  You are currently at <strong className="text-slate-900">{progressPct}%</strong> lesson completion ({completedIds.length} of {flatLectures.length} lectures).
                 </p>
+                {certificateEligibility.unpassedQuizModules.length > 0 && (
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2.5">
+                    Pending section quiz passmark ({CERTIFICATE_PASS_MARK}%+ required):{' '}
+                    <strong>{certificateEligibility.unpassedQuizModules.join(', ')}</strong>
+                  </p>
+                )}
               </div>
 
               {/* Progress bar */}

@@ -58,15 +58,18 @@ import { resolveInitialOrderStatus } from '../utils/automation';
 import {
   AFFILIATE_MIN_PAYOUT_NGN,
   DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+  CERTIFICATE_PASS_MARK,
   attributeAffiliateReferral,
   calculateAffiliateCommission,
   calculateAffiliateLedgerSummary,
   calculateCourseProgressPercent,
   calculateExtendedCartTotals,
+  canIssueCourseCertificate,
   extractReferralCodeFromSearch,
   generateCertificateCode,
   generateLicenseKey,
   gradeModuleQuiz,
+  isLectureUnlocked,
   isTierSufficient,
   isUnlockedByMembership as checkUnlockedByMembership,
   migrateLegacyTier,
@@ -2110,6 +2113,26 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const toggleLectureComplete = useCallback(
     (productId: string, lectureId: string) => {
       if (!currentUser) return;
+      const product = products.find((p) => p.id === productId);
+      const modules = product?.courseData?.modules ?? [];
+      const existingProgress = progressList.find(
+        (p) => p.userId === currentUser.id && p.productId === productId
+      );
+      const alreadyDone = existingProgress?.completedLectureIds.includes(lectureId) ?? false;
+      if (
+        !alreadyDone &&
+        modules.length > 0 &&
+        !isLectureUnlocked(
+          modules,
+          lectureId,
+          existingProgress?.completedLectureIds ?? [],
+          existingProgress?.quizScoresByModule
+        )
+      ) {
+        showToast('Complete the previous step and section quiz (80% passmark) to unlock this lesson.');
+        return;
+      }
+
       setProgressList((prev) => {
         const existing = prev.find(
           (p) => p.userId === currentUser.id && p.productId === productId
@@ -2140,7 +2163,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         );
       });
     },
-    [currentUser]
+    [currentUser, products, progressList, showToast]
   );
 
   const toggleModuleComplete = useCallback(
@@ -2355,10 +2378,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const targetMod = product?.courseData?.modules.find((m) => m.id === moduleId);
       if (!targetMod?.quiz) return null;
 
+      const requiredPass = Math.max(targetMod.quiz.passingScore ?? CERTIFICATE_PASS_MARK, CERTIFICATE_PASS_MARK);
       const graded = gradeModuleQuiz(
         targetMod.quiz.questions,
         answersByQuestionId,
-        targetMod.quiz.passingScore
+        requiredPass
       );
       const now = new Date().toISOString();
       const result: ModuleQuizResult = {
@@ -2416,14 +2440,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!progress) return null;
 
       // Certificates are an achievement credential: they may only be issued
-      // after every lecture in the curriculum has been completed.
-      const completionPercent = calculateCourseProgressPercent(
+      // after every lecture is completed sequentially AND every module quiz
+      // is passed with at least 80%.
+      const eligibility = canIssueCourseCertificate(
         product,
-        progress.completedLectureIds
+        progress.completedLectureIds,
+        progress.quizScoresByModule
       );
-      if (completionPercent < 100) {
+      if (!eligibility.eligible) {
         showToast(
-          `Complete 100% of this course to unlock your certificate (currently ${completionPercent}%).`
+          eligibility.reason ||
+            `Complete 100% of all sections and pass all quizzes (${CERTIFICATE_PASS_MARK}%+) to unlock your certificate.`
         );
         return null;
       }

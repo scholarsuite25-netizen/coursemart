@@ -21,6 +21,7 @@ import { ALL_PRODUCT_TOPICS, DIGITAL_SUBMENU_ITEMS } from '../../utils/catalogAn
 import { migrateLegacyTier } from '../../utils/commerce';
 import { formatNaira } from '../../utils/currency';
 import { getProviderLabel, resolveDownloadUrl, resolveMediaUrl } from '../../utils/mediaResolver';
+import { generateProductCoverDataUri } from '../../utils/coverGenerator';
 
 interface ProductEditorModalProps {
   initialProduct: Product | null;
@@ -223,7 +224,7 @@ export function ProductEditorModal({
           quiz: {
             id: `quiz-${Date.now()}-${moduleIdx}`,
             title: `${m.title} Checkpoint`,
-            passingScore: 70,
+            passingScore: 80,
             questions: [
               {
                 id: `q-${Date.now()}`,
@@ -332,11 +333,15 @@ export function ProductEditorModal({
         : `v${swVersion} ZIP + License`;
 
     const resolvedThumbnail =
-      initialProduct?.thumbnail ??
-      (type === 'ebook' &&
-      (resolvedDigitalSub === 'template' || resolvedDigitalSub === 'toolkit')
-        ? TEMPLATES_TOOLKIT_COVER
-        : DEFAULT_THUMBNAILS[type]);
+      initialProduct?.thumbnail ||
+      generateProductCoverDataUri({
+        title: title.trim() || 'Digital Wealth Release',
+        subtitle: subtitle.trim() || undefined,
+        type,
+        digitalSubType: resolvedDigitalSub,
+        category,
+        authorName: initialProduct?.instructorName ?? instructorName,
+      });
 
     const builtProduct: Product = {
       id: initialProduct?.id ?? `prod-${Date.now()}`,

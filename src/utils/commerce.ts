@@ -1,6 +1,7 @@
 import type {
   CartItem,
   Coupon,
+  CourseModule,
   MembershipTierId,
   Product,
   ProductFilterState,
@@ -459,10 +460,12 @@ export function calculateBundlePrice(products: Product[], discountPercent: numbe
   return { regularTotal, bundleTotal, savings };
 }
 
+export const CERTIFICATE_PASS_MARK = 80;
+
 export function gradeModuleQuiz(
   questions: Array<{ id: string; correctIndex: number }>,
   answersByQuestionId: Record<string, number>,
-  passingScore: number = 70
+  passingScore: number = CERTIFICATE_PASS_MARK
 ): {
   scorePercent: number;
   passed: boolean;
@@ -477,11 +480,149 @@ export function gradeModuleQuiz(
     (q) => answersByQuestionId[q.id] === q.correctIndex
   ).length;
   const scorePercent = Math.round((correctCount / totalQuestions) * 100);
+  const effectivePass = Math.max(passingScore, CERTIFICATE_PASS_MARK);
   return {
     scorePercent,
-    passed: scorePercent >= passingScore,
+    passed: scorePercent >= effectivePass,
     correctCount,
     totalQuestions,
+  };
+}
+
+export function shuffleQuestionOptionIndices(optionCount: number): number[] {
+  const indices = Array.from({ length: optionCount }, (_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  return indices;
+}
+
+export interface QuizScoreRecord {
+  scorePercent: number;
+  passed: boolean;
+}
+
+export function isModuleCompleted(
+  mod: CourseModule,
+  completedLectureIds: string[],
+  quizScoresByModule?: Record<string, QuizScoreRecord>
+): boolean {
+  const allLecturesDone =
+    mod.lectures.length === 0 ||
+    mod.lectures.every((l) => completedLectureIds.includes(l.id));
+  if (!allLecturesDone) return false;
+
+  if (mod.quiz && mod.quiz.questions.length > 0) {
+    const required = Math.max(mod.quiz.passingScore ?? CERTIFICATE_PASS_MARK, CERTIFICATE_PASS_MARK);
+    const score = quizScoresByModule?.[mod.id];
+    return Boolean(score && score.passed && score.scorePercent >= required);
+  }
+  return true;
+}
+
+export function isModuleUnlocked(
+  modules: CourseModule[],
+  moduleIndex: number,
+  completedLectureIds: string[],
+  quizScoresByModule?: Record<string, QuizScoreRecord>
+): boolean {
+  if (moduleIndex <= 0) return true;
+  for (let i = 0; i < moduleIndex; i++) {
+    if (!isModuleCompleted(modules[i], completedLectureIds, quizScoresByModule)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function isLectureUnlocked(
+  modules: CourseModule[],
+  lectureId: string,
+  completedLectureIds: string[],
+  quizScoresByModule?: Record<string, QuizScoreRecord>
+): boolean {
+  for (let mIdx = 0; mIdx < modules.length; mIdx++) {
+    const mod = modules[mIdx];
+    const lIdx = mod.lectures.findIndex((l) => l.id === lectureId);
+    if (lIdx === -1) continue;
+
+    if (!isModuleUnlocked(modules, mIdx, completedLectureIds, quizScoresByModule)) {
+      return false;
+    }
+    if (lIdx === 0) return true;
+    return completedLectureIds.includes(mod.lectures[lIdx - 1].id);
+  }
+  return false;
+}
+
+export function isModuleQuizUnlocked(
+  modules: CourseModule[],
+  moduleIndex: number,
+  completedLectureIds: string[],
+  quizScoresByModule?: Record<string, QuizScoreRecord>
+): boolean {
+  const mod = modules[moduleIndex];
+  if (!mod) return false;
+  if (!isModuleUnlocked(modules, moduleIndex, completedLectureIds, quizScoresByModule)) {
+    return false;
+  }
+  return mod.lectures.every((l) => completedLectureIds.includes(l.id));
+}
+
+export function canIssueCourseCertificate(
+  product: Product,
+  completedLectureIds: string[],
+  quizScoresByModule?: Record<string, QuizScoreRecord>
+): {
+  eligible: boolean;
+  completionPercent: number;
+  unpassedQuizModules: string[];
+  reason?: string;
+} {
+  const completionPercent = calculateCourseProgressPercent(product, completedLectureIds);
+  const modules = product.courseData?.modules ?? [];
+
+  if (modules.length === 0) {
+    return {
+      eligible: false,
+      completionPercent: 0,
+      unpassedQuizModules: [],
+      reason: 'This course has no curriculum modules yet.',
+    };
+  }
+
+  if (completionPercent < 100) {
+    return {
+      eligible: false,
+      completionPercent,
+      unpassedQuizModules: [],
+      reason: `Complete 100% of all course lessons sequentially (currently ${completionPercent}%).`,
+    };
+  }
+
+  const unpassedQuizModules = modules
+    .filter((mod) => {
+      if (!mod.quiz || mod.quiz.questions.length === 0) return false;
+      const required = Math.max(mod.quiz.passingScore ?? CERTIFICATE_PASS_MARK, CERTIFICATE_PASS_MARK);
+      const score = quizScoresByModule?.[mod.id];
+      return !(score && score.passed && score.scorePercent >= required);
+    })
+    .map((m) => m.title);
+
+  if (unpassedQuizModules.length > 0) {
+    return {
+      eligible: false,
+      completionPercent,
+      unpassedQuizModules,
+      reason: `Pass all module quizzes with at least ${CERTIFICATE_PASS_MARK}% to unlock your certificate (pending: ${unpassedQuizModules.join(', ')}).`,
+    };
+  }
+
+  return {
+    eligible: true,
+    completionPercent: 100,
+    unpassedQuizModules: [],
   };
 }
 
