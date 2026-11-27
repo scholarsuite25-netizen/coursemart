@@ -2,27 +2,50 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { Tag, Sparkles, Clock, ArrowRight, X, ShieldAlert } from 'lucide-react';
 
+const EXIT_INTENT_DISMISS_KEY = 'dwc_exit_intent_dismissed';
+const REGISTERED_USER_KEY = 'dwc_registered_user';
+const SUPPRESS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function isExitIntentSuppressed(): boolean {
+  try {
+    if (localStorage.getItem(REGISTERED_USER_KEY) === '1') {
+      return true;
+    }
+    const dismissedAt = localStorage.getItem(EXIT_INTENT_DISMISS_KEY);
+    if (!dismissedAt) return false;
+    const elapsed = Date.now() - parseInt(dismissedAt, 10);
+    return Number.isFinite(elapsed) && elapsed < SUPPRESS_DURATION_MS;
+  } catch {
+    return false;
+  }
+}
+
 export const ExitIntentModal: React.FC = () => {
-  const { setAppliedCouponCode, setIsCartOpen, showToast } = useStore();
+  const { currentUser, setAppliedCouponCode, setIsCartOpen, showToast } = useStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(() => isExitIntentSuppressed());
   const [countdown, setCountdown] = useState(600); // 10 minutes
   const lastScrollY = useRef(0);
   const lastScrollTime = useRef(Date.now());
+  const hasTriggeredRef = useRef(false);
 
   useEffect(() => {
-    // Check if dismissed in last 24h
-    const dismissedAt = localStorage.getItem('dwc_exit_intent_dismissed');
-    if (dismissedAt) {
-      const elapsed = Date.now() - parseInt(dismissedAt, 10);
-      if (elapsed < 24 * 60 * 60 * 1000) {
-        return;
-      }
+    // Never show to registered/signed-in users or if already dismissed
+    if (currentUser || isDismissed || isExitIntentSuppressed()) {
+      setIsOpen(false);
+      return;
     }
+
+    const triggerOnce = () => {
+      if (hasTriggeredRef.current || isExitIntentSuppressed()) return;
+      hasTriggeredRef.current = true;
+      setIsOpen(true);
+    };
 
     // 1. Desktop: Mouse leaves browser viewport toward top
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 15) {
-        setIsOpen(true);
+        triggerOnce();
       }
     };
 
@@ -34,28 +57,38 @@ export const ExitIntentModal: React.FC = () => {
       const distance = lastScrollY.current - currentY;
 
       if (timeDiff > 0 && distance > 250 && timeDiff < 200) {
-        setIsOpen(true);
+        triggerOnce();
       }
 
       lastScrollY.current = currentY;
       lastScrollTime.current = currentTime;
     };
 
-    // 3. Mobile Back button popstate listener
-    const handlePopState = () => {
-      setIsOpen(true);
-    };
-
     document.addEventListener('mouseleave', handleMouseLeave);
     window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('popstate', handlePopState);
 
     return () => {
       document.removeEventListener('mouseleave', handleMouseLeave);
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [currentUser, isDismissed]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        try {
+          localStorage.setItem(EXIT_INTENT_DISMISS_KEY, Date.now().toString());
+        } catch {
+          // ignore
+        }
+        setIsDismissed(true);
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || countdown <= 0) return;
@@ -72,12 +105,22 @@ export const ExitIntentModal: React.FC = () => {
   const timerStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   const handleDismiss = () => {
-    localStorage.setItem('dwc_exit_intent_dismissed', Date.now().toString());
+    try {
+      localStorage.setItem(EXIT_INTENT_DISMISS_KEY, Date.now().toString());
+    } catch {
+      // ignore storage errors
+    }
+    setIsDismissed(true);
     setIsOpen(false);
   };
 
   const handleApplyVoucher = () => {
-    localStorage.setItem('dwc_exit_intent_dismissed', Date.now().toString());
+    try {
+      localStorage.setItem(EXIT_INTENT_DISMISS_KEY, Date.now().toString());
+    } catch {
+      // ignore storage errors
+    }
+    setIsDismissed(true);
     setAppliedCouponCode('SAVE85');
     setIsOpen(false);
     setIsCartOpen(true);
@@ -85,7 +128,15 @@ export const ExitIntentModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleDismiss();
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Exit Intent Offer"
+    >
       <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border-2 border-rose-500/30 overflow-hidden">
         {/* Top Warning Banner */}
         <div className="bg-rose-600 px-4 py-2 text-white flex items-center justify-between text-xs sm:text-sm font-bold">

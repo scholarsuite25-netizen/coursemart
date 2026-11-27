@@ -30,17 +30,20 @@
   /* Keep form controls rendering with an explicit light scheme and dark text
      default so typed text is always visible even when html.dark sets a light
      body text color. Tailwind text/bg utilities in @layer utilities still win. */
-  input, textarea, select {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
     color-scheme: light;
+    background-color: #ffffff;
     color: #0f172a;
     -webkit-text-fill-color: currentColor;
   }
 
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  textarea:-webkit-autofill,
-  select:-webkit-autofill {
+  input:not([class*="dark:bg-"]):-webkit-autofill,
+  input:not([class*="dark:bg-"]):-webkit-autofill:hover,
+  input:not([class*="dark:bg-"]):-webkit-autofill:focus,
+  textarea:not([class*="dark:bg-"]):-webkit-autofill,
+  select:not([class*="dark:bg-"]):-webkit-autofill {
     -webkit-text-fill-color: #0f172a;
     -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
     transition: background-color 5000s ease-in-out 0s;
@@ -53,6 +56,27 @@
   html.dark body {
     background-color: #0b1329;
     color: #f1f5f9;
+  }
+
+  /* Guarantee dark readable text on any light-surface card, modal, table, or
+     button across the entire site when Dark Mode sets light body text.
+     Placed in @layer base so Tailwind @layer utilities (e.g. text-slate-600,
+     text-white) always override when explicitly specified. */
+  html.dark .bg-white:not([class*="dark:bg-"]),
+  html.dark .bg-slate-50:not([class*="dark:bg-"]),
+  html.dark .bg-slate-100:not([class*="dark:bg-"]),
+  html.dark .bg-gray-50:not([class*="dark:bg-"]),
+  html.dark .bg-gray-100:not([class*="dark:bg-"]),
+  html.dark .bg-amber-50:not([class*="dark:bg-"]),
+  html.dark .bg-emerald-50:not([class*="dark:bg-"]),
+  html.dark .bg-rose-50:not([class*="dark:bg-"]),
+  html.dark .bg-blue-50:not([class*="dark:bg-"]),
+  html.dark .bg-indigo-50:not([class*="dark:bg-"]),
+  html.dark .bg-purple-50:not([class*="dark:bg-"]),
+  html.dark .bg-yellow-50:not([class*="dark:bg-"]),
+  html.dark .bg-green-50:not([class*="dark:bg-"]),
+  html.dark .bg-red-50:not([class*="dark:bg-"]) {
+    color: #0f172a;
   }
 
   h1, h2, h3, h4, .font-display {

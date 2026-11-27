@@ -1722,7 +1722,7 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
           aria-modal="true"
           aria-label={activeQuizModule.quiz.title}
         >
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+          <div className="bg-white text-slate-900 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
             <div className="px-6 py-4 bg-[#0a192f] text-white border-b-2 border-[#d4af37] flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-[#f5c451]">{activeQuizModule.title}</p>
@@ -1761,8 +1761,8 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
                             : quizSubmitted && selectedIdx === optIdx && !isCorrect
                               ? 'bg-rose-50 border-rose-300 text-rose-900'
                               : selectedIdx === optIdx
-                                ? 'bg-white border-[#0a192f] font-semibold'
-                                : 'bg-white border-slate-200'
+                                ? 'bg-amber-50 border-[#0a192f] text-slate-900 font-semibold'
+                                : 'bg-white border-slate-200 text-slate-900 hover:bg-slate-100'
                             }`}
                         >
                           <input

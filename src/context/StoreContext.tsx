@@ -1314,6 +1314,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const mismatch = roleError(found.role);
         if (mismatch) return { ok: false, error: mismatch };
         setCurrentUserId(found.id);
+        try {
+          localStorage.setItem('dwc_registered_user', '1');
+        } catch {
+          // ignore storage errors
+        }
         resyncPersonalKeys();
         showToast(`Signed in as ${found.name}`);
         return { ok: true, user: found };
@@ -1351,6 +1356,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       };
       setUsers((prev) => (prev.some((u) => u.id === newUser.id) ? prev : [...prev, newUser]));
       setCurrentUserId(newUser.id);
+      try {
+        localStorage.setItem('dwc_registered_user', '1');
+      } catch {
+        // ignore storage errors
+      }
       trackEvent('sign_up', { userId: newUser.id, email: newUser.email });
 
       // Persist the account first so the server can authenticate it, then open

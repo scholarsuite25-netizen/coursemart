@@ -2,28 +2,61 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { Sparkles, Clock, Zap, CheckCircle2, X, ShieldCheck } from 'lucide-react';
 
+const TRIPWIRE_DISMISS_KEY = 'dwc_tripwire_dismissed';
+const REGISTERED_USER_KEY = 'dwc_registered_user';
+const SUPPRESS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function isTripwireSuppressed(): boolean {
+  try {
+    if (localStorage.getItem(REGISTERED_USER_KEY) === '1') {
+      return true;
+    }
+    const dismissedAt = localStorage.getItem(TRIPWIRE_DISMISS_KEY);
+    if (!dismissedAt) return false;
+    const elapsed = Date.now() - parseInt(dismissedAt, 10);
+    return Number.isFinite(elapsed) && elapsed < SUPPRESS_DURATION_MS;
+  } catch {
+    return false;
+  }
+}
+
 export const TripwireWelcomeModal: React.FC = () => {
-  const { products, addToCart, setIsCartOpen, setAppliedCouponCode, showToast } = useStore();
+  const { currentUser, products, addToCart, setIsCartOpen, setAppliedCouponCode, showToast } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes in seconds
 
   useEffect(() => {
-    // Check if dismissed recently (suppress for 3 days once dismissed)
-    const dismissedAt = localStorage.getItem('dwc_tripwire_dismissed');
-    if (dismissedAt) {
-      const elapsed = Date.now() - parseInt(dismissedAt, 10);
-      if (elapsed < 3 * 24 * 60 * 60 * 1000) {
-        return;
-      }
+    // Never show to registered / signed-in users or if dismissed recently
+    if (currentUser || isTripwireSuppressed()) {
+      setIsOpen(false);
+      return;
     }
 
-    // Trigger after 4 seconds of initial landing
+    // Trigger after 4 seconds of initial landing for unregistered visitors
     const timer = setTimeout(() => {
-      setIsOpen(true);
+      if (!isTripwireSuppressed()) {
+        setIsOpen(true);
+      }
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        try {
+          localStorage.setItem(TRIPWIRE_DISMISS_KEY, Date.now().toString());
+        } catch {
+          // ignore
+        }
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || timeLeft <= 0) return;
@@ -40,12 +73,20 @@ export const TripwireWelcomeModal: React.FC = () => {
   const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   const handleDismiss = () => {
-    localStorage.setItem('dwc_tripwire_dismissed', Date.now().toString());
+    try {
+      localStorage.setItem(TRIPWIRE_DISMISS_KEY, Date.now().toString());
+    } catch {
+      // ignore storage errors
+    }
     setIsOpen(false);
   };
 
   const handleClaimOffer = () => {
-    localStorage.setItem('dwc_tripwire_dismissed', Date.now().toString());
+    try {
+      localStorage.setItem(TRIPWIRE_DISMISS_KEY, Date.now().toString());
+    } catch {
+      // ignore storage errors
+    }
     setAppliedCouponCode('SAVE85');
     
     // Pick the first available course or digital product to bundle
@@ -60,7 +101,15 @@ export const TripwireWelcomeModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleDismiss();
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Special Registration Offer"
+    >
       <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border-2 border-amber-500/30 overflow-hidden">
         {/* Top Urgency Ribbon */}
         <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-2.5 text-white flex items-center justify-between text-xs sm:text-sm font-semibold tracking-wide">
