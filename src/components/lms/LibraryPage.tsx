@@ -394,7 +394,7 @@ export function LibraryPage() {
       `4. In your browser, navigate to http://localhost:3000 to complete configuration.`,
       `5. Enter your cryptographic license key found in your DWC Library dashboard.`,
       `\nFor technical support and updates, visit:`,
-      `https://digitalwealthcreators.vercel.app/my-library`,
+      `https://digitalwealthcreators.org.ng/my-library`,
       `================================================================================`,
     ].join('\n');
 

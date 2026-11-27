@@ -171,7 +171,7 @@ The platform relies on 39 environment variables across 9 functional domains. The
 
 | Variable Name | Purpose & Description | Format & Example | Classification | Fallback / Offline Behavior |
 | :--- | :--- | :--- | :--- | :--- |
-| `APP_URL` | Canonical public application URL for sitemaps, OpenGraph, and OAuth redirects. | HTTPS URL: `https://digitalwealthcreators.org.ng` | Public / Config | Inferred from request `x-forwarded-host` or `host`; defaults to `https://digitalwealthcreators.vercel.app`. |
+| `APP_URL` | Canonical public application URL for sitemaps, OpenGraph, and OAuth redirects. | HTTPS URL: `https://digitalwealthcreators.org.ng` | Public / Config | Inferred from request `x-forwarded-host` or `host`; defaults to `https://digitalwealthcreators.org.ng`. |
 | `PORT` | Local HTTP listening port for Express dev server (`server.ts`). | Positive integer: `3000` | Public / Config | Defaults to `3000`. |
 | `NODE_ENV` | Node runtime execution mode (`'development'`, `'production'`, `'test'`). | String: `'development'`, `'production'` | Public / Config | Defaults to `'development'`. |
 | `VERCEL` | Environment flag injected automatically by Vercel Lambda infrastructure. | String: `'1'` | Public / System | If `'1'`, sets runtime store to `/tmp/.coursemart-runtime.json`. |

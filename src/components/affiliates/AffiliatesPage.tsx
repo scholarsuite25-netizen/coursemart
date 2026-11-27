@@ -75,7 +75,7 @@ export function AffiliatesPage() {
   );
 
   const origin =
-    typeof window !== 'undefined' ? window.location.origin : 'https://digitalwealthcreators.vercel.app';
+    typeof window !== 'undefined' ? window.location.origin : 'https://digitalwealthcreators.org.ng';
 
   const generatedReferralUrl = currentUserAffiliate
     ? selectedProductSlug === 'home'

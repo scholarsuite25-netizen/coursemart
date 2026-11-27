@@ -376,7 +376,7 @@ export function SocialQueuePanel() {
         {visibleDrafts.map((draft) => {
           const meta = PLATFORM_META[draft.platform];
           const originUrl =
-            typeof window !== 'undefined' ? window.location.origin : 'https://digitalwealthcreators.vercel.app';
+            typeof window !== 'undefined' ? window.location.origin : 'https://digitalwealthcreators.org.ng';
           const shareUrl = buildPlatformShareIntentUrl(
             draft.platform,
             draft.content,

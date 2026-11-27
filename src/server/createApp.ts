@@ -941,7 +941,7 @@ export function createApiApp() {
   });
 
   function resolveBaseUrl(req: Request): string {
-    const host = req.get('x-forwarded-host') || req.get('host') || 'digitalwealthcreators.vercel.app';
+    const host = req.get('x-forwarded-host') || req.get('host') || 'digitalwealthcreators.org.ng';
     const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
     return `${proto}://${host}`;
   }
@@ -1621,7 +1621,7 @@ export function createApiApp() {
               </ul>
             </div>
             <div style="text-align:center;margin:28px 0;">
-              <a href="https://digitalwealthcreators.vercel.app" style="display:inline-block;background:#0a192f;color:#f5c451;font-weight:bold;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:13px;border:1px solid #d4af37;">
+              <a href="https://digitalwealthcreators.org.ng" style="display:inline-block;background:#0a192f;color:#f5c451;font-weight:bold;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:13px;border:1px solid #d4af37;">
                 Explore Courses & Resources →
               </a>
             </div>
@@ -1789,7 +1789,7 @@ export function createApiApp() {
               <span style="font-size:11px;font-weight:bold;text-transform:uppercase;color:#d4af37;letter-spacing:1px;">Featured Editorial</span>
               <h3 style="margin:6px 0;font-size:17px;color:#0a192f;">${safeHtmlEscape(topBlog.title)}</h3>
               <p style="margin:0 0 10px;font-size:13px;color:#475569;">${safeHtmlEscape(topBlog.excerpt || '')}</p>
-              <a href="https://digitalwealthcreators.vercel.app/blog/${topBlog.slug}" style="font-size:12px;font-weight:bold;color:#0a192f;text-decoration:none;">Read Full Guide →</a>
+              <a href="https://digitalwealthcreators.org.ng/blog/${topBlog.slug}" style="font-size:12px;font-weight:bold;color:#0a192f;text-decoration:none;">Read Full Guide →</a>
             </div>
           ` : ''}
 
@@ -1802,7 +1802,7 @@ export function createApiApp() {
                 <div style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
                   <div style="font-weight:bold;font-size:14px;color:#0a192f;">${safeHtmlEscape(c.title)}</div>
                   <div style="font-size:12px;color:#64748b;margin:2px 0 6px;">${safeHtmlEscape(c.category || 'Executive')} · ${c.price === 0 ? 'Free' : `₦${c.price.toLocaleString()}`}</div>
-                  <a href="https://digitalwealthcreators.vercel.app/learn/${c.id}" style="font-size:12px;font-weight:bold;color:#d4af37;text-decoration:none;padding:4px 10px;background:#0a192f;border-radius:4px;display:inline-block;">View Resource</a>
+                  <a href="https://digitalwealthcreators.org.ng/learn/${c.id}" style="font-size:12px;font-weight:bold;color:#d4af37;text-decoration:none;padding:4px 10px;background:#0a192f;border-radius:4px;display:inline-block;">View Resource</a>
                 </div>
               `).join('')}
             </div>
@@ -1815,7 +1815,7 @@ export function createApiApp() {
                 <div style="margin-top:8px;">
                   <div style="font-weight:bold;font-size:14px;color:#581c87;">${safeHtmlEscape(e.title)}</div>
                   <div style="font-size:12px;color:#6b21a8;">Date: ${new Date(e.startAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · Host: ${safeHtmlEscape(e.speakerName)}</div>
-                  <a href="https://digitalwealthcreators.vercel.app/events" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:bold;color:#7e22ce;text-decoration:none;">Reserve Free Seat →</a>
+                  <a href="https://digitalwealthcreators.org.ng/events" style="display:inline-block;margin-top:6px;font-size:12px;font-weight:bold;color:#7e22ce;text-decoration:none;">Reserve Free Seat →</a>
                 </div>
               `).join('')}
             </div>
@@ -1829,7 +1829,7 @@ export function createApiApp() {
           </div>
 
           <div style="text-align:center;margin:30px 0 10px;">
-            <a href="https://digitalwealthcreators.vercel.app/library" style="display:inline-block;background:linear-gradient(135deg,#f5c451,#d4af37);color:#0a192f;font-weight:bold;text-decoration:none;padding:12px 30px;border-radius:6px;font-size:14px;">
+            <a href="https://digitalwealthcreators.org.ng/library" style="display:inline-block;background:linear-gradient(135deg,#f5c451,#d4af37);color:#0a192f;font-weight:bold;text-decoration:none;padding:12px 30px;border-radius:6px;font-size:14px;">
               Access Your Student Dashboard →
             </a>
           </div>

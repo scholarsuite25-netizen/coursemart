@@ -32,7 +32,7 @@ export function ShareButton({
   }, []);
 
   const resolvedUrl =
-    url || (typeof window !== 'undefined' ? window.location.href : 'https://digitalwealthcreators.vercel.app');
+    url || (typeof window !== 'undefined' ? window.location.href : 'https://digitalwealthcreators.org.ng');
 
   const handleCopyLink = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {

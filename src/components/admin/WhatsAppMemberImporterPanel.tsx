@@ -72,7 +72,7 @@ export function WhatsAppMemberImporterPanel() {
     setIsImporting(false);
   };
 
-  const communityInviteUrl = 'https://digitalwealthcreators.vercel.app/community';
+  const communityInviteUrl = 'https://digitalwealthcreators.org.ng/community';
 
   const migrationBroadcastText = `🚀 *Important Update: We are moving to the ${appearance.brandName} Platform!*
 

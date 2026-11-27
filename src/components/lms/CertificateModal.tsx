@@ -365,7 +365,7 @@ export function CertificateModal({
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Verified Online</span>
               </div>
-              <p className="text-[10px] text-slate-400">digitalwealthcreators.vercel.app</p>
+              <p className="text-[10px] text-slate-400">digitalwealthcreators.org.ng</p>
             </div>
           </div>
         </div>
