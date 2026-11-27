@@ -34,7 +34,7 @@ import {
   REAL_WEALTH_EVENTS,
   INSTRUCTOR_BABATUNDE,
   INSTRUCTOR_CHIOMA,
-} from './realWealthContent';
+} from './realWealthContent.ts';
 
 export const HERO_BANNER_IMAGE =
   '/src/assets/images/hero_learning_workspace_1794890414767.jpg';
