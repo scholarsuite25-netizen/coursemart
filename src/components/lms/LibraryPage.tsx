@@ -234,10 +234,10 @@ export function LibraryPage() {
       (o) =>
         o.status === 'completed' && o.items.some((item) => item.productId === productId)
     );
-    // Prefer an active order with remaining downloads (< 3); otherwise return the latest order
+    // Prefer the first order with remaining downloads (< limit), matching the
+    // server-side entitlement check; otherwise fall back to the first match.
     return (
-      matching.find((o) => (o.downloadCounts?.[productId] ?? 0) < limit) ||
-      matching[matching.length - 1]
+      matching.find((o) => (o.downloadCounts?.[productId] ?? 0) < limit) || matching[0]
     );
   };
 

@@ -18,15 +18,71 @@ interface SectionBlueprint {
   }>;
 }
 
-function buildModules(prefix: string, sections: SectionBlueprint[]): CourseModule[] {
+/** Pad a quiz to at least 5 questions so an 80% passmark is achievable (4/5). */
+function padQuestions(
+  questions: SectionBlueprint['questions'],
+  quizTitle: string
+): SectionBlueprint['questions'] {
+  const result = [...questions];
+  let i = 0;
+  const fillers: SectionBlueprint['questions'] = [
+    {
+      prompt: `Which practice best supports mastery of ${quizTitle}?`,
+      options: [
+        'Skipping practice and relying solely on memorisation',
+        'Applying the concepts step by step and verifying each result',
+        'Ignoring feedback and repeating the same mistakes',
+        'Avoiding all documentation of the process',
+      ],
+      correctIndex: 1,
+      explanation: 'Deliberate practice with verification is the reliable route to mastery.',
+    },
+    {
+      prompt: `Before applying ${quizTitle} in a real scenario, what should be confirmed?`,
+      options: [
+        'That no plan or success criteria exist',
+        'That assumptions are validated and the intended outcome is clearly defined',
+        'That edge cases are ignored to save time',
+        'That results will never be measured',
+      ],
+      correctIndex: 1,
+      explanation: 'Validated assumptions and defined outcomes prevent wasted effort and costly errors.',
+    },
+    {
+      prompt: `What indicates a high-quality outcome when working on ${quizTitle}?`,
+      options: [
+        'The work was rushed with no review',
+        'The result was checked against requirements and improved iteratively',
+        'Known problems were left unresolved',
+        'No metrics were tracked',
+      ],
+      correctIndex: 1,
+      explanation: 'Review against requirements and iteration produce dependable, high-quality outcomes.',
+    },
+  ];
+  while (result.length < 5) {
+    result.push(fillers[i % fillers.length]);
+    i += 1;
+  }
+  return result;
+}
+
+function buildModules(
+  prefix: string,
+  sections: SectionBlueprint[],
+  existingModules: CourseModule[] = []
+): CourseModule[] {
   return sections.map((sec, sIdx) => {
     const modNum = sIdx + 1;
-    const modId = `${prefix}-m${modNum}`;
+    const existing = existingModules[sIdx];
+    // Reuse previously generated IDs by position so existing student progress
+    // (completedLectureIds / quizScoresByModule) survives curriculum upgrades.
+    const modId = existing?.id || `${prefix}-m${modNum}`;
     return {
       id: modId,
       title: `Section ${modNum}: ${sec.title}`,
       lectures: sec.lectures.map((lec, lIdx) => ({
-        id: `${prefix}-m${modNum}-l${lIdx + 1}`,
+        id: existing?.lectures?.[lIdx]?.id || `${prefix}-m${modNum}-l${lIdx + 1}`,
         title: `${modNum}.${lIdx + 1} ${lec.title}`,
         durationMinutes: lec.durationMinutes,
         isPreview: sIdx === 0 && lIdx === 0,
@@ -36,11 +92,11 @@ function buildModules(prefix: string, sections: SectionBlueprint[]): CourseModul
         textContent: lec.textContent,
       })),
       quiz: {
-        id: `${prefix}-q${modNum}`,
+        id: existing?.quiz?.id || `${prefix}-q${modNum}`,
         title: `Section ${modNum} Assessment: ${sec.quizTitle}`,
         passingScore: 80,
-        questions: sec.questions.map((q, qIdx): CourseQuizQuestion => ({
-          id: `${prefix}-q${modNum}-${qIdx + 1}`,
+        questions: padQuestions(sec.questions, sec.quizTitle).map((q, qIdx): CourseQuizQuestion => ({
+          id: existing?.quiz?.questions?.[qIdx]?.id || `${prefix}-q${modNum}-${qIdx + 1}`,
           prompt: q.prompt,
           options: q.options,
           correctIndex: q.correctIndex,
@@ -443,7 +499,11 @@ function createGeneric7SectionsForCourse(prod: Product): CourseModule[] {
   const existingMods = prod.courseData?.modules ?? [];
   const topic = prod.category || 'Digital Mastery';
   const title = prod.title;
-  const slugPrefix = prod.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+  // Stable, collision-free prefix derived from the full product id (hash short
+  // suffix) so different courses never share identical module/lecture IDs.
+  let hash = 0;
+  for (let i = 0; i < prod.id.length; i += 1) hash = (hash * 31 + prod.id.charCodeAt(i)) | 0;
+  const slugPrefix = `${prod.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}-${Math.abs(hash).toString(36)}`;
 
   const sectionThemes = [
     {
@@ -526,7 +586,7 @@ function createGeneric7SectionsForCourse(prod: Product): CourseModule[] {
                 'Real-world troubleshooting & edge-case handling',
                 'Ready-to-use execution template for immediate results',
               ],
-              textContent: `Putting ${theme.title} into practice separates passive learners from high-performing practitioners. Review the attached takeaways and complete the 3-question section quiz (80% passmark) to unlock the next section.`,
+              textContent: `Putting ${theme.title} into practice separates passive learners from high-performing practitioners. Review the attached takeaways and complete the 5-question section quiz (80% passmark) to unlock the next section.`,
             },
           ];
 
@@ -551,7 +611,7 @@ function createGeneric7SectionsForCourse(prod: Product): CourseModule[] {
           'Copying unverified templates blindly without adaptation',
           'Deploying changes without testing edge cases',
         ],
-        correctIndex: 2 === 2 ? 1 : 0,
+        correctIndex: 1,
         explanation: 'Verification against real data and clear documentation prevent costly mistakes.',
       },
       {
@@ -565,9 +625,32 @@ function createGeneric7SectionsForCourse(prod: Product): CourseModule[] {
         correctIndex: 1,
         explanation: 'Sequential mastery ensures every section builds solidly on verified competence.',
       },
+      {
+        prompt: `When applying ${theme.title}, which approach protects the best outcome for ${topic}?`,
+        options: [
+          'Implementing without a rollback or measurement plan',
+          'Documenting decisions and reviewing results against the original goal',
+          'Copying a competitor verbatim without adapting to local context',
+          'Skipping the verification phase to move faster',
+        ],
+        correctIndex: 1,
+        explanation: 'Documented decisions and measured outcomes enable repeatable quality and measurable improvement.',
+      },
+      {
+        prompt: `What distinguishes a reliable ${theme.title} workflow from an ad-hoc one?`,
+        options: [
+          'It depends on individual memory and improvisation',
+          'It uses a consistent, reviewed checklist with defined quality gates',
+          'It avoids all forms of documentation and tracking',
+          'It relies exclusively on unverified third-party templates',
+        ],
+        correctIndex: 1,
+        explanation: 'Consistency, review checkpoints, and defined quality gates make a workflow reliable and scalable.',
+      },
     ];
 
-    // Rotate correctIndex across existing or default questions so answers are never all option A
+    // Preserve existing questions; pad with defaults until there are at least
+    // 5 questions so an 80% passmark means 4/5 (not a forced 3/3 = 100%).
     const mergedQuestions: SectionBlueprint['questions'] = [...existingQuestions.map((q) => ({
       prompt: q.prompt,
       options: (q.options.length === 4 ? q.options : [...q.options, 'None of the above', 'All of the above', 'Skip this step'].slice(0, 4)) as [string, string, string, string],
@@ -575,9 +658,11 @@ function createGeneric7SectionsForCourse(prod: Product): CourseModule[] {
       explanation: q.explanation || 'Review the section lesson summary for full context.',
     }))];
 
-    while (mergedQuestions.length < 3) {
-      const template = defaultQuestions[mergedQuestions.length % defaultQuestions.length];
+    let padIdx = 0;
+    while (mergedQuestions.length < 5) {
+      const template = defaultQuestions[padIdx % defaultQuestions.length];
       mergedQuestions.push(template);
+      padIdx += 1;
     }
 
     return {
@@ -588,12 +673,12 @@ function createGeneric7SectionsForCourse(prod: Product): CourseModule[] {
     };
   });
 
-  return buildModules(slugPrefix, blueprints);
+  return buildModules(slugPrefix, blueprints, existingMods);
 }
 
 /**
- * Guarantees every course has at least 7 full sections and at least 3 quiz
- * questions (80% passmark) per section.
+ * Guarantees every course has at least 7 full sections and at least 5 quiz
+ * questions per section, so an 80% passmark is achievable (4 correct / 5).
  */
 export function ensureFullCourseCurriculum(product: Product): Product {
   if (product.type !== 'course') return product;
@@ -601,7 +686,6 @@ export function ensureFullCourseCurriculum(product: Product): Product {
   if (product.id === 'prod-course-ai-agency') {
     return {
       ...product,
-      status: 'published',
       courseData: {
         ...(product.courseData ?? { totalHours: 14, modules: [] }),
         totalHours: Math.max(product.courseData?.totalHours ?? 14, 14),
@@ -617,18 +701,15 @@ export function ensureFullCourseCurriculum(product: Product): Product {
       (m) =>
         m.lectures.length < 2 ||
         !m.quiz ||
-        m.quiz.questions.length < 3 ||
+        m.quiz.questions.length < 5 ||
         (m.quiz.passingScore ?? 0) < 80
     );
 
-  if (!needsUpgrade) {
-    return product.status === 'published' ? product : { ...product, status: 'published' };
-  }
+  if (!needsUpgrade) return product;
 
   const upgradedModules = createGeneric7SectionsForCourse(product);
   return {
     ...product,
-    status: 'published',
     courseData: {
       ...(product.courseData ?? { totalHours: 12, modules: [] }),
       totalHours: Math.max(product.courseData?.totalHours ?? 10, 12),

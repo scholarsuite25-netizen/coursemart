@@ -180,6 +180,32 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
     toggleLectureComplete,
   ]);
 
+  const modules = product?.courseData?.modules ?? [];
+  const quizScoresByModule = progress?.quizScoresByModule;
+  const certificateEligibility = useMemo(() => {
+    if (!product) {
+      return { eligible: false, completionPercent: 0, unpassedQuizModules: [] as string[] };
+    }
+    return canIssueCourseCertificate(product, completedIds, quizScoresByModule);
+  }, [product, completedIds, quizScoresByModule]);
+
+  // Auto-open certificate modal ONLY when all sequential steps and 80%+ quizzes are passed
+  useEffect(() => {
+    if (product && certificateEligibility.eligible && !autoOpenedCert) {
+      if (!progress?.certificateCode) {
+        issueCourseCertificate(product.id);
+      }
+      setCertificateOpen(true);
+      setAutoOpenedCert(true);
+    }
+  }, [
+    product,
+    certificateEligibility.eligible,
+    autoOpenedCert,
+    progress?.certificateCode,
+    issueCourseCertificate,
+  ]);
+
   if (!product || !product.courseData) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-20 text-center">
@@ -228,32 +254,6 @@ export function CoursePlayerPage({ productId }: CoursePlayerPageProps) {
   const isCurrentCompleted = activeLecture ? completedIds.includes(activeLecture.id) : false;
   const activeTimestampedNotes =
     (activeLecture && progress?.timestampedNotesByLecture?.[activeLecture.id]) ?? [];
-
-  const modules = product?.courseData?.modules ?? [];
-  const quizScoresByModule = progress?.quizScoresByModule;
-  const certificateEligibility = useMemo(() => {
-    if (!product) {
-      return { eligible: false, completionPercent: 0, unpassedQuizModules: [] as string[] };
-    }
-    return canIssueCourseCertificate(product, completedIds, quizScoresByModule);
-  }, [product, completedIds, quizScoresByModule]);
-
-  // Auto-open certificate modal ONLY when all sequential steps and 80%+ quizzes are passed
-  useEffect(() => {
-    if (product && certificateEligibility.eligible && !autoOpenedCert) {
-      if (!progress?.certificateCode) {
-        issueCourseCertificate(product.id);
-      }
-      setCertificateOpen(true);
-      setAutoOpenedCert(true);
-    }
-  }, [
-    product,
-    certificateEligibility.eligible,
-    autoOpenedCert,
-    progress?.certificateCode,
-    issueCourseCertificate,
-  ]);
 
   const formatTimer = (sec: number) => {
     const mins = Math.floor(sec / 60);
@@ -542,8 +542,15 @@ ${timestampNotes.length > 0 ? `<ul>${timestampNotes.map((tn) => `<li><b>[${tn.ti
           return;
         }
       }
+      if (res.status === 403) {
+        // The server explicitly denied (e.g. download limit reached). Never
+        // bypass that decision with a client-generated file.
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        showToast(data.error || 'Download not permitted for this item.');
+        return;
+      }
     } catch {
-      // Fallback to client-side blob if offline or server route is unavailable
+      // Fallback to client-side blob only if offline / server route unavailable
     }
 
     const deliverableText = [

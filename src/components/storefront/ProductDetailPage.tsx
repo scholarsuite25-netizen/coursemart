@@ -1055,7 +1055,7 @@ export function ProductDetailPage({ slug }: ProductDetailPageProps) {
                             </div>
                             <p className="text-[11px] text-slate-600 mt-0.5">
                               {variant.format} · {variant.licenseType} · Up to{' '}
-                              {variant.downloadLimit} downloads
+                              {Math.min(variant.downloadLimit ?? 3, 3)} downloads
                             </p>
                           </button>
                         );

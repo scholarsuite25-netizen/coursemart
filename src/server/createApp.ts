@@ -3460,9 +3460,12 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
         isEntitled = true;
         entitlementReason = 'free_product';
       } else {
-        // 1. Check completed orders
+        // 1. Check completed orders. Pick the first order for this product that
+        // still has download quota, matching the client's order selection so a
+        // fresh purchase actually restores access on the gated route.
         const orders = await getEffectiveOrders();
-        const userOrder = orders.find(
+        const downloadLimit = Math.min(product.downloadLimit ?? 3, 3);
+        const matchingOrders = orders.filter(
           (o) =>
             o &&
             o.userId === userId &&
@@ -3470,10 +3473,12 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
             Array.isArray(o.items) &&
             o.items.some((item) => item.productId === productId)
         );
+        const userOrder =
+          matchingOrders.find((o) => (o.downloadCounts?.[productId] ?? 0) < downloadLimit) ??
+          matchingOrders[0];
 
         if (userOrder) {
           const downloadCount = userOrder.downloadCounts?.[productId] ?? 0;
-          const downloadLimit = Math.min(product.downloadLimit ?? 3, 3);
           if (downloadCount < downloadLimit) {
             isEntitled = true;
             entitlementReason = 'order_purchase';
@@ -3621,8 +3626,8 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
       if (userId && userId !== 'admin') {
         try {
           const orders = await getEffectiveOrders();
-
-          const order = orders.find(
+          const limit = Math.min(product.downloadLimit ?? 3, 3);
+          const matching = orders.filter(
             (o) =>
               o &&
               o.userId === userId &&
@@ -3630,6 +3635,8 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
               Array.isArray(o.items) &&
               o.items.some((item) => item.productId === product.id)
           );
+          const order =
+            matching.find((o) => (o.downloadCounts?.[product.id] ?? 0) < limit) ?? matching[0];
 
           if (order) {
             if (!order.downloadCounts) {

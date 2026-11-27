@@ -406,9 +406,6 @@ export const storageService = {
           item = { ...item, instructorAvatar: seedProduct.instructorAvatar };
         }
         if (seedProduct && seedProduct.type === 'course') {
-          if (item.status !== 'published') {
-            item = { ...item, status: 'published' };
-          }
           const cachedMods = item.courseData?.modules ?? [];
           const needsCurriculumUpgrade =
             cachedMods.length < 7 ||
@@ -416,13 +413,36 @@ export const storageService = {
               (m) =>
                 (m.lectures?.length ?? 0) < 2 ||
                 !m.quiz ||
-                (m.quiz.questions?.length ?? 0) < 3 ||
+                (m.quiz.questions?.length ?? 0) < 5 ||
                 (m.quiz.passingScore ?? 0) < 80
             );
           if (needsCurriculumUpgrade && seedProduct.courseData) {
+            // Preserve any valid cached IDs by position so student progress
+            // (completedLectureIds / quizScoresByModule) is not invalidated.
+            const preservedModules = (seedProduct.courseData.modules ?? []).map((newMod, mIdx) => {
+              const oldMod = cachedMods[mIdx];
+              return {
+                ...newMod,
+                id: oldMod?.id || newMod.id,
+                lectures: (newMod.lectures ?? []).map((lec, lIdx) => ({
+                  ...lec,
+                  id: oldMod?.lectures?.[lIdx]?.id || lec.id,
+                })),
+                quiz: newMod.quiz
+                  ? {
+                      ...newMod.quiz,
+                      id: oldMod?.quiz?.id || newMod.quiz.id,
+                      questions: (newMod.quiz.questions ?? []).map((q, qIdx) => ({
+                        ...q,
+                        id: oldMod?.quiz?.questions?.[qIdx]?.id || q.id,
+                      })),
+                    }
+                  : newMod.quiz,
+              };
+            });
             item = {
               ...item,
-              courseData: seedProduct.courseData,
+              courseData: { ...seedProduct.courseData, modules: preservedModules },
             };
           }
         }

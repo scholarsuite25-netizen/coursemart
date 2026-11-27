@@ -462,7 +462,7 @@ export function calculateBundlePrice(products: Product[], discountPercent: numbe
 
 export const CERTIFICATE_PASS_MARK = 80;
 export const MIN_COURSE_SECTIONS = 7;
-export const MIN_SECTION_QUIZ_QUESTIONS = 3;
+export const MIN_SECTION_QUIZ_QUESTIONS = 5;
 
 export function validateCourseCurriculum(modules: CourseModule[]): {
   valid: boolean;

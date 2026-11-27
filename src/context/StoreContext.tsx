@@ -951,29 +951,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Self-heal pending zero-total / 100%-coupon orders on load so affected
   // customers regain access automatically — no admin action required. For
   // all-access coupons the order items are expanded to the full published paid
-  // catalog. A specific test account (Kolade Erinle) has its pending orders
-  // cleared instead so he can re-run the VIPTEST checkout from a clean state.
+  // catalog. This NEVER touches orders that represent a real payment in flight
+  // (an order with a payment reference is left for the verifier to complete).
   useEffect(() => {
     if (!hydrated || typeof window === 'undefined') return;
     let changed = false;
-    const RETRY_EMAIL = 'kederinle@gmail.com';
     setOrders((prev) => {
       const next: Order[] = [];
       for (const o of prev) {
-        const email = (o.customerEmail || '').trim().toLowerCase();
-        const isRetryAccount = email === RETRY_EMAIL;
         const isZeroTotal = o.total === 0;
         const hasFullDiscountCoupon =
           typeof o.couponCode === 'string' &&
           ['VIPTEST', 'DWC100VIP'].includes(o.couponCode.trim().toUpperCase());
+        const hasPaymentReference = Boolean((o.paymentReference || '').trim());
 
-        // Clear this test user's pending orders so he can retry VIPTEST cleanly.
-        if (isRetryAccount && o.status === 'pending') {
-          changed = true;
-          continue;
-        }
-
-        if (o.status !== 'pending' || (!isZeroTotal && !hasFullDiscountCoupon)) {
+        if (o.status !== 'pending' || hasPaymentReference || (!isZeroTotal && !hasFullDiscountCoupon)) {
           next.push(o);
           continue;
         }
@@ -996,68 +988,88 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       return next;
     });
-    // One-time tester account reset for Kolade Erinle (kederinle@gmail.com) so he can
-    // test sequential course gating, 80% quiz passmark, randomized quiz options,
-    // 3-download limit, and affiliate form from a clean state.
-    const TESTER_RESET_KEY = 'dwc_tester_reset_kolade_2026_11_27_v1';
+    if (changed && typeof console !== 'undefined') {
+      console.info('🔧 Self-healed pending zero-total / 100%-coupon orders to completed.');
+    }
+  }, [hydrated, products]);
+
+  // ONE-TIME migration: students who completed modules under the legacy
+  // "mark complete" flow have all lectures done but no quiz score. Seed a
+  // passing score for those modules so the new sequential gating doesn't lock
+  // them out. This is data migration only — it never weakens gating for new
+  // progress (guarded by a one-time flag).
+  useEffect(() => {
+    if (!hydrated || typeof window === 'undefined') return;
+    const MIGRATION_KEY = 'dwc_legacy_quizscore_migration_v1';
     try {
-      if (localStorage.getItem(TESTER_RESET_KEY) !== 'done') {
-        const koladeIds = new Set(
-          usersRef.current
-            .filter(
-              (u) =>
-                (u.email || '').trim().toLowerCase() === RETRY_EMAIL ||
-                (u.name || '').trim().toLowerCase() === 'kolade erinle'
-            )
-            .map((u) => u.id)
-        );
-        const matchesKolade =
-          koladeIds.size > 0 ||
-          orders.some((o) => (o.customerEmail || '').trim().toLowerCase() === RETRY_EMAIL);
-
-        if (matchesKolade) {
-          // 1. Reset course progress, quiz scores & certificates
-          setProgressList((prev) => prev.filter((p) => !koladeIds.has(p.userId)));
-
-          // 2. Reset download counts on completed orders and clear pending orders
-          setOrders((prev) =>
-            prev
-              .filter(
-                (o) =>
-                  !(
-                    ((o.customerEmail || '').trim().toLowerCase() === RETRY_EMAIL ||
-                      koladeIds.has(o.userId)) &&
-                    o.status === 'pending'
-                  )
-              )
-              .map((o) =>
-                (o.customerEmail || '').trim().toLowerCase() === RETRY_EMAIL ||
-                koladeIds.has(o.userId)
-                  ? { ...o, downloadCounts: {} }
-                  : o
-              )
-          );
-
-          // 3. Reset affiliate profile so he can test the affiliate registration form afresh
-          setAffiliates((prev) =>
-            prev.filter((a) => !koladeIds.has(a.userId))
-          );
-
-          // 4. Reset popup dismissal flags for fresh testing
-          localStorage.removeItem('dwc_tripwire_dismissed');
-          localStorage.removeItem('dwc_exit_intent_dismissed');
-          localStorage.setItem(TESTER_RESET_KEY, 'done');
-        }
-      }
+      if (localStorage.getItem(MIGRATION_KEY) === 'done') return;
+      localStorage.setItem(MIGRATION_KEY, 'done');
+      const passRecord: ModuleQuizResult = {
+        scorePercent: 80,
+        passed: true,
+        correctCount: 4,
+        totalQuestions: 5,
+        completedAt: new Date().toISOString(),
+      };
+      setProgressList((prev) =>
+        prev.map((p) => {
+          const product = products.find((x) => x.id === p.productId);
+          const modules = product?.courseData?.modules ?? [];
+          const scores = { ...(p.quizScoresByModule ?? {}) };
+          let changed = false;
+          for (const mod of modules) {
+            if (!mod.quiz || mod.quiz.questions.length === 0 || scores[mod.id]) continue;
+            const allLecturesDone =
+              mod.lectures.length === 0 ||
+              mod.lectures.every((l) => p.completedLectureIds.includes(l.id));
+            if (allLecturesDone) {
+              scores[mod.id] = passRecord;
+              changed = true;
+            }
+          }
+          return changed ? { ...p, quizScoresByModule: scores } : p;
+        })
+      );
     } catch {
       // ignore storage errors
     }
-
-    // Note: the standard sync effect below will persist the healed statuses.
-    if (changed && typeof console !== 'undefined') {
-      console.info('🔧 Self-healed pending zero-total / 100%-coupon orders and cleared retry-account pending orders.');
-    }
   }, [hydrated, products]);
+
+  // ONE-TIME tester reset for Kolade Erinle (kederinle@gmail.com). Runs at most
+  // once per browser (flag written unconditionally after the first attempt),
+  // targets only his email, and never deletes orders that have a payment
+  // reference (a real Paystack payment must never be swallowed).
+  useEffect(() => {
+    if (!hydrated || typeof window === 'undefined') return;
+    const RESET_KEY = 'dwc_tester_reset_kolade_2026_11_27_v1';
+    const RETRY_EMAIL = 'kederinle@gmail.com';
+    try {
+      if (localStorage.getItem(RESET_KEY) === 'done') return;
+      // Mark done unconditionally so this can never re-run and wipe a later
+      // legitimate order. Do this even when his data has not loaded yet.
+      localStorage.setItem(RESET_KEY, 'done');
+
+      const matches = (o: Order) => (o.customerEmail || '').trim().toLowerCase() === RETRY_EMAIL;
+      const koladeIds = new Set(
+        usersRef.current
+          .filter((u) => (u.email || '').trim().toLowerCase() === RETRY_EMAIL)
+          .map((u) => u.id)
+      );
+      const isKolade = (o: Order) => matches(o) || koladeIds.has(o.userId);
+
+      // Clear progress/quiz scores and download counters. Remove only pending
+      // orders WITHOUT a payment reference (no real payment in flight).
+      setProgressList((prev) => prev.filter((p) => !koladeIds.has(p.userId)));
+      setOrders((prev) =>
+        prev
+          .filter((o) => !(isKolade(o) && o.status === 'pending' && !(o.paymentReference || '').trim()))
+          .map((o) => (isKolade(o) ? { ...o, downloadCounts: {} } : o))
+      );
+      setAffiliates((prev) => prev.filter((a) => !koladeIds.has(a.userId)));
+    } catch {
+      // ignore storage errors
+    }
+  }, [hydrated]);
 
   const applyVerifiedPaystackReference = useCallback((verifiedRef: string) => {
     let matchedOrder: Order | undefined;
@@ -2465,15 +2477,25 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             },
           ];
         }
-        return prev.map((p) =>
-          p.userId === currentUser.id && p.productId === productId
-            ? {
-                ...p,
-                quizScoresByModule: { ...(p.quizScoresByModule ?? {}), [moduleId]: result },
-                updatedAt: now,
-              }
-            : p
-        );
+        return prev.map((p) => {
+          if (p.userId !== currentUser.id || p.productId !== productId) return p;
+          const existingScore = p.quizScoresByModule?.[moduleId];
+          // Keep the best result: a previously passed score must never be
+          // downgraded by a later failed retry (which would re-lock sections).
+          const shouldKeepExisting = Boolean(
+            existingScore &&
+              (existingScore.passed && !result.passed ||
+                existingScore.scorePercent > result.scorePercent)
+          );
+          return {
+            ...p,
+            quizScoresByModule: {
+              ...(p.quizScoresByModule ?? {}),
+              [moduleId]: shouldKeepExisting ? existingScore! : result,
+            },
+            updatedAt: now,
+          };
+        });
       });
       showToast(
         result.passed
