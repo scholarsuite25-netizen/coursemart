@@ -220,7 +220,7 @@ export function LoginPage({ mode }: LoginPageProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ops@company.com"
-                  className="w-full h-10 px-3 text-sm bg-white border border-[#8c8f94] rounded-sm focus:outline-none focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
+                  className="w-full h-10 px-3 text-sm bg-white text-slate-900 placeholder:text-slate-400 caret-slate-900 border border-[#8c8f94] rounded-sm focus:outline-none focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
                 />
                 {fieldErrors.email && (
                   <p className="text-xs text-rose-700 mt-1">{fieldErrors.email}</p>
@@ -240,7 +240,7 @@ export function LoginPage({ mode }: LoginPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-10 px-3 text-sm bg-white border border-[#8c8f94] rounded-sm focus:outline-none focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
+                  className="w-full h-10 px-3 text-sm bg-white text-slate-900 placeholder:text-slate-400 caret-slate-900 border border-[#8c8f94] rounded-sm focus:outline-none focus:border-[#2271b1] focus:ring-1 focus:ring-[#2271b1]"
                 />
                 {fieldErrors.password && (
                   <p className="text-xs text-rose-700 mt-1">{fieldErrors.password}</p>
@@ -373,7 +373,7 @@ export function LoginPage({ mode }: LoginPageProps) {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="123456"
-                  className="w-full h-12 px-3 text-center text-2xl font-mono tracking-widest font-bold border border-slate-300 rounded-md focus:outline-none focus:border-[#d4af37]"
+                  className="w-full h-12 px-3 text-center text-2xl font-mono tracking-widest font-bold bg-white text-slate-900 placeholder:text-slate-400 caret-slate-900 border border-slate-300 rounded-md focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
 
@@ -438,7 +438,7 @@ export function LoginPage({ mode }: LoginPageProps) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Jordan Takahashi"
-                      className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                      className="w-full h-10 px-3 text-sm bg-white text-slate-900 placeholder:text-slate-400 caret-slate-900 border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
                     />
                     {fieldErrors.name && (
                       <p className="text-xs text-rose-700 mt-1">{fieldErrors.name}</p>
@@ -487,7 +487,7 @@ export function LoginPage({ mode }: LoginPageProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="member@digitalwealthcreators.ng"
-                  className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                  className="w-full h-10 px-3 text-sm bg-white text-slate-900 placeholder:text-slate-400 caret-slate-900 border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
                 />
                 {fieldErrors.email && (
                   <p className="text-xs text-rose-700 mt-1">{fieldErrors.email}</p>
@@ -504,7 +504,7 @@ export function LoginPage({ mode }: LoginPageProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 6 characters"
-                  className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
+                  className="w-full h-10 px-3 text-sm bg-white text-slate-900 placeholder:text-slate-400 caret-slate-900 border border-slate-300 rounded-md focus:outline-none focus:border-slate-900"
                 />
                 {fieldErrors.password && (
                   <p className="text-xs text-rose-700 mt-1">{fieldErrors.password}</p>

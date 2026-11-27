@@ -27,12 +27,23 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Keep form controls rendering with an explicit light scheme so typed text
-     is always visible. Tailwind text/bg utilities still win; this only stops
-     the native control from forcing dark backgrounds/auto-fill text colors. */
+  /* Keep form controls rendering with an explicit light scheme and dark text
+     default so typed text is always visible even when html.dark sets a light
+     body text color. Tailwind text/bg utilities in @layer utilities still win. */
   input, textarea, select {
     color-scheme: light;
+    color: #0f172a;
     -webkit-text-fill-color: currentColor;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: #0f172a;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+    transition: background-color 5000s ease-in-out 0s;
   }
 
   html.dark {
