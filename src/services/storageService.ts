@@ -395,6 +395,24 @@ export const storageService = {
         if (seedProduct && p.id === 'prod-ebook-enquiry-to-customer') {
           item = { ...seedProduct, status: effectiveStatus };
         }
+        if (seedProduct && seedProduct.type === 'course') {
+          const cachedMods = item.courseData?.modules ?? [];
+          const needsCurriculumUpgrade =
+            cachedMods.length < 7 ||
+            cachedMods.some(
+              (m) =>
+                (m.lectures?.length ?? 0) < 2 ||
+                !m.quiz ||
+                (m.quiz.questions?.length ?? 0) < 3 ||
+                (m.quiz.passingScore ?? 0) < 80
+            );
+          if (needsCurriculumUpgrade && seedProduct.courseData) {
+            item = {
+              ...item,
+              courseData: seedProduct.courseData,
+            };
+          }
+        }
         if (item && item.includedInMembershipTier && ['starter', 'pro', 'vip', 'enterprise'].includes(item.includedInMembershipTier as string)) {
           return {
             ...item,

@@ -18,7 +18,7 @@ import type {
   ProductType,
 } from '../../types/marketplace';
 import { ALL_PRODUCT_TOPICS, DIGITAL_SUBMENU_ITEMS } from '../../utils/catalogAndBlogs';
-import { migrateLegacyTier } from '../../utils/commerce';
+import { migrateLegacyTier, validateCourseCurriculum } from '../../utils/commerce';
 import { formatNaira } from '../../utils/currency';
 import { getProviderLabel, resolveDownloadUrl, resolveMediaUrl } from '../../utils/mediaResolver';
 import { generateProductCoverDataUri } from '../../utils/coverGenerator';
@@ -227,15 +227,35 @@ export function ProductEditorModal({
             passingScore: 80,
             questions: [
               {
-                id: `q-${Date.now()}`,
-                prompt: 'What is the primary architectural takeaway from this module?',
+                id: `q-${Date.now()}-1`,
+                prompt: 'What is the primary architectural takeaway from this section?',
                 options: [
-                  'Enforce clear module boundaries and validation contracts',
                   'Skip automated checks before deployment',
+                  'Enforce clear module boundaries and validation contracts',
                   'Couple UI markup directly to database queries',
+                  'Ignore customer edge cases',
+                ],
+                correctIndex: 1,
+                explanation: 'Clear domain boundaries and validation contracts keep systems maintainable.',
+              },
+              {
+                id: `q-${Date.now()}-2`,
+                prompt: 'Which practice ensures consistent results when applying this section?',
+                options: [
+                  'Documenting checklists and verifying outputs before advancing',
+                  'Relying on guesswork without testing',
+                  'Skipping error handling',
+                  'Hardcoding secret keys in client code',
                 ],
                 correctIndex: 0,
-                explanation: 'Clear domain boundaries and validation contracts keep systems maintainable.',
+                explanation: 'Checklist verification prevents regressions and reinforces mastery.',
+              },
+              {
+                id: `q-${Date.now()}-3`,
+                prompt: 'What passmark is required on each section quiz to earn the course certificate?',
+                options: ['50%', '60%', '80%', '40%'],
+                correctIndex: 2,
+                explanation: 'All section quizzes require at least an 80% passmark for certification.',
               },
             ],
           },
@@ -270,6 +290,14 @@ export function ProductEditorModal({
     if (Number.isNaN(parsedPrice) || parsedPrice < 0) {
       setError('Enter a valid non-negative price.');
       return;
+    }
+
+    if (type === 'course') {
+      const curriculumValidation = validateCourseCurriculum(modules);
+      if (!curriculumValidation.valid) {
+        setError(curriculumValidation.errors[0]);
+        return;
+      }
     }
 
     const slug =

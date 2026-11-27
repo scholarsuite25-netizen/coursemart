@@ -461,6 +461,41 @@ export function calculateBundlePrice(products: Product[], discountPercent: numbe
 }
 
 export const CERTIFICATE_PASS_MARK = 80;
+export const MIN_COURSE_SECTIONS = 7;
+export const MIN_SECTION_QUIZ_QUESTIONS = 3;
+
+export function validateCourseCurriculum(modules: CourseModule[]): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+  if (!Array.isArray(modules) || modules.length < MIN_COURSE_SECTIONS) {
+    errors.push(
+      `Course must have at least ${MIN_COURSE_SECTIONS} full sections (currently ${modules?.length ?? 0}).`
+    );
+    return { valid: false, errors };
+  }
+
+  modules.forEach((mod, idx) => {
+    const label = mod.title?.trim() || `Section ${idx + 1}`;
+    if (!mod.lectures || mod.lectures.length < 2) {
+      errors.push(`${label} must contain at least 2 full lessons to cover the subject area.`);
+    }
+    const questions = mod.quiz?.questions ?? [];
+    if (!mod.quiz || questions.length < MIN_SECTION_QUIZ_QUESTIONS) {
+      errors.push(
+        `${label} must include at least ${MIN_SECTION_QUIZ_QUESTIONS} quiz questions (currently ${questions.length}).`
+      );
+    }
+    if (mod.quiz && (mod.quiz.passingScore ?? 0) < CERTIFICATE_PASS_MARK) {
+      errors.push(
+        `${label} quiz passmark must be at least ${CERTIFICATE_PASS_MARK}%.`
+      );
+    }
+  });
+
+  return { valid: errors.length === 0, errors };
+}
 
 export function gradeModuleQuiz(
   questions: Array<{ id: string; correctIndex: number }>,

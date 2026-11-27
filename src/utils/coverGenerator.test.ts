@@ -7,11 +7,14 @@ import {
 } from './coverGenerator.ts';
 import {
   CERTIFICATE_PASS_MARK,
+  MIN_COURSE_SECTIONS,
+  MIN_SECTION_QUIZ_QUESTIONS,
   canIssueCourseCertificate,
   gradeModuleQuiz,
   isLectureUnlocked,
   isModuleUnlocked,
   shuffleQuestionOptionIndices,
+  validateCourseCurriculum,
 } from './commerce.ts';
 
 test('generateProductCoverSvg creates distinct labelled covers for ebooks, courses, and software', () => {
@@ -121,4 +124,32 @@ test('shuffleQuestionOptionIndices returns a valid permutation of option indices
   const perm = shuffleQuestionOptionIndices(4);
   assert.equal(perm.length, 4);
   assert.deepEqual([...perm].sort((a, b) => a - b), [0, 1, 2, 3]);
+});
+
+test('Every course in SEED_PRODUCTS has at least 7 full sections and 3+ quiz questions (80% passmark) per section', () => {
+  const courses = SEED_PRODUCTS.filter((p) => p.type === 'course');
+  assert.ok(courses.length >= 12);
+  for (const course of courses) {
+    const modules = course.courseData?.modules ?? [];
+    assert.ok(
+      modules.length >= MIN_COURSE_SECTIONS,
+      `${course.id} has ${modules.length} sections (< ${MIN_COURSE_SECTIONS})`
+    );
+    const validation = validateCourseCurriculum(modules);
+    assert.equal(
+      validation.valid,
+      true,
+      `Course ${course.id} failed curriculum validation: ${validation.errors.join('; ')}`
+    );
+    for (const mod of modules) {
+      assert.ok(
+        (mod.quiz?.questions.length ?? 0) >= MIN_SECTION_QUIZ_QUESTIONS,
+        `${course.id} / ${mod.id} has fewer than ${MIN_SECTION_QUIZ_QUESTIONS} quiz questions`
+      );
+      assert.ok(
+        (mod.quiz?.passingScore ?? 0) >= 80,
+        `${course.id} / ${mod.id} has passmark < 80%`
+      );
+    }
+  }
 });

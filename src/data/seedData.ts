@@ -36,6 +36,7 @@ import {
   INSTRUCTOR_CHIOMA,
 } from './realWealthContent.ts';
 import { generateProductCoverDataUri } from '../utils/coverGenerator';
+import { ensureFullCourseCurriculum } from './fullCourseCurricula.ts';
 
 export const HERO_BANNER_IMAGE =
   '/src/assets/images/hero_learning_workspace_1794890414767.jpg';
@@ -134,7 +135,7 @@ export const SEED_USERS: UserAccount[] = [
   },
 ];
 
-export const SEED_PRODUCTS: Product[] = [
+const RAW_SEED_PRODUCTS: Product[] = [
   ...REAL_WEALTH_PRODUCTS,
   {
     id: 'prod-group-membership',
@@ -1760,6 +1761,8 @@ export const SEED_PRODUCTS: Product[] = [
     },
   },
 ];
+
+export const SEED_PRODUCTS: Product[] = RAW_SEED_PRODUCTS.map(ensureFullCourseCurriculum);
 
 export const SEED_BLOG_POSTS: BlogPost[] = [
   ...REAL_WEALTH_BLOGS,
