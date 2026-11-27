@@ -254,7 +254,7 @@ export function ProductEditorModal({
         format: 'PDF + Source Archive',
         priceDelta: prev.length === 0 ? 0 : 25000,
         licenseType: prev.length === 0 ? 'Personal' : 'Team',
-        downloadLimit: prev.length === 0 ? 15 : 50,
+        downloadLimit: 3,
       },
     ]);
   };

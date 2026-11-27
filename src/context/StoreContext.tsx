@@ -2022,10 +2022,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (orderId: string, productId: string) => {
       const targetOrder = orders.find((o) => o.id === orderId);
       const product = products.find((p) => p.id === productId);
-      const limit = product?.downloadLimit ?? 25;
+      const limit = Math.min(product?.downloadLimit ?? 3, 3);
       const currentCount = targetOrder?.downloadCounts?.[productId] ?? 0;
       if (currentCount >= limit) {
-        showToast(`Download limit (${limit}) reached for this edition`);
+        showToast(`Maximum ${limit} downloads reached for this item. Please purchase afresh for a new download link.`);
         return { ok: false, count: currentCount };
       }
       const nextCount = currentCount + 1;

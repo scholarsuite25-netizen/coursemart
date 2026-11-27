@@ -3473,14 +3473,15 @@ Include 3 to 6 dynamic bracketed variables like {{variable_name}} for customizat
 
         if (userOrder) {
           const downloadCount = userOrder.downloadCounts?.[productId] ?? 0;
-          const downloadLimit = product.downloadLimit ?? 25;
+          const downloadLimit = Math.min(product.downloadLimit ?? 3, 3);
           if (downloadCount < downloadLimit) {
             isEntitled = true;
             entitlementReason = 'order_purchase';
           } else {
             res.status(403).json({
               ok: false,
-              error: `Download limit of ${downloadLimit} exceeded for this purchased product. Contact support to request a reset.`,
+              paymentUrl: `/product/${product.slug}`,
+              error: `Maximum download limit of ${downloadLimit} reached for this item. Please complete a fresh purchase at /product/${product.slug} to unlock new downloads.`,
             });
             return;
           }

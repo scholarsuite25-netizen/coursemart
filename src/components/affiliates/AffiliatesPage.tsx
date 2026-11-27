@@ -219,7 +219,7 @@ export function AffiliatesPage() {
                     value={fullNameInput}
                     onChange={(e) => setFullNameInput(e.target.value)}
                     placeholder="e.g. Samuel Babatunde Omotoso"
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -233,7 +233,7 @@ export function AffiliatesPage() {
                     value={stateCityInput}
                     onChange={(e) => setStateCityInput(e.target.value)}
                     placeholder="e.g. Abeokuta, Ogun State"
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -250,7 +250,7 @@ export function AffiliatesPage() {
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(e.target.value)}
                     placeholder="e.g. +234 803 123 4567"
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -264,7 +264,7 @@ export function AffiliatesPage() {
                     value={whatsappInput}
                     onChange={(e) => setWhatsappInput(e.target.value)}
                     placeholder="e.g. +234 803 123 4567"
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -279,7 +279,7 @@ export function AffiliatesPage() {
                     id="aff-channel"
                     value={promotionChannel}
                     onChange={(e) => setPromotionChannel(e.target.value)}
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                   >
                     <option value="WhatsApp Groups & Communities">WhatsApp Groups & Communities</option>
                     <option value="Social Media (Facebook/Instagram/X)">Social Media (Facebook/Instagram/X)</option>
@@ -299,7 +299,7 @@ export function AffiliatesPage() {
                     value={audienceDesc}
                     onChange={(e) => setAudienceDesc(e.target.value)}
                     placeholder="e.g. 5,000 WhatsApp group members or Twitter handle"
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                   />
                 </div>
               </div>
@@ -313,7 +313,7 @@ export function AffiliatesPage() {
                     id="aff-idtype"
                     value={idType}
                     onChange={(e) => setIdType(e.target.value)}
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                   >
                     <option value="National ID (NIN)">National ID (NIN)</option>
                     <option value="Voter's Card (VIN)">Voter's Card (VIN)</option>
@@ -331,7 +331,7 @@ export function AffiliatesPage() {
                     value={idNumber}
                     onChange={(e) => setIdNumber(e.target.value)}
                     placeholder="e.g. 12345678901"
-                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                     required
                   />
                 </div>
@@ -352,7 +352,7 @@ export function AffiliatesPage() {
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
                       placeholder="e.g. GTBank, Zenith, Kuda"
-                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                       required
                     />
                   </div>
@@ -367,7 +367,7 @@ export function AffiliatesPage() {
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
                       placeholder="0123456789"
-                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white font-mono tabular-nums"
+                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400 font-mono tabular-nums"
                       required
                     />
                   </div>
@@ -381,7 +381,7 @@ export function AffiliatesPage() {
                       value={accountName}
                       onChange={(e) => setAccountName(e.target.value)}
                       placeholder="Name as registered on account"
-                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
+                      className="w-full h-10 px-3 text-xs sm:text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                       required
                     />
                   </div>
@@ -517,7 +517,7 @@ export function AffiliatesPage() {
                     id="aff-target-offer"
                     value={selectedProductSlug}
                     onChange={(e) => setSelectedProductSlug(e.target.value)}
-                    className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md bg-white"
+                    className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                   >
                     <option value="home">Storefront Homepage (All Offers)</option>
                     <option value="membership">Tiered Membership Plans</option>
@@ -604,7 +604,7 @@ export function AffiliatesPage() {
                       value={withdrawAmount}
                       onChange={(e) => setWithdrawAmount(e.target.value)}
                       placeholder={String(Math.round(summary.availableBalance))}
-                      className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md tabular-nums"
+                      className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400 tabular-nums"
                       required
                     />
                   </div>
@@ -620,7 +620,7 @@ export function AffiliatesPage() {
                       type="text"
                       value={withdrawBank || currentUserAffiliate.bankDetails}
                       onChange={(e) => setWithdrawBank(e.target.value)}
-                      className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md"
+                      className="w-full h-10 px-3 text-sm border border-slate-300 rounded-md bg-white text-slate-900 placeholder:text-slate-400"
                       required
                     />
                   </div>

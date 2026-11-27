@@ -36,7 +36,19 @@
     color-scheme: light;
     background-color: #ffffff;
     color: #0f172a;
+    caret-color: #0f172a;
     -webkit-text-fill-color: currentColor;
+  }
+
+  input:not([class*="dark:bg-"])::placeholder,
+  textarea:not([class*="dark:bg-"])::placeholder {
+    color: #64748b;
+    opacity: 1;
+  }
+
+  select option {
+    background-color: #ffffff;
+    color: #0f172a;
   }
 
   input:not([class*="dark:bg-"]):-webkit-autofill,

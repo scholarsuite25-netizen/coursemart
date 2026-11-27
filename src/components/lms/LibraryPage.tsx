@@ -66,6 +66,8 @@ export function LibraryPage() {
     activeMembershipPlan,
     isUnlockedByMembership,
     recordProductDownload,
+    addToCart,
+    setIsCartOpen,
     requestOrderRefund,
     verifyPaystackReference,
     updateNewsletterPreference,
@@ -223,11 +225,30 @@ export function LibraryPage() {
     return true;
   });
 
-  const findCompletedOrderForProduct = (productId: string) =>
-    userOrders.find(
+  const MAX_DOWNLOADS_PER_ITEM = 3;
+
+  const findCompletedOrderForProduct = (productId: string) => {
+    const prod = products.find((p) => p.id === productId);
+    const limit = Math.min(prod?.downloadLimit ?? MAX_DOWNLOADS_PER_ITEM, MAX_DOWNLOADS_PER_ITEM);
+    const matching = userOrders.filter(
       (o) =>
         o.status === 'completed' && o.items.some((item) => item.productId === productId)
     );
+    // Prefer an active order with remaining downloads (< 3); otherwise return the latest order
+    return (
+      matching.find((o) => (o.downloadCounts?.[productId] ?? 0) < limit) ||
+      matching[matching.length - 1]
+    );
+  };
+
+  const handleReferFreshPayment = (prod: Product) => {
+    addToCart(prod);
+    setIsCartOpen(true);
+    navigate(`/product/${prod.slug}`);
+    showToast(
+      `Maximum ${MAX_DOWNLOADS_PER_ITEM} downloads reached for "${prod.title}". Please complete a fresh payment to unlock new downloads.`
+    );
+  };
 
   const handleCopyKey = (key: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -251,7 +272,10 @@ export function LibraryPage() {
     const matchedOrder = findCompletedOrderForProduct(prod.id);
     if (matchedOrder) {
       const check = recordProductDownload(matchedOrder.id, prod.id);
-      if (!check.ok) return;
+      if (!check.ok) {
+        handleReferFreshPayment(prod);
+        return;
+      }
     }
 
     const targetUrl =
@@ -340,7 +364,10 @@ export function LibraryPage() {
     const matchedOrder = findCompletedOrderForProduct(prod.id);
     if (matchedOrder) {
       const check = recordProductDownload(matchedOrder.id, prod.id);
-      if (!check.ok) return;
+      if (!check.ok) {
+        handleReferFreshPayment(prod);
+        return;
+      }
     }
 
     const targetUrl = prod.downloadUrl || prod.softwareData?.downloadUrl;
@@ -1041,7 +1068,8 @@ export function LibraryPage() {
                     const pct = courseSummary?.percent ?? 0;
                     const orderMatch = findCompletedOrderForProduct(prod.id);
                     const dlUsed = orderMatch?.downloadCounts?.[prod.id] ?? 0;
-                    const dlLimit = prod.downloadLimit ?? 25;
+                    const dlLimit = Math.min(prod.downloadLimit ?? MAX_DOWNLOADS_PER_ITEM, MAX_DOWNLOADS_PER_ITEM);
+                    const downloadLimitReached = Boolean(orderMatch && dlUsed >= dlLimit);
 
                     return (
                       <article
@@ -1144,21 +1172,29 @@ export function LibraryPage() {
                               )}
                               <button
                                 type="button"
-                                onClick={() => handleDownloadEbook(prod)}
+                                onClick={() =>
+                                  downloadLimitReached
+                                    ? handleReferFreshPayment(prod)
+                                    : handleDownloadEbook(prod)
+                                }
                                 className={`py-2.5 px-3 text-xs font-bold rounded-md inline-flex items-center justify-center gap-1.5 cursor-pointer ${
-                                  prod.ebookData
-                                    ? 'text-slate-900 border border-slate-300 hover:bg-slate-50'
-                                    : `text-white ${accent.primaryBg} ${accent.primaryHoverBg}`
+                                  downloadLimitReached
+                                    ? 'bg-amber-500 text-[#0a192f] hover:bg-amber-400'
+                                    : prod.ebookData
+                                      ? 'text-slate-900 border border-slate-300 hover:bg-slate-50'
+                                      : `text-white ${accent.primaryBg} ${accent.primaryHoverBg}`
                                 }`}
                               >
                                 <Download className="w-3.5 h-3.5" />
                                 <span>
-                                  {prod.ebookData
-                                    ? 'Download PDF Book'
-                                    : `Download ${formatProductTypeLabel(
-                                        prod.type,
-                                        prod.digitalSubType
-                                      )}`}
+                                  {downloadLimitReached
+                                    ? `Pay Afresh (${dlUsed}/${dlLimit})`
+                                    : prod.ebookData
+                                      ? 'Download PDF Book'
+                                      : `Download ${formatProductTypeLabel(
+                                          prod.type,
+                                          prod.digitalSubType
+                                        )}`}
                                 </span>
                               </button>
                             </div>
@@ -1167,12 +1203,22 @@ export function LibraryPage() {
                           {prod.type === 'software' && (
                             <button
                               type="button"
-                              onClick={() => handleDownloadSoftware(prod)}
-                              className="w-full py-2.5 px-4 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-md inline-flex items-center justify-center gap-2 cursor-pointer"
+                              onClick={() =>
+                                downloadLimitReached
+                                  ? handleReferFreshPayment(prod)
+                                  : handleDownloadSoftware(prod)
+                              }
+                              className={`w-full py-2.5 px-4 text-xs font-bold rounded-md inline-flex items-center justify-center gap-2 cursor-pointer ${
+                                downloadLimitReached
+                                  ? 'bg-amber-500 text-[#0a192f] hover:bg-amber-400'
+                                  : 'text-white bg-slate-900 hover:bg-slate-800'
+                              }`}
                             >
                               <Code2 className="w-4 h-4" />
                               <span>
-                                Download v{prod.softwareData?.version ?? '1.0'} Package
+                                {downloadLimitReached
+                                  ? `Pay Afresh (${dlUsed}/${dlLimit} Limit Reached)`
+                                  : `Download v${prod.softwareData?.version ?? '1.0'} Package`}
                               </span>
                             </button>
                           )}
