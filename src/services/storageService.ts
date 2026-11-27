@@ -396,6 +396,9 @@ export const storageService = {
           item = { ...seedProduct, status: effectiveStatus };
         }
         if (seedProduct && seedProduct.type === 'course') {
+          if (item.status !== 'published') {
+            item = { ...item, status: 'published' };
+          }
           const cachedMods = item.courseData?.modules ?? [];
           const needsCurriculumUpgrade =
             cachedMods.length < 7 ||

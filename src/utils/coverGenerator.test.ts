@@ -130,6 +130,7 @@ test('Every course in SEED_PRODUCTS has at least 7 full sections and 3+ quiz que
   const courses = SEED_PRODUCTS.filter((p) => p.type === 'course');
   assert.ok(courses.length >= 12);
   for (const course of courses) {
+    assert.equal(course.status, 'published', `Course ${course.id} must be published`);
     const modules = course.courseData?.modules ?? [];
     assert.ok(
       modules.length >= MIN_COURSE_SECTIONS,

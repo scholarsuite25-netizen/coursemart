@@ -601,6 +601,7 @@ export function ensureFullCourseCurriculum(product: Product): Product {
   if (product.id === 'prod-course-ai-agency') {
     return {
       ...product,
+      status: 'published',
       courseData: {
         ...(product.courseData ?? { totalHours: 14, modules: [] }),
         totalHours: Math.max(product.courseData?.totalHours ?? 14, 14),
@@ -620,11 +621,14 @@ export function ensureFullCourseCurriculum(product: Product): Product {
         (m.quiz.passingScore ?? 0) < 80
     );
 
-  if (!needsUpgrade) return product;
+  if (!needsUpgrade) {
+    return product.status === 'published' ? product : { ...product, status: 'published' };
+  }
 
   const upgradedModules = createGeneric7SectionsForCourse(product);
   return {
     ...product,
+    status: 'published',
     courseData: {
       ...(product.courseData ?? { totalHours: 12, modules: [] }),
       totalHours: Math.max(product.courseData?.totalHours ?? 10, 12),
